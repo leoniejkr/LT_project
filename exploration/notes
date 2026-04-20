@@ -1,0 +1,9 @@
+
+
+Open-A1: 23.826 Cases (Hauptdatensatz)
+Open-R1: 51.524 Cases (Radiologie-Reports)
+Open-A1_SCCM_VIRUS: 2.594 Cases (ICU/kritische COVID-Patienten)
+
+
+und nice felder:
+covid19_positive, icu_indicator, ventilator_indicator, sex, age_at_index, race
