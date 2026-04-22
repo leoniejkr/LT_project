@@ -12,7 +12,7 @@ cred = "credentials.json"  # pfad zu deinen MIDRC credentials
 df = pd.read_csv("data/cohort_balanced.csv")
 
 
-n = len(df)/2  # für balanced data
+n = int(len(df)/2)  # für balanced data
 # n = 10 # für kleinen test
 
 
