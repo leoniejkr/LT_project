@@ -37,7 +37,7 @@ df_chest = df_merged[
 # BALANCIERTE KOHORTE: je 500 COVID+ und COVID-
 # (klein genug zum Testen, groß genug zum Trainieren)
 # ------------------------------------------------------------------ #
-N = 500  # pro Klasse – kannst du später erhöhen
+N = 50  # pro Klasse – kannst du später erhöhen
 
 df_pos = df_chest[df_chest["covid19_positive"] == "Yes"].sample(n=N, random_state=42)
 df_neg = df_chest[df_chest["covid19_positive"] == "No"].sample(n=N, random_state=42)
