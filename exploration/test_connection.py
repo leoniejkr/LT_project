@@ -3,6 +3,7 @@ import os
 from gen3.auth import Gen3Auth
 from gen3.submission import Gen3Submission
 from gen3.query import Gen3Query
+import io
 
 api = "https://data.midrc.org"
 cred = "credentials.json"  
@@ -38,3 +39,28 @@ for project in ["Open-A1", "Open-R1", "Open-A1_SCCM_VIRUS", "Open-A1_PETAL_REDCO
         print(df.columns.tolist())
     except Exception as e:
         print(f"{project}: {e}")
+
+
+# Pull the nodes that actually have findings
+report_raw = sub.export_node("Open", "A1", "radiology_report", "tsv")
+annot_raw  = sub.export_node("Open", "A1", "annotation", "tsv")
+cond_raw   = sub.export_node("Open", "A1", "condition", "tsv")
+obs_raw    = sub.export_node("Open", "A1", "observation", "tsv")
+
+df_report = pd.read_csv(io.StringIO(report_raw), sep="\t")
+df_annot  = pd.read_csv(io.StringIO(annot_raw),  sep="\t")
+df_cond   = pd.read_csv(io.StringIO(cond_raw),   sep="\t")
+df_obs    = pd.read_csv(io.StringIO(obs_raw),    sep="\t")
+
+# See what's in there
+print(df_report.columns.tolist())
+print(df_annot.columns.tolist())
+print(df_cond.columns.tolist())
+print(df_obs.columns.tolist())
+
+print(df_obs["observation_name"].value_counts().head(20))
+print(df_obs["observation_answer"].value_counts().head(20))
+
+# And a sample of values
+print(df_report.head(3))
+print(df_cond["condition_name"].value_counts().head(20) if "condition_name" in df_cond.columns else df_cond.head(3))
