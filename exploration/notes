@@ -3,7 +3,7 @@
 how to?
 
 0.1) test_connection
-1) build_cohort.py OR build_balanced_cohort.py          to get data (==> csv and manifest.json)
+1) build_multilabel_cohort.py          to get data (==> csv and manifest.json)
 1.1) test_check_cohort
 2) data_download        to get image data via dicom
 3) data_show            to look at data
@@ -19,5 +19,8 @@ Open-A1_SCCM_VIRUS: 2.594 Cases (ICU/kritische COVID-Patienten)
 
 und nice felder:
 covid19_positive, icu_indicator, ventilator_indicator, sex, age_at_index, race
+
+
+
 
 
