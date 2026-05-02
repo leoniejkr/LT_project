@@ -19,6 +19,9 @@ services:
       - "5000:5000"
     volumes:
       - ./data:/app/data
+    environment:
+      - USE_MOCK=true
+
   
   # go backend in docker container, damit alle die genau selbe go version haben
   # mit genau den selben dependecies usw. 
