@@ -13,3 +13,25 @@ website quatsch
 - html
     --> gucken wie mit domain wir es machen
     
+
+
+#### Erstellung der lokalen Python Umgebung
+ python -m venv C:\Users\marin\Documents\Uni\Master\4\Projekt_Lang_Tech\LT_project\                                                                                     
+#### Docker Umgebung auf Windows starten und für Projekt vorbereiten
+- Zuerst die WSL ausführen mit dem "wsl" Befehl und in das root Verzeichnis des Projekts navigieren
+- "Devcontainer Extention" für VSCode herunter laden
+- ``sudo systemctl start docker``
+- ``docker compose build`` (Auch bei jeder Änderung der requirements.txt, package.json oder go.mod/go.sum ausführen)
+- ``docker compose up``
+
+#### Docker Volumes (und damit ganze "Daten") löschen
+Gut wenn man grundlegendere Änderungen im Code gemacht hat und diese in den Containern wiederspiegeln lassen möchte
+- ``docker compose down -v``
+
+
+#### Setup des Frontends
+- nvm Node.js Package manager downloaden
+- ``nvm install 24.15``
+- npm (JS Package Manager) sind automatisch mitinstalliert 
+
+

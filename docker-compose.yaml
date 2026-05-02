@@ -1,0 +1,55 @@
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: medical_db
+    ports:
+      - "5432:5432"
+
+
+  # Python LLM mock, damit wir in frontend und backend arbeiten können
+  # auch wenn unser ml model noch nicht vollständig trainiert ist
+  # die idee ist, dass random einfach irgendwelche med. bilder oder metadaten rausgeschmissen werden
+  # damit wir so tun können, als wären das echte daten
+  modelling:
+    build: ./modelling
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+  
+  # go backend in docker container, damit alle die genau selbe go version haben
+  # mit genau den selben dependecies usw. 
+  backend:
+    build: 
+      context: ./backend
+      target: dev #für air
+    volumes:
+      - ./backend:/app
+    ports:
+      - "4000:4000"
+    command: air -c air.toml #für air
+    depends_on:
+      db:
+        condition: service_started
+      modelling:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/medical_db
+      MODELLING_URL: http://modelling:5000
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      backend:
+        condition: service_started
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000/query # GraphQL Endpunkt
+      - WATCHPACK_POLLING=true    # Hilft bei manchen WSL-Setups, Änderungen zu erkennen
