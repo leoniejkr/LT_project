@@ -16,22 +16,19 @@ website quatsch
 
 
 #### Erstellung der lokalen Python Umgebung
- python -m venv C:\Users\marin\Documents\Uni\Master\4\Projekt_Lang_Tech\LT_project\                                                                                     
-#### Docker Umgebung auf Windows starten und für Projekt vorbereiten
-- Zuerst die WSL ausführen mit dem "wsl" Befehl und in das root Verzeichnis des Projekts navigieren
+python -m venv .../LT_project          
+
+#### Docker/Podman Umgebung auf Windows starten und für Projekt vorbereiten
 - "Devcontainer Extention" für VSCode herunter laden
-- ``sudo systemctl start docker``
-- ``docker compose build`` (Auch bei jeder Änderung der requirements.txt, package.json oder go.mod/go.sum ausführen)
-- ``docker compose up``
+- ``podman compose build`` (Auch bei jeder Änderung der requirements.txt, package.json oder go.mod/go.sum ausführen)
+- ``podman compose up``
 
-#### Docker Volumes (und damit ganze "Daten") löschen
+#### Docker/Podman Volumes (und damit ganze "Daten") löschen
 Gut wenn man grundlegendere Änderungen im Code gemacht hat und diese in den Containern wiederspiegeln lassen möchte
-- ``docker compose down -v``
+- ``podman compose down -v``
 
-
-#### Setup des Frontends
-- nvm Node.js Package manager downloaden
-- ``nvm install 24.15``
-- npm (JS Package Manager) sind automatisch mitinstalliert 
-
-
+#### Frontend zum laufen bringen
+- nvm für windows installieren (optional)
+- ``nvm on``
+- ``nvm install latest``
+- ``nvm use [version die installiert wurde]``
