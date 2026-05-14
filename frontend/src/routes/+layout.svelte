@@ -1,12 +1,19 @@
 <script lang="ts">
+	import "../app.css";
 	import favicon from '$lib/assets/favicon.svg';
+	import Navigation from '$lib/components/navigation/navigation.svelte';
+	import { ModeWatcher} from 'mode-watcher';
 
 	let { children } = $props();
-	import "../app.css";
 </script>
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{@render children()}
+<ModeWatcher />
+<Navigation />
+
+{#if children}
+	{@render children()}
+{/if}
