@@ -1,44 +1,42 @@
 <script lang="ts">
-    import { scrollY, innerWidth } from 'svelte/reactivity/window';
-    import * as NavigationMenu from '../ui/navigation-menu/index.js';
-    import ToggleMode from './toggle-mode.svelte';
-    import { Button } from '../ui/button/index.js';
-    import { Settings } from 'lucide-svelte';
-    import { goto } from '$app/navigation';
+// Wegen dem Verhalten der Navigationsmenuleiste musste die Komponente selbst implementiert werden
+// Die Implementation der UI Komponente hier wurde von der KI geschrieben und von mir angepasst
 
-	const desktop = $derived(innerWidth.current ? innerWidth.current > 1024 : false);
-	const scrolled = $derived(scrollY.current ? scrollY.current > 0 : false);
-    
+    import ToggleModeButton from './toggle-mode-button.svelte';
+    import { Button } from '../ui/button/index.js';
+    import { goto } from '$app/navigation';
+    import { page } from '$app/state';
+    import SettingsButton from './settings-button.svelte';
+
     const LINKS = [
         { name: 'Home', href: '/' },
         { name: 'Upload', href: '/upload' },
         { name: 'Diagnostics', href: '/diagnostics' },
         { name: 'Help', href: '/help' },
     ];
+
+    // Hilfsfunktion für aktive Links (ähnlich wie NavigationMenu.Link)
+    function isActive(href: string) {
+        if (href === '/') return page.url.pathname === '/';
+        return page.url.pathname.startsWith(href);
+    }
 </script>
 
-<NavigationMenu.Root>
-    <NavigationMenu.List class="flex-wrap">
 
+<nav class="border-b px-6 h-14 flex items-center w-full bg-popover sticky top-0 z-50">
+    <div class="flex items-center gap-4">
         {#each LINKS as link}
-            <NavigationMenu.Item>
-                <NavigationMenu.Link href={link.href}>
-                    {link.name}
-                </NavigationMenu.Link>
-            </NavigationMenu.Item>
-        {/each}
-
-        <NavigationMenu.Item>
-            <Button onclick={() => goto('/settings')} variant="outline" size="icon">
-                <Settings class="h-4 w-4" />
-                <span class="sr-only">Change Settings</span>
+            <Button variant="link" size="lg" onclick={() => goto(link.href)} class={isActive(link.href) ? 'bg-muted text-primary' : 'text-muted-foreground'}>
+                {link.name}
             </Button>
-        </NavigationMenu.Item>
+        {/each}
+    </div>
 
-        <NavigationMenu.Item>
-            <ToggleMode />
-        </NavigationMenu.Item>
+    <!-- Spacer: Schiebt den Rest nach rechts -->
+    <div class="flex-grow"></div>
 
-    </NavigationMenu.List>
-</NavigationMenu.Root>
-
+    <div class="flex items-center gap-2">
+        <SettingsButton />
+        <ToggleModeButton />
+    </div>
+</nav>
