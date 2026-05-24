@@ -11,8 +11,10 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<ModeWatcher />
-<Navigation />
+<div>
+	<ModeWatcher />
+	<Navigation />
+</div>
 
 {#if children}
 	{@render children()}
