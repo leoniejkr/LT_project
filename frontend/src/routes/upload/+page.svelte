@@ -5,6 +5,7 @@
 	import * as Select  from "$lib/components/ui/select/index.js"
 	import { Button } from "$lib/components/ui/button/index.js";
 	import { Badge } from "$lib/components/ui/badge/index.js";
+	import { Label } from "$lib/components/ui/label/index.js";
 	import { Input } from "$lib/components/ui/input/index.js"
 	import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
@@ -12,7 +13,7 @@
 	import "../../app.css";
 
 	let { data }: { data: any } = $props();
-
+	let imageNumber = $state(0);
 	const genders = [
 		{ value: "woman", label: "Woman"},
 		{ value: "man", label: "Man"},
@@ -32,6 +33,8 @@
 // sondern erst, wenn die funktionalität an sich steht und wir das später nocvh schöner machen wollen
 
 // TODO: das styling mit funktionalität versehen
+// TODO: die required felder auch in in "funktionstechnisch" wirklich required machen
+
 </script>
 
 <div class="mt-6 ml-10 w-full max-w-5xl flex flex-col gap-6">
@@ -46,7 +49,7 @@
 				<Item.Content>
 					<Item.Title class="w-full justify-between">
 						Radiological Scans (.dcm)
-						<Badge variant="secondary">Required</Badge>
+						<Badge variant="destructive">Required</Badge>
 					</Item.Title>
 					<Item.Media>
 					</Item.Media>
@@ -61,14 +64,12 @@
 							</Empty.Description>
 						</Empty.Header>
 						<Empty.Content>
-							<Button variant="outline">
-								Browse Local Storage
-							</Button>
+ 							 <Input id="dicom_images" type="file" />
 						</Empty.Content>
 					</Empty.Root>
 					<Item.Separator/>
 					<Item.Description>
-						0 files staged for upload TODO: variabel!
+						{imageNumber} files staged for upload TODO: variabel!
 					</Item.Description>
 				</Item.Content>
 			</Item.Root>
@@ -77,6 +78,7 @@
 		<div class="flex-1">
 			<Item.Root variant="outline" class="flex flex-col items-start">
 				<Item.Content class="w-full">
+				<Badge variant="destructive" class="ml-auto">Required</Badge>
 					<form class="w-full">
 						<Field.Set>
 							<Field.Legend class="flex items-center gap-2">
@@ -192,7 +194,7 @@
 	</div>
 	<Separator orientation="horizontal" class="self-stretch mt-1" />
 	<div class="flex justify-end w-full pb-5">
-		<Button>
+		<Button type="submit">
 			<Cpu /> Start Analysis
 		</Button>
 	</div>
