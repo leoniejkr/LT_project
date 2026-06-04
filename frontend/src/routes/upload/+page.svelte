@@ -5,15 +5,15 @@
 	import * as Select  from "$lib/components/ui/select/index.js"
 	import { Button } from "$lib/components/ui/button/index.js";
 	import { Badge } from "$lib/components/ui/badge/index.js";
-	import { Label } from "$lib/components/ui/label/index.js";
 	import { Input } from "$lib/components/ui/input/index.js"
 	import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
-	import { UserSearch, CloudUpload, ClipboardCheck, Cpu } from 'lucide-svelte';
+	import { UserSearch, CloudUpload, ClipboardCheck, Cpu, ImageUp } from 'lucide-svelte';
 	import "../../app.css";
 
 	let { data }: { data: any } = $props();
-	let imageNumber = $state(0);
+	let files = $state<FileList | undefined>();
+	const imageNumber = $derived(files?.length ?? 0);
 	const genders = [
 		{ value: "woman", label: "Woman"},
 		{ value: "man", label: "Man"},
@@ -23,6 +23,76 @@
 	const fieldLabel = $derived(
 		genders.find(gender => gender.value === value)?.label ?? "Select a Gender"
 	);
+
+	// Patient Metadata
+	let patientAge = $state("");
+	let isICU = $state(false);
+	let requiresVentilator = $state(false);
+
+	// Known Illnesses
+	let illnesses = $state({
+		covid: false,
+		pneumonia: false,
+		emphysema: false,
+		effusion: false,
+		fibrosis: false
+	});
+
+	// Symptoms
+	let symptoms = $state({
+		cough: false,
+		fever: false,
+		dyspnea: false,
+		fatigue: false
+	});
+
+	async function startAnalysis() {
+		// Validierung (einfach)
+		if (!files || files.length === 0) {
+			alert("Please upload at least one DICOM file.");
+			return;
+		}
+		if (!patientAge || !value) {
+			alert("Please fill in age and gender.");
+			return;
+		}
+
+		const formData = new FormData();
+		
+		// Dateien hinzufügen
+		for (let i = 0; i < files.length; i++) {
+			formData.append("files", files[i]);
+		}
+
+		// Metadaten hinzufügen
+		const metadata = {
+			age: patientAge,
+			gender: value,
+			icu: isICU,
+			ventilator: requiresVentilator,
+			illnesses: Object.keys(illnesses).filter(k => illnesses[k as keyof typeof illnesses]),
+			symptoms: Object.keys(symptoms).filter(k => symptoms[k as keyof typeof symptoms])
+		};
+
+		formData.append("metadata", JSON.stringify(metadata));
+
+		console.log("Submitting Case:", metadata);
+		console.log("Files:", files.length);
+
+		// TODO: Implement actual fetch to backend
+		/*
+		try {
+			const response = await fetch('/api/analyze', {
+				method: 'POST',
+				body: formData
+			});
+			const result = await response.json();
+			console.log("Analysis Result:", result);
+		} catch (error) {
+			console.error("Submission failed:", error);
+		}
+		*/
+	}
 // TODO: Für den upload müssete man hier wahrscheinlich noch eine ShadCN Form Komponente hinzufügen.
 // Spätestens für die Metadaten denke ich: Form + Checkbox + Select
 // erster div Container ex., damit metadaten rechts plazierbar werden können später
@@ -37,7 +107,7 @@
 
 </script>
 
-<div class="mt-6 ml-10 w-full max-w-5xl flex flex-col gap-6">
+<div class="mt-6 mx-auto w-full max-w-5xl flex flex-col gap-6 px-6">
 	<div>
 		<header class="text-2xl font-bold tracking-tight">Case Input & Initialization</header>
 		<h2 class="text-muted-foreground mt-1">Upload DICOM payload and contextualize patient metadata for AI analysis</h2>
@@ -64,7 +134,7 @@
 							</Empty.Description>
 						</Empty.Header>
 						<Empty.Content>
- 							 <Input id="dicom_images" type="file" />
+ 							<ImageUp/> <Input id="dicom_images" type="file" multiple bind:files />
 						</Empty.Content>
 					</Empty.Root>
 					<Item.Separator/>
@@ -93,6 +163,7 @@
 										<Input
 											id="mysteriös"
 											placeholder="Patient Age"
+											bind:value={patientAge}
 											required
 										/>
 									</Field.Field>
@@ -120,13 +191,13 @@
 								</div>
 								<Field.Group class="flex-wrap flex-row mt-4">
 									<Field.Field orientation="horizontal" class="w-auto">
-										<Checkbox id="icu"/>
+										<Checkbox id="icu" bind:checked={isICU}/>
 										<Field.Label for="icu">
 											Admitted to ICU
 										</Field.Label>
 									</Field.Field>
 									<Field.Field orientation="horizontal" class="w-auto">
-										<Checkbox id="ventilator"/>
+										<Checkbox id="ventilator" bind:checked={requiresVentilator}/>
 										<Field.Label for="ventilator">
 											Requires Ventilator
 										</Field.Label>
@@ -138,23 +209,23 @@
 									Known Illnesses
 								</Field.Legend>
 								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="covid" />
+									<Checkbox id="covid" bind:checked={illnesses.covid} />
 									<Field.Label for="covid">Covid</Field.Label>
 								</Field.Field>
 								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="pneumonia" />
+									<Checkbox id="pneumonia" bind:checked={illnesses.pneumonia} />
 									<Field.Label for="pneumonia">Pneumonia</Field.Label>
 								</Field.Field>
 								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="emphysema" />
+									<Checkbox id="emphysema" bind:checked={illnesses.emphysema} />
 									<Field.Label for="emphysema">Emphysema</Field.Label>
 								</Field.Field>
 								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="effusion" />
+									<Checkbox id="effusion" bind:checked={illnesses.effusion} />
 									<Field.Label for="effusion">Effusion</Field.Label>
 								</Field.Field>
 								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="fibrosis" />
+									<Checkbox id="fibrosis" bind:checked={illnesses.fibrosis} />
 									<Field.Label for="fibrosis">Fibrosis</Field.Label>
 								</Field.Field>
 							</Field.Group>
@@ -173,19 +244,19 @@
 				</Item.Title>
 				<div class="flex flex-wrap gap-x-8 gap-y-3">
 					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="cough" />
+						<Checkbox id="cough" bind:checked={symptoms.cough} />
 						<Field.Label for="cough">Cough</Field.Label>
 					</Field.Field>
 					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="fever" />
+						<Checkbox id="fever" bind:checked={symptoms.fever} />
 						<Field.Label for="fever">Fever</Field.Label>
 					</Field.Field>
 					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="dyspnea" />
+						<Checkbox id="dyspnea" bind:checked={symptoms.dyspnea} />
 						<Field.Label for="dyspnea">Shortness of breath</Field.Label>
 					</Field.Field>
 					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="fatigue" />
+						<Checkbox id="fatigue" bind:checked={symptoms.fatigue} />
 						<Field.Label for="fatigue">Fatigue</Field.Label>
 					</Field.Field>
 				</div>
@@ -194,7 +265,7 @@
 	</div>
 	<Separator orientation="horizontal" class="self-stretch mt-1" />
 	<div class="flex justify-end w-full pb-5">
-		<Button type="submit">
+		<Button type="button" onclick={startAnalysis}>
 			<Cpu /> Start Analysis
 		</Button>
 	</div>
