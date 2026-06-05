@@ -79,8 +79,6 @@
 		console.log("Submitting Case:", metadata);
 		console.log("Files:", files.length);
 
-		// TODO: Implement actual fetch to backend
-		/*
 		try {
 			const response = await fetch('/api/analyze', {
 				method: 'POST',
@@ -91,12 +89,7 @@
 		} catch (error) {
 			console.error("Submission failed:", error);
 		}
-		*/
 	}
-// TODO: Für den upload müssete man hier wahrscheinlich noch eine ShadCN Form Komponente hinzufügen.
-// Spätestens für die Metadaten denke ich: Form + Checkbox + Select
-// erster div Container ex., damit metadaten rechts plazierbar werden können später
-// Formelle Form mit formsnap und superform ist glaube ich overkill also würde ich nativ html form nutzen mit Field ui comp
 
 // TODO: reusable components besonders bei der checklist der known illnesses
 // das kann man gut mit shadcn machen, aber das würde ich jetzt noch nciht machen, 
@@ -210,7 +203,7 @@
 								</Field.Legend>
 								<Field.Field orientation="horizontal" class="w-auto">
 									<Checkbox id="covid" bind:checked={illnesses.covid} />
-									<Field.Label for="covid">Covid</Field.Label>
+									<Field.Label for="covid">Covid19</Field.Label>
 								</Field.Field>
 								<Field.Field orientation="horizontal" class="w-auto">
 									<Checkbox id="pneumonia" bind:checked={illnesses.pneumonia} />
