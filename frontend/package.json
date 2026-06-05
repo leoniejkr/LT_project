@@ -34,6 +34,10 @@
 		"vite": "^8.0.7"
 	},
 	"dependencies": {
+		"@cornerstonejs/core": "^4.22.13",
+		"@cornerstonejs/dicom-image-loader": "^4.22.13",
+		"@cornerstonejs/nifti-volume-loader": "^4.22.13",
+		"@cornerstonejs/tools": "^4.22.13",
 		"@tailwindcss/vite": "^4.2.4",
 		"lucide-svelte": "^1.0.1",
 		"mode-watcher": "^1.1.0",
