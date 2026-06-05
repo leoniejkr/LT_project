@@ -18,10 +18,11 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 // @Summary      Create a new patient
 // @Description  Creates new patient with the provided metadata and dicom images
 // @Tags         patients
-// @Accept       json
+// @Accept       mpfd
 // @Produce      json
-// @Param        patient  body      Patient  true  "Patient Data"
-// @Success      201      {object}  Patient
+// @Param        formData string true  "Patienten-Metadata as JSON-String"
+// @Param        dicom_file  formData file   true  "The .dcm picture data"
+// @Success      202      {string} string "Accepted"
 // @Router       /patients [post]
 func (h *Handler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 	// TODO
