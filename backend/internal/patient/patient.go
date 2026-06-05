@@ -2,6 +2,14 @@ package patient
 
 // das domänenmodell / structs
 
+type Gender string
+
+const (
+	GenderFemale  Gender = "Female"
+	GenderMale    Gender = "Male"
+	GenderDiverse Gender = "Diverse"
+)
+
 type Illness string
 
 const (
@@ -22,9 +30,9 @@ const (
 )
 
 type Patient struct {
-	id                 string
-	age                int // potentiell unnötig, aber sicherheitshalber drin
-	gender             string
+	id                 string // potentiell unnötig, aber sicherheitshalber drin
+	age                int
+	gender             Gender
 	admittedToIcu      bool
 	requiresVentilator bool
 	knownIllnesses     []Illness
