@@ -1,6 +1,9 @@
 package patient
 
-import "net/http"
+import (
+	"encoding/json"
+	"net/http"
+)
 
 type Handler struct {
 	service *Service
@@ -25,5 +28,43 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 // @Success      202      {string} string "Accepted"
 // @Router       /patients [post]
 func (h *Handler) CreatePatient(w http.ResponseWriter, r *http.Request) {
-	// TODO
+	// 1. Multipart Form parsen (max. 10MB im Speicher)
+	err := r.ParseMultipartForm(10 << 20)
+	if err != nil {
+		http.Error(w, "Unable to parse multipart form", http.StatusBadRequest)
+		return
+	}
+
+	// 2. JSON-Daten aus dem "formData" Feld extrahieren
+	formData := r.FormValue("formData")
+	if formData == "" {
+		http.Error(w, "Missing formData", http.StatusBadRequest)
+		return
+	}
+
+	var p Patient
+	if err := json.Unmarshal([]byte(formData), &p); err != nil {
+		http.Error(w, "Invalid JSON in formData", http.StatusBadRequest)
+		return
+	}
+
+	// 3. DICOM-Datei extrahieren
+	file, header, err := r.FormFile("dicom_file")
+	if err != nil {
+		http.Error(w, "Missing dicom_file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// 4. Service aufrufen (Metadaten + Datei)
+	if err := h.service.CreatePatient(&p, file, header.Filename); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]any{
+		"status": "success",
+		"id":     p.ID,
+	})
 }

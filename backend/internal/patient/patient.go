@@ -1,6 +1,10 @@
 package patient
 
-// das domänenmodell / structs
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+)
 
 type Gender string
 
@@ -12,6 +16,9 @@ const (
 
 type Illness string
 
+// Illnesses ist ein Hilfstyp für das Speichern von Slices als JSONB in Postgres
+type Illnesses []Illness
+
 const (
 	IllnessCovid     Illness = "Covid19"
 	IllnessPneumonia Illness = "Pneumonia"
@@ -19,6 +26,20 @@ const (
 	IllnessEffusion  Illness = "Effusion"
 	IllnessFibrosis  Illness = "Fibrosis"
 )
+
+// wird benötigt für speicherung von go slices in postgres
+func (i *Illnesses) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(bytes, &i)
+}
+
+// wird benötigt für speicherung von go slices in postgres
+func (i Illnesses) Value() (driver.Value, error) {
+	return json.Marshal(i)
+}
 
 type Symptom string
 
@@ -29,12 +50,27 @@ const (
 	SymptomFatigue           Symptom = "Fatigue"
 )
 
+type Symptoms []Symptom
+
+func (s *Symptoms) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(bytes, &s)
+}
+
+func (s Symptoms) Value() (driver.Value, error) {
+	return json.Marshal(s)
+}
+
 type Patient struct {
-	id                 string // potentiell unnötig, aber sicherheitshalber drin
-	age                int
-	gender             Gender
-	admittedToIcu      bool
-	requiresVentilator bool
-	knownIllnesses     []Illness
-	symptoms           []Symptom
+	ID                 uint      `gorm:"primaryKey" json:"id"`
+	Age                uint      `gorm:"not null" json:"age"`
+	Gender             Gender    `gorm:"not null" json:"gender"`
+	AdmittedToIcu      bool      `gorm:"not null" json:"admittedToIcu"`
+	RequiresVentilator bool      `gorm:"not null" json:"requiresVentilator"`
+	KnownIllnesses     Illnesses `gorm:"type:jsonb" json:"knownIllnesses"`
+	Symptoms           Symptoms  `gorm:"type:jsonb" json:"symptoms"`
+	DicomPath          string    `json:"dicomPath"`
 }
