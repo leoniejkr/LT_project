@@ -3,11 +3,12 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"backend/internal/dicom"
 	"backend/internal/patient"
+	"backend/internal/platform"
 
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -18,10 +19,9 @@ import (
 // @BasePath        /
 func main() {
 	// connect to database
-	dsn := "host=localhost user=user password=trustai dbname=trustai port=5432 sslmode=disable TimeZone=Europe/Berlin"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	db, err := platform.InitDB()
 	if err != nil {
-		panic("failed to connect database")
+		panic(fmt.Sprintf("failed to connect database: %v", err))
 	}
 
 	// Automatische Migration der Tabellen
@@ -46,6 +46,11 @@ func main() {
 		fmt.Fprintln(w, "OK")
 	})
 
-	fmt.Println("Server starts on :8080")
-	http.ListenAndServe(":8080", router)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	fmt.Printf("Server starts on :%s\n", port)
+	http.ListenAndServe(":"+port, router)
 }

@@ -59,28 +59,27 @@
 
 		const formData = new FormData();
 		
-		// Dateien hinzufügen
-		for (let i = 0; i < files.length; i++) {
-			formData.append("files", files[i]);
+		// Dateien hinzufügen (Backend erwartet aktuell eine Datei unter "dicom_file")
+		if (files.length > 0) {
+			formData.append("dicom_file", files[0]);
 		}
 
 		// Metadaten hinzufügen
 		const metadata = {
-			age: patientAge,
+			age: parseInt(patientAge),
 			gender: value,
-			icu: isICU,
-			ventilator: requiresVentilator,
-			illnesses: Object.keys(illnesses).filter(k => illnesses[k as keyof typeof illnesses]),
+			admittedToIcu: isICU,
+			requiresVentilator: requiresVentilator,
+			knownIllnesses: Object.keys(illnesses).filter(k => illnesses[k as keyof typeof illnesses]),
 			symptoms: Object.keys(symptoms).filter(k => symptoms[k as keyof typeof symptoms])
 		};
 
-		formData.append("metadata", JSON.stringify(metadata));
+		formData.append("formData", JSON.stringify(metadata));
 
 		console.log("Submitting Case:", metadata);
-		console.log("Files:", files.length);
 
 		try {
-			const response = await fetch('/api/analyze', {
+			const response = await fetch('/api/patients', {
 				method: 'POST',
 				body: formData
 			});

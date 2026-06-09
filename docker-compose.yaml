@@ -1,18 +1,15 @@
 services:
   db:
-    image: postgres:18
+    image: postgres:18-alpine
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: medical_db
+      POSTGRES_USER: trustai_user
+      POSTGRES_PASSWORD: trustai_password
+      POSTGRES_DB: trustai_db
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
-
-  # Python LLM mock, damit wir in frontend und backend arbeiten können
-  # auch wenn unser ml model noch nicht vollständig trainiert ist
-  # die idee ist, dass random einfach irgendwelche med. bilder oder metadaten rausgeschmissen werden
-  # damit wir so tun können, als wären das echte daten
   modelling:
     build: ./modelling
     ports:
@@ -22,31 +19,29 @@ services:
     environment:
       - USE_MOCK=true
 
-  
-  # go backend in docker container, damit alle die genau selbe go version haben
-  # mit genau den selben dependecies usw. 
   backend:
     build: 
       context: ./backend
-      target: dev #für air
+      target: dev
     volumes:
       - ./backend:/app
     ports:
-      - "4000:4000"
-    command: air -c air.toml #für air
+      - "8080:8080"
+    command: air -c air.toml
     depends_on:
       db:
         condition: service_started
       modelling:
         condition: service_started
     environment:
-      DATABASE_URL: postgres://user:password@db:5432/medical_db
+      DATABASE_URL: host=db user=trustai_user password=trustai_password dbname=trustai_db port=5432 sslmode=disable TimeZone=Europe/Berlin
       MODELLING_URL: http://modelling:5000
+      PORT: 8080
 
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
+      - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -54,5 +49,8 @@ services:
       backend:
         condition: service_started
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:4000/query # GraphQL Endpunkt
-      - WATCHPACK_POLLING=true    # Hilft bei manchen WSL-Setups, Änderungen zu erkennen
+      - PUBLIC_API_URL=http://localhost:8080
+      - WATCHPACK_POLLING=true
+
+volumes:
+  postgres_data:
