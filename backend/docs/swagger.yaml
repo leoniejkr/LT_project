@@ -1,0 +1,35 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: API for upload of patient data and LLM analysis results
+  title: TrustAI API
+  version: "1.0"
+paths:
+  /patients:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Creates new patient with the provided metadata and dicom images
+      parameters:
+      - description: Patienten-Metadata as JSON-String
+        in: formData
+        name: formData
+        required: true
+        type: string
+      - description: The .dcm picture data
+        in: formData
+        name: dicom_file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            type: string
+      summary: Create a new patient
+      tags:
+      - patients
+swagger: "2.0"

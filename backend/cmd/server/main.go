@@ -8,6 +8,9 @@ import (
 	"backend/internal/dicom"
 	"backend/internal/patient"
 	"backend/internal/platform"
+
+	_ "backend/docs"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // @title           TrustAI API
@@ -39,6 +42,9 @@ func main() {
 	patientHandler := patient.NewHandler(patientService)
 
 	patientHandler.RegisterRoutes(router)
+
+	// Swagger UI
+	router.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "OK")

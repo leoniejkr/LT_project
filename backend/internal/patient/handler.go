@@ -23,7 +23,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 // @Tags         patients
 // @Accept       mpfd
 // @Produce      json
-// @Param        formData string true  "Patienten-Metadata as JSON-String"
+// @Param        formData    formData string true  "Patienten-Metadata as JSON-String"
 // @Param        dicom_file  formData file   true  "The .dcm picture data"
 // @Success      202      {string} string "Accepted"
 // @Router       /patients [post]
