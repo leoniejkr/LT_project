@@ -10,6 +10,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  db_dicom:
+    image: jodogne/orthanc:1.12.11
+
   modelling:
     build: ./modelling
     ports:

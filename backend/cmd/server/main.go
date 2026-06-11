@@ -8,8 +8,6 @@ import (
 	"backend/internal/dicom"
 	"backend/internal/patient"
 	"backend/internal/platform"
-
-	"gorm.io/gorm"
 )
 
 // @title           TrustAI API

@@ -57,14 +57,20 @@ func (h *Handler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	// 4. Service aufrufen (Metadaten + Datei)
-	if err := h.service.CreatePatient(&p, file, header.Filename); err != nil {
+	prediction, err := h.service.CreatePatient(&p, file, header.Filename)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]any{
-		"status": "success",
-		"id":     p.ID,
+		"status":            "success",
+		"id":                p.ID,
+		"prediction":        prediction.Prediction,
+		"confidence":        prediction.Confidence,
+		"confidence_reason": prediction.Confidence_Reason,
+		"model_version":     prediction.ModelVersion,
+		"is_mock":           prediction.IsMock,
 	})
 }

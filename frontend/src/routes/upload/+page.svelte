@@ -1,27 +1,36 @@
 <script lang="ts">
-    import * as Empty from "$lib/components/ui/empty/index.js"
-    import * as Item  from "$lib/components/ui/item/index.js";
-    import * as Field from "$lib/components/ui/field/index.js";
-	import * as Select  from "$lib/components/ui/select/index.js"
+	import * as Empty from "$lib/components/ui/empty/index.js";
+	import * as Item from "$lib/components/ui/item/index.js";
+	import * as Field from "$lib/components/ui/field/index.js";
+	import * as Select from "$lib/components/ui/select/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import { Badge } from "$lib/components/ui/badge/index.js";
-	import { Input } from "$lib/components/ui/input/index.js"
+	import { Input } from "$lib/components/ui/input/index.js";
 	import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
-	import { UserSearch, CloudUpload, ClipboardCheck, Cpu, ImageUp } from 'lucide-svelte';
+	import {
+		UserSearch,
+		CloudUpload,
+		ClipboardCheck,
+		Cpu,
+		ImageUp,
+	} from "lucide-svelte";
+	import { goto } from "$app/navigation";
+	import { analysisResult } from "$lib/stores.js";
 	import "../../app.css";
 
 	let { data }: { data: any } = $props();
 	let files = $state<FileList | undefined>();
 	const imageNumber = $derived(files?.length ?? 0);
 	const genders = [
-		{ value: "woman", label: "Woman"},
-		{ value: "man", label: "Man"},
-		{ value: "diverse", label: "Diverse"},
-	]
+		{ value: "woman", label: "Woman" },
+		{ value: "man", label: "Man" },
+		{ value: "diverse", label: "Diverse" },
+	];
 	let value = $state("");
 	const fieldLabel = $derived(
-		genders.find(gender => gender.value === value)?.label ?? "Select a Gender"
+		genders.find((gender) => gender.value === value)?.label ??
+			"Select a Gender",
 	);
 
 	// Patient Metadata
@@ -35,7 +44,7 @@
 		pneumonia: false,
 		emphysema: false,
 		effusion: false,
-		fibrosis: false
+		fibrosis: false,
 	});
 
 	// Symptoms
@@ -43,7 +52,7 @@
 		cough: false,
 		fever: false,
 		dyspnea: false,
-		fatigue: false
+		fatigue: false,
 	});
 
 	async function startAnalysis() {
@@ -58,7 +67,7 @@
 		}
 
 		const formData = new FormData();
-		
+
 		// Dateien hinzufügen (Backend erwartet aktuell eine Datei unter "dicom_file")
 		if (files.length > 0) {
 			formData.append("dicom_file", files[0]);
@@ -70,8 +79,12 @@
 			gender: value,
 			admittedToIcu: isICU,
 			requiresVentilator: requiresVentilator,
-			knownIllnesses: Object.keys(illnesses).filter(k => illnesses[k as keyof typeof illnesses]),
-			symptoms: Object.keys(symptoms).filter(k => symptoms[k as keyof typeof symptoms])
+			knownIllnesses: Object.keys(illnesses).filter(
+				(k) => illnesses[k as keyof typeof illnesses],
+			),
+			symptoms: Object.keys(symptoms).filter(
+				(k) => symptoms[k as keyof typeof symptoms],
+			),
 		};
 
 		formData.append("formData", JSON.stringify(metadata));
@@ -79,30 +92,36 @@
 		console.log("Submitting Case:", metadata);
 
 		try {
-			const response = await fetch('/api/patients', {
-				method: 'POST',
-				body: formData
+			const response = await fetch("/api/patients", {
+				method: "POST",
+				body: formData,
 			});
 			const result = await response.json();
 			console.log("Analysis Result:", result);
+			analysisResult.set(result);
+			goto("/results");
 		} catch (error) {
 			console.error("Submission failed:", error);
 		}
 	}
 
-// TODO: reusable components besonders bei der checklist der known illnesses
-// das kann man gut mit shadcn machen, aber das würde ich jetzt noch nciht machen, 
-// sondern erst, wenn die funktionalität an sich steht und wir das später nocvh schöner machen wollen
+	// TODO: reusable components besonders bei der checklist der known illnesses
+	// das kann man gut mit shadcn machen, aber das würde ich jetzt noch nciht machen,
+	// sondern erst, wenn die funktionalität an sich steht und wir das später nocvh schöner machen wollen
 
-// TODO: das styling mit funktionalität versehen
-// TODO: die required felder auch in in "funktionstechnisch" wirklich required machen
-
+	// TODO: das styling mit funktionalität versehen
+	// TODO: die required felder auch in in "funktionstechnisch" wirklich required machen
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-5xl flex flex-col gap-6 px-6">
 	<div>
-		<header class="text-2xl font-bold tracking-tight">Case Input & Initialization</header>
-		<h2 class="text-muted-foreground mt-1">Upload DICOM payload and contextualize patient metadata for AI analysis</h2>
+		<header class="text-2xl font-bold tracking-tight">
+			Case Input & Initialization
+		</header>
+		<h2 class="text-muted-foreground mt-1">
+			Upload DICOM payload and contextualize patient metadata for AI
+			analysis
+		</h2>
 	</div>
 
 	<div class="flex items-start gap-6">
@@ -113,23 +132,29 @@
 						Radiological Scans (.dcm)
 						<Badge variant="destructive">Required</Badge>
 					</Item.Title>
-					<Item.Media>
-					</Item.Media>
+					<Item.Media></Item.Media>
 					<Empty.Root>
 						<Empty.Header>
 							<Empty.Media variant="icon">
-								<CloudUpload/>
+								<CloudUpload />
 							</Empty.Media>
 							<Empty.Title>Upload DICOM Files</Empty.Title>
 							<Empty.Description>
-								Support for standart DICOM formats. Ensure everything is included in the upload.
+								Support for standart DICOM formats. Ensure
+								everything is included in the upload.
 							</Empty.Description>
 						</Empty.Header>
 						<Empty.Content>
- 							<ImageUp/> <Input id="dicom_images" type="file" multiple bind:files />
+							<ImageUp />
+							<Input
+								id="dicom_images"
+								type="file"
+								multiple
+								bind:files
+							/>
 						</Empty.Content>
 					</Empty.Root>
-					<Item.Separator/>
+					<Item.Separator />
 					<Item.Description>
 						{imageNumber} files staged for upload TODO: variabel!
 					</Item.Description>
@@ -140,7 +165,8 @@
 		<div class="flex-1">
 			<Item.Root variant="outline" class="flex flex-col items-start">
 				<Item.Content class="w-full">
-				<Badge variant="destructive" class="ml-auto">Required</Badge>
+					<Badge variant="destructive" class="ml-auto">Required</Badge
+					>
 					<form class="w-full">
 						<Field.Set>
 							<Field.Legend class="flex items-center gap-2">
@@ -149,9 +175,7 @@
 							<Field.Group>
 								<div class="grid grid-cols-2 gap-3">
 									<Field.Field>
-										<Field.Label>
-											Patient Age
-										</Field.Label>
+										<Field.Label>Patient Age</Field.Label>
 										<Input
 											id="mysteriös"
 											placeholder="Patient Age"
@@ -160,20 +184,24 @@
 										/>
 									</Field.Field>
 									<Field.Field>
-										<Field.Label>
-											Gender
-										</Field.Label>
-										<Select.Root type="single" name="Select A Gender" bind:value>
+										<Field.Label>Gender</Field.Label>
+										<Select.Root
+											type="single"
+											name="Select A Gender"
+											bind:value
+										>
 											<Select.Trigger>
 												{fieldLabel}
 											</Select.Trigger>
 											<Select.Content>
-												<Select.Label>Gender</Select.Label>
+												<Select.Label
+													>Gender</Select.Label
+												>
 												{#each genders as gender (gender.value)}
-													<Select.Item 
+													<Select.Item
 														value={gender.value}
 														label={gender.label}
-														>
+													>
 														{gender.label}
 													</Select.Item>
 												{/each}
@@ -182,43 +210,99 @@
 									</Field.Field>
 								</div>
 								<Field.Group class="flex-wrap flex-row mt-4">
-									<Field.Field orientation="horizontal" class="w-auto">
-										<Checkbox id="icu" bind:checked={isICU}/>
+									<Field.Field
+										orientation="horizontal"
+										class="w-auto"
+									>
+										<Checkbox
+											id="icu"
+											bind:checked={isICU}
+										/>
 										<Field.Label for="icu">
 											Admitted to ICU
 										</Field.Label>
 									</Field.Field>
-									<Field.Field orientation="horizontal" class="w-auto">
-										<Checkbox id="ventilator" bind:checked={requiresVentilator}/>
+									<Field.Field
+										orientation="horizontal"
+										class="w-auto"
+									>
+										<Checkbox
+											id="ventilator"
+											bind:checked={requiresVentilator}
+										/>
 										<Field.Label for="ventilator">
 											Requires Ventilator
 										</Field.Label>
 									</Field.Field>
 								</Field.Group>
 							</Field.Group>
-							<Field.Group class="flex-row flex-wrap gap-y-1 mt-4">
-								<Field.Legend class="w-full text-sm font-semibold">
+							<Field.Group
+								class="flex-row flex-wrap gap-y-1 mt-4"
+							>
+								<Field.Legend
+									class="w-full text-sm font-semibold"
+								>
 									Known Illnesses
 								</Field.Legend>
-								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="covid" bind:checked={illnesses.covid} />
-									<Field.Label for="covid">Covid19</Field.Label>
+								<Field.Field
+									orientation="horizontal"
+									class="w-auto"
+								>
+									<Checkbox
+										id="covid"
+										bind:checked={illnesses.covid}
+									/>
+									<Field.Label for="covid"
+										>Covid19</Field.Label
+									>
 								</Field.Field>
-								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="pneumonia" bind:checked={illnesses.pneumonia} />
-									<Field.Label for="pneumonia">Pneumonia</Field.Label>
+								<Field.Field
+									orientation="horizontal"
+									class="w-auto"
+								>
+									<Checkbox
+										id="pneumonia"
+										bind:checked={illnesses.pneumonia}
+									/>
+									<Field.Label for="pneumonia"
+										>Pneumonia</Field.Label
+									>
 								</Field.Field>
-								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="emphysema" bind:checked={illnesses.emphysema} />
-									<Field.Label for="emphysema">Emphysema</Field.Label>
+								<Field.Field
+									orientation="horizontal"
+									class="w-auto"
+								>
+									<Checkbox
+										id="emphysema"
+										bind:checked={illnesses.emphysema}
+									/>
+									<Field.Label for="emphysema"
+										>Emphysema</Field.Label
+									>
 								</Field.Field>
-								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="effusion" bind:checked={illnesses.effusion} />
-									<Field.Label for="effusion">Effusion</Field.Label>
+								<Field.Field
+									orientation="horizontal"
+									class="w-auto"
+								>
+									<Checkbox
+										id="effusion"
+										bind:checked={illnesses.effusion}
+									/>
+									<Field.Label for="effusion"
+										>Effusion</Field.Label
+									>
 								</Field.Field>
-								<Field.Field orientation="horizontal" class="w-auto">
-									<Checkbox id="fibrosis" bind:checked={illnesses.fibrosis} />
-									<Field.Label for="fibrosis">Fibrosis</Field.Label>
+								<Field.Field
+									orientation="horizontal"
+									class="w-auto"
+								>
+									<Checkbox
+										id="fibrosis"
+										bind:checked={illnesses.fibrosis}
+									/>
+									<Field.Label for="fibrosis"
+										>Fibrosis</Field.Label
+									>
 								</Field.Field>
 							</Field.Group>
 						</Field.Set>
@@ -244,11 +328,19 @@
 						<Field.Label for="fever">Fever</Field.Label>
 					</Field.Field>
 					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="dyspnea" bind:checked={symptoms.dyspnea} />
-						<Field.Label for="dyspnea">Shortness of breath</Field.Label>
+						<Checkbox
+							id="dyspnea"
+							bind:checked={symptoms.dyspnea}
+						/>
+						<Field.Label for="dyspnea"
+							>Shortness of breath</Field.Label
+						>
 					</Field.Field>
 					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="fatigue" bind:checked={symptoms.fatigue} />
+						<Checkbox
+							id="fatigue"
+							bind:checked={symptoms.fatigue}
+						/>
 						<Field.Label for="fatigue">Fatigue</Field.Label>
 					</Field.Field>
 				</div>
@@ -263,5 +355,4 @@
 	</div>
 </div>
 
-<form method="POST">
-</form>
+<form method="POST"></form>
