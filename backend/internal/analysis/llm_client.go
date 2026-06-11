@@ -14,7 +14,6 @@ type PredictionResponse struct {
 	Confidence        float64 `json:"confidence"`
 	Confidence_Reason string  `json:"confidence_reason"`
 	ModelVersion      string  `json:"model_version"`
-	IsMock            bool    `json:"is_mock"`
 }
 
 type LLMClient struct {
