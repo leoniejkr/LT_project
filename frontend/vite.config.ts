@@ -7,6 +7,13 @@ export default defineConfig({
 		sveltekit(),
 		tailwindcss()
 	],
+	optimizeDeps: {
+		exclude: ['@cornerstonejs/dicom-image-loader'],
+		include: ['dicom-parser']
+	},
+	worker: {
+		format: 'es'
+	},
 	server: {
 		proxy: {
 			'/api': {
