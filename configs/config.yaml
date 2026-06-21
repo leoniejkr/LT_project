@@ -1,0 +1,146 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# MIDRC Multi-Label Training Config
+# ══════════════════════════════════════════════════════════════════════════════
+
+project:
+  name: "midrc_multilabel"
+  run_name: "baseline_v1"
+  seed: 42
+
+# ── Data ──────────────────────────────────────────────────────────────────────
+data:
+  cohort_ct:  "data/cohort_ct.csv"
+  cohort_cxr: "data/cohort_cxr.csv"
+  image_root: "images/"                    # root dir where Gen3 downloads land
+  prep_dir:   "data/preprocessed/"        # MONAI-preprocessed outputs
+
+  # Train / Val / Test split (stratified per label)
+  val_frac:   0.15
+  test_frac:  0.15
+
+  num_workers: 4
+  pin_memory:  true
+
+# ── Primary labels (order must match cohort CSVs) ─────────────────────────────
+labels:
+  primary:
+    - covid
+    - bacterial_pneumonia
+    - viral_pneumonia
+    - lung_abscess
+    - emphysema_copd
+    - ild_fibrosis
+    - pleural_effusion
+    - pneumothorax
+    - atelectasis
+    - pulm_embolism
+    - ards
+    - lung_malignancy
+    - normal
+  # metadata labels available as optional tabular features
+  metadata:
+    - meta_heart_failure
+    - meta_pulm_htn
+    - meta_cardiomegaly
+    - meta_pulm_edema
+    - meta_arrhythmia
+    - meta_cad
+    - meta_valvular
+    - meta_hypertension
+    - meta_diabetes
+    - meta_renal
+    - meta_aortic_disease
+    - meta_autoimmune
+    - meta_transplant
+    - meta_tb_ntm
+    - meta_bronchiectasis
+
+# ── CXR model ─────────────────────────────────────────────────────────────────
+cxr:
+  backbone: "densenet121"                  # torchvision pretrained on ImageNet
+  pretrained_weights: "chexpert"           # "imagenet" | "chexpert" (via torchxrayvision)
+  input_size: [224, 224]
+  batch_size: 32
+  accumulate_grad_batches: 2              # effective BS = 64
+
+  optimizer:
+    name: "adamw"
+    lr: 1.0e-4
+    weight_decay: 1.0e-5
+  scheduler:
+    name: "cosine_warmup"
+    warmup_epochs: 3
+    max_epochs: 50
+
+  augmentation:
+    random_horizontal_flip: true
+    random_rotation_degrees: 10
+    random_brightness: 0.1
+    random_contrast: 0.1
+    # No vertical flip — lungs have top/bottom anatomy
+
+  loss:
+    name: "asymmetric_loss"               # better than BCE for multi-label imbalance
+    gamma_neg: 4
+    gamma_pos: 0
+    clip: 0.05
+
+  # Threshold tuning: per-label optimal threshold on val set
+  threshold_tuning: true
+
+# ── CT model ──────────────────────────────────────────────────────────────────
+ct:
+  backbone: "swin_unetr_encoder"          # SwinUNETR encoder pretrained on BTCV (MONAI)
+  pretrained_weights: "btcv"             # downloaded via MONAI model zoo
+  input_size: [96, 96, 96]              # crop size (fits your 224x224x96 volumes)
+  batch_size: 4                          # 3D is memory-heavy
+  accumulate_grad_batches: 8             # effective BS = 32
+
+  optimizer:
+    name: "adamw"
+    lr: 5.0e-5                           # lower LR for 3D — less data per update
+    weight_decay: 1.0e-5
+  scheduler:
+    name: "cosine_warmup"
+    warmup_epochs: 5
+    max_epochs: 80
+
+  augmentation:
+    rand_flip_axes: [0, 1, 2]
+    rand_rotate90_axes: [0, 1, 2]
+    rand_scale_intensity: 0.1
+    rand_shift_intensity: 0.1
+
+  loss:
+    name: "asymmetric_loss"
+    gamma_neg: 4
+    gamma_pos: 0
+    clip: 0.05
+
+  threshold_tuning: true
+
+# ── Training ──────────────────────────────────────────────────────────────────
+training:
+  precision: "16-mixed"                  # AMP — essential for 3D CT
+  devices: 1                             # set to >1 for multi-GPU (DDP auto)
+  accelerator: "auto"                    # "gpu" | "cpu" | "auto"
+
+  early_stopping:
+    monitor: "val/mAP"
+    patience: 10
+    mode: "max"
+
+  checkpointing:
+    monitor: "val/mAP"
+    mode: "max"
+    save_top_k: 3
+    dirpath: "checkpoints/"
+
+  # Use metadata as tabular side-channel (concatenated after pooling)
+  use_metadata_features: false           # set true to fuse tabular comorbidities
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  logger: "wandb"                        # "wandb" | "tensorboard" | "csv"
+  project: "midrc_multilabel"
+  log_every_n_steps: 10
