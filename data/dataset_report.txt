@@ -1,0 +1,125 @@
+
+======================================================================
+CT COHORT
+======================================================================
+Series total : 1,663
+Unique cases : 499
+
+----------------------------------------------------------------------
+PRIMARY DISEASE LABELS:
+----------------------------------------------------------------------
+  covid                    : 1,403  ( 84.4%)
+  pneumonia                :   979  ( 58.9%)
+  effusion                 :   721  ( 43.4%)
+  fibrosis                 :   643  ( 38.7%)
+  emphysema_copd           :   674  ( 40.5%)
+  atelectasis              :   731  ( 44.0%)
+  pneumothorax             :   277  ( 16.7%)
+  pulm_embolism            :   457  ( 27.5%)
+  ards                     :   451  ( 27.1%)
+  pulm_edema               :   550  ( 33.1%)
+  lung_malignancy          :   129  (  7.8%)
+  heart_failure            :   553  ( 33.3%)
+  pulm_hypertension        :   234  ( 14.1%)
+  cardiomegaly_cm          :   583  ( 35.1%)
+  tuberculosis_ntm         :   158  (  9.5%)
+  bronchiectasis           :   158  (  9.5%)
+  sarcoidosis              :    29  (  1.7%)
+  asthma                   :   246  ( 14.8%)
+  normal                   :   250  ( 15.0%)
+
+----------------------------------------------------------------------
+METADATA COMORBIDITY FLAGS:
+----------------------------------------------------------------------
+  meta_arrhythmia               :   680  ( 40.9%)
+  meta_cad                      :   507  ( 30.5%)
+  meta_valvular                 :   234  ( 14.1%)
+  meta_hypertension             :    33  (  2.0%)
+  meta_diabetes                 :     0  (  0.0%)
+  meta_aortic_disease           :    40  (  2.4%)
+  meta_renal                    :   481  ( 28.9%)
+  meta_autoimmune               :     0  (  0.0%)
+
+----------------------------------------------------------------------
+DEMOGRAPHICS:
+----------------------------------------------------------------------
+  Female              :   760  ( 45.7%)
+  Male                :   903  ( 54.3%)
+  Age: mean=61.2  median=64.0  range=[10, 89]
+
+----------------------------------------------------------------------
+TOP-10 LABEL CO-OCCURRENCES (primary labels):
+----------------------------------------------------------------------
+  ('normal',)                                                      :  250
+  ('covid',)                                                       :  237
+  ('covid', 'pneumonia', 'fibrosis', 'emphysema_copd', 'atelectasis', 'ards', 'pulm_edema', 'heart_failure', 'cardiomegaly_cm', 'bronchiectasis', 'asthma'):   88
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'atelectasis', 'pulm_embolism', 'pulm_edema', 'heart_failure', 'pulm_hypertension'):   68
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'pneumothorax', 'pulm_embolism', 'ards', 'pulm_edema', 'tuberculosis_ntm'):   67
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'pneumothorax', 'pulm_embolism', 'ards'):   63
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'heart_failure', 'pulm_hypertension', 'cardiomegaly_cm', 'asthma'):   52
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'pneumothorax', 'pulm_embolism', 'pulm_edema', 'heart_failure', 'pulm_hypertension', 'cardiomegaly_cm', 'tuberculosis_ntm'):   52
+  ('covid', 'pneumonia', 'effusion', 'emphysema_copd', 'atelectasis', 'pulm_embolism', 'pulm_edema', 'lung_malignancy', 'cardiomegaly_cm'):   46
+  ('covid', 'emphysema_copd')                                      :   44
+
+
+======================================================================
+CXR COHORT
+======================================================================
+Series total : 1,445
+Unique cases : 511
+
+----------------------------------------------------------------------
+PRIMARY DISEASE LABELS:
+----------------------------------------------------------------------
+  covid                    : 1,192  ( 82.5%)
+  pneumonia                :   865  ( 59.9%)
+  effusion                 :   733  ( 50.7%)
+  fibrosis                 :   758  ( 52.5%)
+  emphysema_copd           :   665  ( 46.0%)
+  atelectasis              :   824  ( 57.0%)
+  pneumothorax             :   506  ( 35.0%)
+  pulm_embolism            :   298  ( 20.6%)
+  ards                     :   531  ( 36.7%)
+  pulm_edema               :   709  ( 49.1%)
+  lung_malignancy          :    59  (  4.1%)
+  heart_failure            :   481  ( 33.3%)
+  pulm_hypertension        :   274  ( 19.0%)
+  cardiomegaly_cm          :   682  ( 47.2%)
+  tuberculosis_ntm         :   126  (  8.7%)
+  bronchiectasis           :   234  ( 16.2%)
+  sarcoidosis              :    12  (  0.8%)
+  asthma                   :   349  ( 24.2%)
+  normal                   :   250  ( 17.3%)
+
+----------------------------------------------------------------------
+METADATA COMORBIDITY FLAGS:
+----------------------------------------------------------------------
+  meta_arrhythmia               :   494  ( 34.2%)
+  meta_cad                      :   511  ( 35.4%)
+  meta_valvular                 :   430  ( 29.8%)
+  meta_hypertension             :     0  (  0.0%)
+  meta_diabetes                 :     0  (  0.0%)
+  meta_aortic_disease           :    57  (  3.9%)
+  meta_renal                    :   428  ( 29.6%)
+  meta_autoimmune               :     3  (  0.2%)
+
+----------------------------------------------------------------------
+DEMOGRAPHICS:
+----------------------------------------------------------------------
+  Male                :   717  ( 49.6%)
+  Female              :   728  ( 50.4%)
+  Age: mean=55.7  median=60.0  range=[7, 89]
+
+----------------------------------------------------------------------
+TOP-10 LABEL CO-OCCURRENCES (primary labels):
+----------------------------------------------------------------------
+  ('normal',)                                                      :  250
+  ('covid',)                                                       :  210
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'pneumothorax', 'ards', 'pulm_edema', 'heart_failure', 'cardiomegaly_cm', 'bronchiectasis'):   49
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'pneumothorax', 'pulm_embolism', 'ards', 'pulm_edema', 'cardiomegaly_cm', 'tuberculosis_ntm'):   48
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'pulm_edema', 'heart_failure', 'pulm_hypertension'):   41
+  ('covid', 'pneumonia', 'effusion', 'emphysema_copd', 'atelectasis', 'pneumothorax', 'pulm_embolism', 'ards', 'pulm_edema', 'cardiomegaly_cm'):   39
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'pneumothorax', 'ards', 'pulm_edema', 'lung_malignancy', 'heart_failure', 'cardiomegaly_cm'):   37
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'pneumothorax', 'cardiomegaly_cm'):   36
+  ('covid', 'pneumonia', 'effusion', 'fibrosis', 'emphysema_copd', 'atelectasis', 'pneumothorax', 'ards', 'pulm_edema', 'heart_failure', 'cardiomegaly_cm', 'asthma'):   35
+  ('covid', 'pneumonia', 'atelectasis', 'pulm_embolism', 'cardiomegaly_cm', 'bronchiectasis', 'asthma'):   31
