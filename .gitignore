@@ -31,4 +31,6 @@ Thumbs.db
 dicom_previews
 dicom_data
 
+data/preprocessed
+
 /images
