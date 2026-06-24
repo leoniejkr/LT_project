@@ -170,7 +170,7 @@ def build_cxr_transforms():
         Lambda(func=_clahe),
         Resize(spatial_size=CXR_TARGET_SHAPE, mode="area"),
         NormalizeIntensity(
-            subtrahend=0.485, divisor=0.229,
+            subtrahend=[0.485], divisor=[0.229],
             nonzero=False, channel_wise=True,
         ),
     ])
