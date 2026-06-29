@@ -18,7 +18,7 @@
         status: "success",
         prediction: "Pneumonia",
         confidence: 0.85,
-        confidence_reason: "The model detected significant opacities in the lower lobes consistent with pneumonia.",
+        confidence_reason: "The model detected significant opacities in the lower lobes consistent with pneumonia but there are certain uncertaincies.",
         model_version: "v1.0"
     };
 
@@ -139,7 +139,7 @@
 
                 <Item.Root variant="outline" class="border-primary/50 bg-primary/[0.03]">
                     <Item.Title class="text-primary font-semibold">
-                        Risk Assessement 
+                        Assessement Reason
                     </Item.Title>
                     <Item.Description class="line-clamp-none">
                         {result.confidence_reason}
