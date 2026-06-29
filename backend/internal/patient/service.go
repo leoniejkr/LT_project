@@ -20,13 +20,12 @@ func NewService(repo *Repository, dicomStore *dicom.Store) *Service {
 	}
 }
 
-func (s *Service) CreatePatient(p *Patient, dicomFile io.Reader, filename string) (*analysis.PredictionResponse, error) {
-	// 1. Patienten in DB anlegen (noch ohne Pfad) um ID zu generieren
+// erstellt patienten und gibt patrientendaten zurück
+func (s *Service) CreatePatient(p *Patient, dicomFile io.Reader, filename string) (*Patient, error) {
 	if err := s.repo.Create(p); err != nil {
 		return nil, err
 	}
 
-	// 2. DICOM speichern
 	path, err := s.dicomStore.Save(p.ID, filename, dicomFile)
 	if err != nil {
 		return nil, err
@@ -37,11 +36,13 @@ func (s *Service) CreatePatient(p *Patient, dicomFile io.Reader, filename string
 	if err := s.repo.Update(p); err != nil {
 		return nil, err
 	}
-
-	// 4. Analyse aufrufen
-	return s.llmClient.GetPrediction()
+	return p, nil
 }
 
 func (s *Service) GetPatient(id uint) (*Patient, error) {
 	return s.repo.FindByID(id)
+}
+
+func (s *Service) getAnalysis(p *Patient) (*analysis.PredictionResponse, error) {
+	return s.llmClient.GetPrediction(p.ID)
 }

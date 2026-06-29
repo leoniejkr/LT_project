@@ -20,7 +20,6 @@ func NewStore(basePath string) (*Store, error) {
 }
 
 func (s *Store) Save(patientID uint, filename string, r io.Reader) (string, error) {
-	// Erstelle Patienten-spezifischen Unterordner
 	patientDir := filepath.Join(s.basePath, fmt.Sprintf("patient_%d", patientID))
 	if err := os.MkdirAll(patientDir, 0755); err != nil {
 		return "", err

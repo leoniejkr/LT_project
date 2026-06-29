@@ -28,14 +28,19 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 // @Success      202      {string} string "Accepted"
 // @Router       /patients [post]
 func (h *Handler) CreatePatient(w http.ResponseWriter, r *http.Request) {
-	// 1. Multipart Form parsen (max. 10MB im Speicher)
+
+	// TODO: wie kriege ich es hin single-responsibility mäßig hier
+	// bei create patient wirklich nur das anlegen
+	// des patienten zu machen, aber gleichzeitig zu ermöglichen, dass
+	// analyseergebnisse "automatisch" zurückgegeben werden, wenn
+	// ein patient angelegt wird?
+
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
 		http.Error(w, "Unable to parse multipart form", http.StatusBadRequest)
 		return
 	}
 
-	// 2. JSON-Daten aus dem "formData" Feld extrahieren
 	formData := r.FormValue("formData")
 	if formData == "" {
 		http.Error(w, "Missing formData", http.StatusBadRequest)
@@ -48,7 +53,6 @@ func (h *Handler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 3. DICOM-Datei extrahieren
 	file, header, err := r.FormFile("dicom_file")
 	if err != nil {
 		http.Error(w, "Missing dicom_file", http.StatusBadRequest)
@@ -56,8 +60,7 @@ func (h *Handler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// 4. Service aufrufen (Metadaten + Datei)
-	prediction, err := h.service.CreatePatient(&p, file, header.Filename)
+	patient, err := h.service.CreatePatient(&p, file, header.Filename)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -65,11 +68,14 @@ func (h *Handler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]any{
-		"status":            "success",
-		"id":                p.ID,
-		"prediction":        prediction.Prediction,
-		"confidence":        prediction.Confidence,
-		"confidence_reason": prediction.Confidence_Reason,
-		"model_version":     prediction.ModelVersion,
+		"status":              "success",
+		"id":                  patient.ID,
+		"age":                 patient.Age,
+		"gender":              patient.Gender,
+		"admitted_to_icu":     patient.AdmittedToIcu,
+		"requires_ventilator": patient.RequiresVentilator,
+		"known_illnesses":     patient.KnownIllnesses,
+		"symptoms":            patient.Symptoms,
+		"dicom_path":          patient.DicomPath,
 	})
 }
