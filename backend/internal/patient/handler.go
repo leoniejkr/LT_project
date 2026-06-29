@@ -71,6 +71,5 @@ func (h *Handler) CreatePatient(w http.ResponseWriter, r *http.Request) {
 		"confidence":        prediction.Confidence,
 		"confidence_reason": prediction.Confidence_Reason,
 		"model_version":     prediction.ModelVersion,
-		"is_mock":           prediction.IsMock,
 	})
 }

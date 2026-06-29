@@ -11,7 +11,7 @@
     const LINKS = [
         { name: 'Home', href: '/' },
         { name: 'Upload', href: '/upload' },
-        { name: 'Diagnostics', href: '/diagnostics' },
+        { name: 'Result', href: '/result' },
         { name: 'Help', href: '/help' },
     ];
 
