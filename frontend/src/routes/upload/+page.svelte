@@ -128,9 +128,8 @@
 	// TODO: reusable components besonders bei der checklist der known illnesses
 	// das kann man gut mit shadcn machen, aber das würde ich jetzt noch nciht machen,
 	// sondern erst, wenn die funktionalität an sich steht und wir das später nocvh schöner machen wollen
-
-	// TODO: das styling mit funktionalität versehen
-	// TODO: die required felder auch in in "funktionstechnisch" wirklich required machen
+	
+	// TODO: required auch required machen
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-5xl flex flex-col gap-6 px-6">
