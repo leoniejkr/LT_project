@@ -9,10 +9,19 @@ export default defineConfig({
 	],
 	optimizeDeps: {
 		exclude: ['@cornerstonejs/dicom-image-loader'],
-		include: ['dicom-parser']
+		include: [
+			'dicom-parser',
+			'@cornerstonejs/codec-libjpeg-turbo-8bit/decodewasmjs',
+			'@cornerstonejs/codec-openjpeg/decodewasmjs',
+			'@cornerstonejs/codec-openjph/wasmjs',
+			'@cornerstonejs/codec-charls/decodewasmjs'
+		]
 	},
 	worker: {
 		format: 'es'
+	},
+	ssr: {
+		noExternal: ['@cornerstonejs/core', '@cornerstonejs/tools', '@cornerstonejs/dicom-image-loader']
 	},
 	server: {
 		proxy: {
