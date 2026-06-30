@@ -8,7 +8,9 @@ export default defineConfig({
 		tailwindcss()
 	],
 	optimizeDeps: {
-		exclude: ['@cornerstonejs/dicom-image-loader'],
+		exclude: [
+			'@cornerstonejs/dicom-image-loader',
+		],
 		include: [
 			'dicom-parser',
 			'@cornerstonejs/codec-libjpeg-turbo-8bit/decodewasmjs',
@@ -24,6 +26,10 @@ export default defineConfig({
 		noExternal: ['@cornerstonejs/core', '@cornerstonejs/tools', '@cornerstonejs/dicom-image-loader']
 	},
 	server: {
+		headers: {
+			'Cross-Origin-Embedder-Policy': 'credentialless',
+			'Cross-Origin-Opener-Policy': 'same-origin',
+		},
 		proxy: {
 			'/api': {
 				target: 'http://backend:8080',

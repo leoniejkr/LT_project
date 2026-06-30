@@ -19,52 +19,67 @@
         imageIds = [] 
     }: Props = $props();
 
-    let element = $state<HTMLDivElement | null>(null);
-    let renderingEngine: cornerstone.RenderingEngine | undefined = undefined;
+    let element: HTMLDivElement | undefined;
+    let renderingEngine: cornerstone.RenderingEngine | undefined;
+
+    console.log(`[CornerstoneViewport] Created with imageIds:`, imageIds);
 
     onMount(() => {
         if (!browser) return;
 
+        console.log(`[CornerstoneViewport] onMount started, imageIds:`, imageIds);
+
         let resizeObserver: ResizeObserver | undefined;
 
         const setup = async () => {
-            await initCornerstone();
-            if (!element) return;
-
-            // Get the rendering engine
-            const existingEngine = cornerstone.getRenderingEngine(renderingEngineId);
-            if (existingEngine) {
-                renderingEngine = existingEngine;
-            } else {
-                renderingEngine = new cornerstone.RenderingEngine(renderingEngineId);
+            try {
+                await initCornerstone();
+            } catch (e) {
+                console.error('[CornerstoneViewport] initCornerstone failed:', e);
+                return;
+            }
+            if (!element) {
+                console.error('[CornerstoneViewport] element not bound');
+                return;
             }
 
-            // Create tool group
+            const existingEngine = cornerstone.getRenderingEngine(renderingEngineId);
+            renderingEngine = existingEngine ?? new cornerstone.RenderingEngine(renderingEngineId);
+
             const toolGroup = createToolGroup(toolGroupId);
 
-            const viewportInput = {
+            renderingEngine.enableElement({
                 viewportId,
                 type: Enums.ViewportType.STACK,
                 element,
                 defaultOptions: {
                     background: [0, 0, 0] as [number, number, number],
                 },
-            };
+            });
 
-            renderingEngine.enableElement(viewportInput);
-
-            // Add viewport to tool group
             if (toolGroup) {
                 toolGroup.addViewport(viewportId, renderingEngineId);
             }
 
+            console.log(`[CornerstoneViewport] Viewport enabled, calling setStack with:`, imageIds);
+
             if (imageIds.length > 0) {
-                const viewport = renderingEngine.getViewport(viewportId) as cornerstone.Types.IStackViewport;
-                await viewport.setStack(imageIds);
-                viewport.render();
+                try {
+                    const viewport = renderingEngine.getViewport(viewportId) as cornerstone.Types.IStackViewport;
+                    if (!viewport) {
+                        console.error(`[CornerstoneViewport] getViewport returned undefined`);
+                        return;
+                    }
+                    await viewport.setStack(imageIds);
+                    viewport.render();
+                    console.log(`[CornerstoneViewport] setStack + render completed`);
+                } catch (e) {
+                    console.error(`[CornerstoneViewport] setStack failed:`, e);
+                }
+            } else {
+                console.warn(`[CornerstoneViewport] No imageIds provided`);
             }
 
-            // Handle window resize
             resizeObserver = new ResizeObserver(() => {
                 if (renderingEngine) {
                     renderingEngine.resize(true, false);
@@ -73,7 +88,7 @@
             resizeObserver.observe(element);
         };
 
-        setup();
+        setup().catch((e) => console.error('[CornerstoneViewport] setup error:', e));
 
         return () => {
             if (resizeObserver) resizeObserver.disconnect();

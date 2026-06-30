@@ -71,7 +71,7 @@
                         <span class="flex items-center gap-1.5">
                             <FileDigit size={14} /> DICOM Viewport
                         </span>
-                        <span class="text-[10px] bg-muted px-2 py-0.5 rounded text-white font-mono">
+                        <span class="text-[10px] bg-muted px-2 py-0.5 rounded font-mono">
                             { $uploadedFileUrl ? "Uploaded DICOM File" : "image-000001.dcm (Mock)" }
                         </span>
                     </div>

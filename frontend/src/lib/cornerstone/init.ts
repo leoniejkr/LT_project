@@ -33,14 +33,15 @@ export async function initCornerstone() {
     cornerstoneTools.addTool(StackScrollTool);
 
     // 3. Configure DICOM Image Loader
-    await cornerstoneDICOMImageLoader.init({
+    // In @cornerstonejs/dicom-image-loader v4.22.x, init() registers the
+    // wadouri/dicomweb/dicomfile schemes internally via registerImageLoader
+    // from @cornerstonejs/core, so no external setup is needed.
+    cornerstoneDICOMImageLoader.init({
         maxWebWorkers: Math.max(navigator.hardwareConcurrency - 1, 1),
+        beforeSend: (xhr, imageId, defaultHeaders, params) => {
+            return { 'Cache-Control': 'no-cache' };
+        },
     });
-    
-    // Register the parser
-    // In newer versions of @cornerstonejs/dicom-image-loader, 
-    // we don't need to set external.dicomParser if using the init() pattern correctly
-    // but we can still register it if needed through other means if it fails.
 
     initialized = true;
     console.log('CornerstoneJS initialized with basic tools');
