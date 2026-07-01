@@ -21,13 +21,10 @@
 
     let element: HTMLDivElement | undefined;
     let renderingEngine: cornerstone.RenderingEngine | undefined;
-
-    console.log(`[CornerstoneViewport] Created with imageIds:`, imageIds);
+    let viewportReady = $state(false);
 
     onMount(() => {
         if (!browser) return;
-
-        console.log(`[CornerstoneViewport] onMount started, imageIds:`, imageIds);
 
         let resizeObserver: ResizeObserver | undefined;
 
@@ -61,24 +58,7 @@
                 toolGroup.addViewport(viewportId, renderingEngineId);
             }
 
-            console.log(`[CornerstoneViewport] Viewport enabled, calling setStack with:`, imageIds);
-
-            if (imageIds.length > 0) {
-                try {
-                    const viewport = renderingEngine.getViewport(viewportId) as cornerstone.Types.IStackViewport;
-                    if (!viewport) {
-                        console.error(`[CornerstoneViewport] getViewport returned undefined`);
-                        return;
-                    }
-                    await viewport.setStack(imageIds);
-                    viewport.render();
-                    console.log(`[CornerstoneViewport] setStack + render completed`);
-                } catch (e) {
-                    console.error(`[CornerstoneViewport] setStack failed:`, e);
-                }
-            } else {
-                console.warn(`[CornerstoneViewport] No imageIds provided`);
-            }
+            viewportReady = true;
 
             resizeObserver = new ResizeObserver(() => {
                 if (renderingEngine) {
@@ -96,6 +76,28 @@
                 renderingEngine.disableElement(viewportId);
             }
         };
+    });
+
+    $effect(() => {
+        if (!browser || !viewportReady || !renderingEngine) return;
+
+        console.log(`[CornerstoneViewport] Setting stack with imageIds:`, imageIds);
+
+        if (imageIds.length > 0) {
+            const viewport = renderingEngine.getViewport(viewportId) as cornerstone.Types.IStackViewport;
+            if (!viewport) {
+                console.error(`[CornerstoneViewport] getViewport returned undefined`);
+                return;
+            }
+            viewport.setStack(imageIds).then(() => {
+                viewport.render();
+                console.log(`[CornerstoneViewport] setStack + render completed`);
+            }).catch((e) => {
+                console.error(`[CornerstoneViewport] setStack failed:`, e);
+            });
+        } else {
+            console.warn(`[CornerstoneViewport] No imageIds provided`);
+        }
     });
 </script>
 

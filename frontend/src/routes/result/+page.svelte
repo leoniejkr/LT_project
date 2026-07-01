@@ -6,7 +6,7 @@
     import * as Item from "$lib/components/ui/item/index.js";
     import * as Accordion from "$lib/components/ui/accordion/index.js";
     import { goto } from "$app/navigation";
-    import CornerstoneViewport from "$lib/components/cornerstone/CornerstoneViewport.svelte";
+    import CornerstoneViewport from "$lib/components/cornerstone/cornerstone-viewport.svelte";
     import { 
         Stethoscope,
         FileDigit,
