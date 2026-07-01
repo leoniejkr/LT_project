@@ -64,6 +64,20 @@ func (s Symptoms) Value() (driver.Value, error) {
 	return json.Marshal(s)
 }
 
+type DicomPaths []string
+
+func (p *DicomPaths) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(bytes, &p)
+}
+
+func (p DicomPaths) Value() (driver.Value, error) {
+	return json.Marshal(p)
+}
+
 type Patient struct {
 	ID                 uint      `gorm:"primaryKey" json:"id"`
 	Age                uint      `gorm:"not null" json:"age"`
@@ -72,5 +86,5 @@ type Patient struct {
 	RequiresVentilator bool      `gorm:"not null" json:"requiresVentilator"`
 	KnownIllnesses     Illnesses `gorm:"type:jsonb" json:"knownIllnesses"`
 	Symptoms           Symptoms  `gorm:"type:jsonb" json:"symptoms"`
-	DicomPath          string    `json:"dicomPath"`
+	DicomPaths         DicomPaths `gorm:"type:jsonb" json:"dicomPaths"`
 }

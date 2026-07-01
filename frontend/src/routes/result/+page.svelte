@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { analysisResult, patientMetadata, uploadedFileUrl } from "$lib/stores.js";
+    import { analysisResult, patientMetadata, uploadedFileUrls } from "$lib/stores.js";
     import { Button } from "$lib/components/ui/button/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
     import { Separator } from "$lib/components/ui/separator/index.js";
@@ -16,29 +16,33 @@
 
     const defaultResult = {
         status: "success",
-        prediction: "Pneumonia",
-        confidence: 0.85,
-        confidence_reason: "The model detected significant opacities in the lower lobes consistent with pneumonia but there are certain uncertaincies.",
-        model_version: "v1.0"
+        analysis: {
+            prediction: "Pneumonia",
+            confidence: 0.85,
+            confidence_reason: "The model detected significant opacities in the lower lobes consistent with pneumonia but there are certain uncertaincies.",
+            model_version: "v1.0",
+        },
+        patient: {
+            id: "123",
+            age: 62,
+            gender: "Male",
+            admittedToIcu: true,
+            requiresVentilator: false,
+            knownIllnesses: ["Covid", "Pneumonia"],
+            symptoms: ["Cough", "Fever", "Dyspnea"],
+        },
     };
 
     let result = $derived($analysisResult || defaultResult);
-    
-    const defaultMetadata = {
-        id:"123",
-        age: 62,
-        gender: "Male",
-        admittedToIcu: true,
-        requiresVentilator: false,
-        knownIllnesses: ["Covid", "Pneumonia"],
-        symptoms: ["Cough", "Fever", "Dyspnea"],
-    };
+    let analysis = $derived(result.analysis ?? {});
+    let patient = $derived(result.patient ?? {});
 
-    let metadata = $derived($patientMetadata || defaultMetadata);
+    let metadata = $derived($patientMetadata || patient);
 
-    let imageIds = $derived($uploadedFileUrl 
-        ? [`wadouri:${$uploadedFileUrl}`] 
-        : ["wadouri:/image-000001.dcm"]
+    let imageIds = $derived(
+        $uploadedFileUrls.length > 0
+            ? $uploadedFileUrls.map(url => `wadouri:${url}`)
+            : ["wadouri:/image-000001.dcm"]
     );
 
 </script>
@@ -57,11 +61,11 @@
 
     {#if result}
         <Item.Root variant="outline">
-            <div>Patient ID:{metadata.id}</div>
-            <div>Age:{metadata.age}</div>
-            <div>Gender:{metadata.gender}</div>
-            <div>Admitted to ICU:{metadata.admittedToIcu ? "Yes" : "No"}</div>
-            <div>Ventilator Required: {metadata.requiresVentilator ? "Yes" : "No"}</div>
+            <div>Patient ID:{patient.id}</div>
+            <div>Age:{patient.age}</div>
+            <div>Gender:{patient.gender}</div>
+            <div>Admitted to ICU:{patient.admittedToIcu ? "Yes" : "No"}</div>
+            <div>Ventilator Required: {patient.requiresVentilator ? "Yes" : "No"}</div>
         </Item.Root>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -72,7 +76,7 @@
                             <FileDigit size={14} /> DICOM Viewport
                         </span>
                         <span class="text-[10px] bg-muted px-2 py-0.5 rounded font-mono">
-                            { $uploadedFileUrl ? "Uploaded DICOM File" : "image-000001.dcm (Mock)" }
+                            { $uploadedFileUrls.length > 0 ? `${$uploadedFileUrls.length} DICOM File(s) Uploaded` : "image-000001.dcm (Mock)" }
                         </span>
                     </div>
                     <div class="flex-1 relative bg-black">
@@ -92,7 +96,7 @@
                     <Accordion.Item value="illnesses">
                         <Accordion.Trigger>Known Illnesses</Accordion.Trigger>
                         <Accordion.Content class="gap-2">
-                            {#each metadata.knownIllnesses as illness}
+                            {#each patient.knownIllnesses ?? metadata.knownIllnesses ?? [] as illness}
                                 <Badge variant="outline" class="bg-amber-500/10 text-amber-600 border-amber-500/30">
                                     {illness}
                                 </Badge>
@@ -103,7 +107,7 @@
                     <Accordion.Item value="symptoms">
                         <Accordion.Trigger>Known Symptoms</Accordion.Trigger>
                         <Accordion.Content class="gap-2">
-                            {#each metadata.symptoms as symptom}
+                            {#each patient.symptoms ?? metadata.symptoms ?? [] as symptom}
                                 <Badge variant="outline" class="bg-teal-500/10 text-teal-600 border-teal-500/30">
                                     {symptom}
                                 </Badge>
@@ -120,11 +124,11 @@
                     <Item.Content class="flex-1 flex flex-col justify-between">
                         <div class="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Prediction</div>
                         <div class="text-lg font-semibold flex items-center gap-2">
-                            {result.prediction}
+                            {analysis.prediction}
                         </div>
                     </Item.Content>
                     <Item.Footer class="text-muted-foreground">
-                         Model: {result.model_version}
+                         Model: {analysis.model_version}
                     </Item.Footer>
                 </Item.Root>
                 
@@ -133,7 +137,7 @@
                         AI Diagnostics Assessment
                     </Item.Title>
                     <Item.Content class="font-semibold text-lg">
-                        {(typeof result.confidence === 'number' ? result.confidence * 100 : 0).toFixed(1)}% Confidence
+                        {(typeof analysis.confidence === 'number' ? analysis.confidence * 100 : 0).toFixed(1)}% Confidence
                     </Item.Content>
                 </Item.Root>
 
@@ -142,7 +146,7 @@
                         Assessement Reason
                     </Item.Title>
                     <Item.Description class="line-clamp-none">
-                        {result.confidence_reason}
+                        {analysis.confidence_reason}
                     </Item.Description>
                 </Item.Root>
             </div>

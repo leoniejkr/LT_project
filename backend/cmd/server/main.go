@@ -5,11 +5,14 @@ import (
 	"net/http"
 	"os"
 
+	"backend/internal/analysis"
+	"backend/internal/api"
 	"backend/internal/dicom"
 	"backend/internal/patient"
 	"backend/internal/platform"
 
 	_ "backend/docs"
+
 	httpSwagger "github.com/swaggo/http-swagger"
 )
 
@@ -19,31 +22,24 @@ import (
 // @host            localhost:8080
 // @BasePath        /
 func main() {
-	// connect to database
 	db, err := platform.InitDB()
 	if err != nil {
 		panic(fmt.Sprintf("failed to connect database: %v", err))
 	}
 
-	// Automatische Migration der Tabellen
-	db.AutoMigrate(&patient.Patient{})
+	db.AutoMigrate(&patient.Patient{}, &analysis.Analysis{})
 
-	// DICOM Store initialisieren
-	dicomStore, err := dicom.NewStore("./uploads/dicoms")
-	if err != nil {
-		panic("failed to create dicom store")
-	}
-
-	// set up api
 	router := http.NewServeMux()
 
+	dicomRepo, err := dicom.NewRepository("./uploads/dicoms")
 	patientRepo := patient.NewRepository(db)
-	patientService := patient.NewService(patientRepo, dicomStore)
-	patientHandler := patient.NewHandler(patientService)
+	analysisRepo := analysis.NewRepository(db)
+	llmClient := analysis.NewLLMClient()
+	analysisService := analysis.NewService(analysisRepo, llmClient)
+	patientService := patient.NewService(patientRepo, dicomRepo, analysisService)
+	apiHandler := api.NewHandler(patientService, analysisService)
+	apiHandler.RegisterRoutes(router)
 
-	patientHandler.RegisterRoutes(router)
-
-	// Swagger UI
 	router.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

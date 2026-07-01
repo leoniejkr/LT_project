@@ -16,7 +16,7 @@
 		ImageUp,
 	} from "lucide-svelte";
 	import { goto } from "$app/navigation";
-	import { analysisResult, patientMetadata, uploadedFileUrl } from "$lib/stores.js";
+	import { analysisResult, patientMetadata, uploadedFileUrls } from "$lib/stores.js";
 	import "../../app.css";
 
 	let { data }: { data: any } = $props();
@@ -56,7 +56,6 @@
 	});
 
 	async function startAnalysis() {
-		// Validierung (einfach)
 		if (!files || files.length === 0) {
 			alert("Please upload at least one DICOM file.");
 			return;
@@ -68,12 +67,10 @@
 
 		const formData = new FormData();
 
-		// Dateien hinzufügen (Backend erwartet aktuell eine Datei unter "dicom_file")
-		if (files.length > 0) {
-			formData.append("dicom_file", files[0]);
+		for (const file of files) {
+			formData.append("dicom_files", file);
 		}
 
-		// Metadaten hinzufügen
 		const metadata = {
 			age: parseInt(patientAge),
 			gender: value,
@@ -92,35 +89,43 @@
 		console.log("Submitting Case:", metadata);
 
 		try {
-			const response = await fetch("/api/patients", {
+			const response = await fetch("/api/analysis", {
 				method: "POST",
 				body: formData,
 			});
 			const result = await response.json();
 			console.log("Analysis Result:", result);
 			analysisResult.set(result);
-			patientMetadata.set(metadata);
-			if (files && files.length > 0) {
-				uploadedFileUrl.set(URL.createObjectURL(files[0]));
-			} else {
-				uploadedFileUrl.set(null);
-			}
+			patientMetadata.set(result.patient ?? metadata);
+			uploadedFileUrls.set(Array.from(files ?? []).map(f => URL.createObjectURL(f)));
 			goto("/result");
 		} catch (error) {
 			console.error("Submission failed, setting mock metadata and mock result:", error);
 			const mockResult = {
 				status: "success",
-				id: "PAT-Mock-123",
-				prediction: "Pneumonie detektiert",
-				confidence: 0.875
+				patient: {
+					id: "PAT-Mock-123",
+					age: parseInt(patientAge),
+					gender: value,
+					admittedToIcu: isICU,
+					requiresVentilator: requiresVentilator,
+					knownIllnesses: Object.keys(illnesses).filter(
+						(k) => illnesses[k as keyof typeof illnesses],
+					),
+					symptoms: Object.keys(symptoms).filter(
+						(k) => symptoms[k as keyof typeof symptoms],
+					),
+				},
+				analysis: {
+					prediction: "Pneumonia detected",
+					confidence: 0.875,
+					confidence_reason: "Bilateral opacities observed in the lower lobes with air bronchogram signs, consistent with infectious pneumonia.",
+					model_version: "mock-llm-v1.0",
+				},
 			};
 			analysisResult.set(mockResult);
 			patientMetadata.set(metadata);
-			if (files && files.length > 0) {
-				uploadedFileUrl.set(URL.createObjectURL(files[0]));
-			} else {
-				uploadedFileUrl.set(null);
-			}
+			uploadedFileUrls.set(Array.from(files ?? []).map(f => URL.createObjectURL(f)));
 			goto("/result");
 		}
 	}
