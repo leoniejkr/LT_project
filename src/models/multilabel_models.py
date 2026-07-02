@@ -100,7 +100,7 @@ class CTMedical3DClassifier(nn.Module):
             # Wir bauen ein 3D-ResNet50 mit 1 Input-Kanal (CT-Dichte)
             self.backbone = resnet50(
                 spatial_dims=spatial_dims, 
-                in_channels=1, 
+                n_input_channels=1, 
                 num_classes=1  # Dummy, wir kappen den Head
             )
             in_features = self.backbone.fc.in_features
