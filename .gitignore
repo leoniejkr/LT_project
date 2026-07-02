@@ -34,3 +34,8 @@ dicom_data
 data/preprocessed
 
 /images
+
+*.ckpt
+*.pyc
+*.log
+*.wandb
