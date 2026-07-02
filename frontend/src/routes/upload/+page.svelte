@@ -16,7 +16,11 @@
 		ImageUp,
 	} from "lucide-svelte";
 	import { goto } from "$app/navigation";
-	import { analysisResult, patientMetadata, uploadedFileUrls } from "$lib/stores.js";
+	import {
+		analysisResult,
+		patientMetadata,
+		uploadedFileUrls,
+	} from "$lib/stores.js";
 	import "../../app.css";
 
 	let { data }: { data: any } = $props();
@@ -97,10 +101,15 @@
 			console.log("Analysis Result:", result);
 			analysisResult.set(result);
 			patientMetadata.set(result.patient ?? metadata);
-			uploadedFileUrls.set(Array.from(files ?? []).map(f => URL.createObjectURL(f)));
+			uploadedFileUrls.set(
+				Array.from(files ?? []).map((f) => URL.createObjectURL(f)),
+			);
 			goto("/result");
 		} catch (error) {
-			console.error("Submission failed, setting mock metadata and mock result:", error);
+			console.error(
+				"Submission failed, setting mock metadata and mock result:",
+				error,
+			);
 			const mockResult = {
 				status: "success",
 				patient: {
@@ -119,13 +128,16 @@
 				analysis: {
 					prediction: "Pneumonia detected",
 					confidence: 0.875,
-					confidence_reason: "Bilateral opacities observed in the lower lobes with air bronchogram signs, consistent with infectious pneumonia.",
+					confidence_reason:
+						"Bilateral opacities observed in the lower lobes with air bronchogram signs, consistent with infectious pneumonia.",
 					model_version: "mock-llm-v1.0",
 				},
 			};
 			analysisResult.set(mockResult);
 			patientMetadata.set(metadata);
-			uploadedFileUrls.set(Array.from(files ?? []).map(f => URL.createObjectURL(f)));
+			uploadedFileUrls.set(
+				Array.from(files ?? []).map((f) => URL.createObjectURL(f)),
+			);
 			goto("/result");
 		}
 	}
@@ -133,7 +145,7 @@
 	// TODO: reusable components besonders bei der checklist der known illnesses
 	// das kann man gut mit shadcn machen, aber das würde ich jetzt noch nciht machen,
 	// sondern erst, wenn die funktionalität an sich steht und wir das später nocvh schöner machen wollen
-	
+
 	// TODO: required auch required machen
 </script>
 
@@ -201,7 +213,7 @@
 									<Field.Field>
 										<Field.Label>Patient Age</Field.Label>
 										<Input
-											id="mysteriös"
+											id="age"
 											placeholder="Patient Age"
 											bind:value={patientAge}
 											required
