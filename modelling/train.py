@@ -3,27 +3,13 @@
 scripts/train.py
 ─────────────────
 Trains CXR and CT models sequentially (or one at a time).
-
-Usage:
-    # Both modalities
-    python scripts/train.py --config configs/config.yaml
-
-    # CXR only
-    python scripts/train.py --config configs/config.yaml --modality cxr
-
-    # CT only, with metadata features
-    python scripts/train.py --config configs/config.yaml --modality ct --use-metadata
-
-    # Resume from checkpoint
-    python scripts/train.py --config configs/config.yaml --modality cxr \
-        --resume checkpoints/cxr_epoch=12-val_mAP=0.71.ckpt
 """
 
 import argparse
 import logging
 import sys
 from pathlib import Path
-
+import torch
 import yaml
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -37,15 +23,24 @@ def load_config(path: str) -> dict:
         return yaml.safe_load(f)
 
 
+def get_target_device(train_cfg: dict) -> str:
+    """Hilfsfunktion zur dynamischen Ermittlung des passenden PyTorch-Devices."""
+    accelerator = train_cfg.get("accelerator", "cpu").lower()
+    if accelerator == "mps":
+        return "mps"
+    elif accelerator == "cuda" and torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
+
+
 def train_cxr(cfg: dict, use_metadata: bool, resume: str | None):
     import lightning as L
     from lightning.pytorch.callbacks import (
         EarlyStopping, ModelCheckpoint, LearningRateMonitor
     )
 
-    from src.data.datasets import make_cxr_dataloaders, PRIMARY_LABELS, METADATA_LABELS
-    from src.models.multilabel_models import AsymmetricLoss
-    from src.models.multilabel_models import CXRMedicalFoundationModel
+    from src.data.datasets import make_cxr_dataloaders
+    from src.models.multilabel_models import AsymmetricLoss, CXRMedicalFoundationModel
     from src.training.lightning_module import MultiLabelModule, tune_thresholds
     import json
 
@@ -74,6 +69,12 @@ def train_cxr(cfg: dict, use_metadata: bool, resume: str | None):
         num_workers=data_cfg["num_workers"],
         seed=cfg["project"]["seed"],
     )
+
+    log.info("=" * 50)
+    log.info(f"DEBUG CXR - Train-Bilder gesamt: {len(train_loader.dataset)}")
+    log.info(f"DEBUG CXR - Val-Bilder gesamt:   {len(val_loader.dataset)}")
+    log.info(f"DEBUG CXR - Batches pro Epoche:  {len(train_loader)} (bei Batch-Size {cxr_cfg['batch_size']})")
+    log.info("=" * 50)
 
     # ── Model ─────────────────────────────────────────────────────────────────
     model = CXRMedicalFoundationModel(
@@ -144,7 +145,7 @@ def train_cxr(cfg: dict, use_metadata: bool, resume: str | None):
         callbacks=callbacks,
         logger=logger,
         log_every_n_steps=log_cfg["log_every_n_steps"],
-        deterministic=False,    # True = slower but reproducible
+        deterministic=False,
     )
 
     trainer.fit(module, train_loader, val_loader, ckpt_path=resume)
@@ -154,7 +155,7 @@ def train_cxr(cfg: dict, use_metadata: bool, resume: str | None):
 
     # ── Threshold tuning ─────────────────────────────────────────────────────
     if cxr_cfg.get("threshold_tuning", True):
-        device = "cuda" if train_cfg["devices"] > 0 else "cpu"
+        device = get_target_device(train_cfg)  # <── GEÄNDERT: Nutzt jetzt die sichere Erkennung
         thresholds = tune_thresholds(module.model, val_loader, label_cols, device=device)
         out_path = Path(ckpt_cfg["dirpath"]) / "cxr_thresholds.json"
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -163,6 +164,17 @@ def train_cxr(cfg: dict, use_metadata: bool, resume: str | None):
             json.dump(thresholds, f, indent=2)
         log.info(f"Thresholds saved → {out_path}")
 
+    if cxr_cfg.get("threshold_tuning", True):
+        log.info(f"Thresholds saved → {out_path}")
+    
+    try:
+        import wandb
+        if wandb.run is not None:
+            wandb.finish()
+            log.info("Wandb CXR run closed successfully.")
+    except ImportError:
+        pass
+
 
 def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
     import lightning as L
@@ -170,9 +182,8 @@ def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
         EarlyStopping, ModelCheckpoint, LearningRateMonitor
     )
 
-    from src.data.datasets import make_ct_dataloaders, PRIMARY_LABELS, METADATA_LABELS
-    from src.models.multilabel_models import AsymmetricLoss
-    from src.models.multilabel_models import CTMedical3DClassifier
+    from src.data.datasets import make_ct_dataloaders
+    from src.models.multilabel_models import AsymmetricLoss, CTMedical3DClassifier
     from src.training.lightning_module import MultiLabelModule, tune_thresholds
     import json
 
@@ -202,6 +213,12 @@ def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
         crop_size=tuple(ct_cfg["input_size"]),
         seed=cfg["project"]["seed"],
     )
+
+    log.info("=" * 50)
+    log.info(f"DEBUG CT - Train-Bilder gesamt: {len(train_loader.dataset)}")
+    log.info(f"DEBUG CT - Val-Bilder gesamt:   {len(val_loader.dataset)}")
+    log.info(f"DEBUG CT - Batches pro Epoche:  {len(train_loader)} (bei Batch-Size {ct_cfg['batch_size']})")
+    log.info("=" * 50)
 
     # ── Model ─────────────────────────────────────────────────────────────────
     model = CTMedical3DClassifier(
@@ -277,7 +294,7 @@ def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
     trainer.test(module, test_loader, ckpt_path="best")
 
     if ct_cfg.get("threshold_tuning", True):
-        device = "cuda" if train_cfg["devices"] > 0 else "cpu"
+        device = get_target_device(train_cfg)  # <── GEÄNDERT: Nutzt jetzt die Hilfsfunktion
         thresholds = tune_thresholds(module.model, val_loader, label_cols, device=device)
         out_path = Path(ckpt_cfg["dirpath"]) / "ct_thresholds.json"
         out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -285,6 +302,17 @@ def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
             import json
             json.dump(thresholds, f, indent=2)
         log.info(f"Thresholds saved → {out_path}")
+
+    if ct_cfg.get("threshold_tuning", True):
+        # ... dein threshold code ...
+        log.info(f"Thresholds saved → {out_path}")
+    try:
+        import wandb
+        if wandb.run is not None:
+            wandb.finish()
+            log.info("Wandb CT run closed successfully.")
+    except ImportError:
+        pass
 
 
 def parse_args():
@@ -302,7 +330,6 @@ def main():
     args = parse_args()
     cfg  = load_config(args.config)
 
-    L_available = True
     try:
         import lightning
     except ImportError:
