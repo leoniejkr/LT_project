@@ -8,6 +8,7 @@
 	import { Input } from "$lib/components/ui/input/index.js";
 	import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
+	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 	import {
 		UserSearch,
 		CloudUpload,
@@ -59,13 +60,18 @@
 		fatigue: false,
 	});
 
+	let showDialog = $state(false);
+	let dialogMessage = $state("");
+
 	async function startAnalysis() {
 		if (!files || files.length === 0) {
-			alert("Please upload at least one DICOM file.");
+			dialogMessage = "Please upload at least one DICOM file.";
+			showDialog = true;
 			return;
 		}
 		if (!patientAge || !value) {
-			alert("Please fill in age and gender.");
+			dialogMessage = "Please fill in age and gender.";
+			showDialog = true;
 			return;
 		}
 
@@ -390,5 +396,25 @@
 		</Button>
 	</div>
 </div>
+
+<AlertDialog.Root bind:open={showDialog}>
+	<AlertDialog.Content size="sm">
+		<AlertDialog.Header>
+			<AlertDialog.Title>Analysis not Started</AlertDialog.Title>
+			<AlertDialog.Description>{dialogMessage}</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<div class="col-span-2 flex justify-center">
+				<AlertDialog.Action
+					size="lg"
+					class="w-1/2"
+					onclick={() => (showDialog = false)}
+				>
+					OK
+				</AlertDialog.Action>
+			</div>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 <form method="POST"></form>
