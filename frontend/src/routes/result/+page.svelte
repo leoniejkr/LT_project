@@ -13,6 +13,7 @@
     import { Stethoscope, FileDigit, Undo2 } from "lucide-svelte";
     import "../../app.css";
     import CornerstoneViewport from "./cornerstone-viewport.svelte";
+    import ChangeDicomBar from "./change-dicom-bar.svelte";
 
     const defaultResult = {
         status: "success",
@@ -45,6 +46,14 @@
             ? $uploadedFileUrls.map((url) => `wadouri:${url}`)
             : ["wadouri:/image-000001.dcm"],
     );
+
+    let activeImageIndex = $state(0);
+
+    $effect(() => {
+        if (activeImageIndex >= imageIds.length) {
+            activeImageIndex = Math.max(0, imageIds.length - 1);
+        }
+    });
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-5xl flex flex-col gap-6 px-6 pb-12">
@@ -74,38 +83,54 @@
         </Item.Root>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-2 flex flex-col gap-2">
+            <div class="lg:col-span-2 flex flex-col">
                 <div
-                    class="border rounded-xl overflow-hidden bg-black flex flex-col relative h-[500px]"
+                    class="border rounded-xl flex flex-col relative overflow-hidden"
                 >
-                    <div
-                        class="bg-card px-4 py-2 border-b text-xs font-medium flex items-center justify-between text-muted-foreground z-10"
-                    >
-                        <span class="flex items-center gap-1.5">
+                    <Item.Root>
+                        <Item.Description class="flex items-center gap-1.5">
                             <FileDigit size={14} /> DICOM Viewport
-                        </span>
-                        <span
-                            class="text-[10px] bg-muted px-2 py-0.5 rounded font-mono"
-                        >
-                            {$uploadedFileUrls.length > 0
-                                ? `${$uploadedFileUrls.length} DICOM File(s) Uploaded`
-                                : "image-000001.dcm (Mock)"}
-                        </span>
-                    </div>
-                    <div class="flex-1 relative bg-black">
+                        </Item.Description>
+                        <Item.Description class="flex items-center">
+                            <Badge variant="outline">
+                                {#if $uploadedFileUrls.length > 0}
+                                    {$uploadedFileUrls.length} DICOM File(s) Uploaded
+                                {:else}
+                                    image-000001.dcm (Mock)
+                                {/if}
+                            </Badge>
+                            {#if imageIds.length > 1}
+                                <Separator orientation="vertical" class="h-3" />
+                                <Badge variant="default">
+                                    {activeImageIndex + 1} / {imageIds.length}
+                                </Badge>
+                            {/if}
+                        </Item.Description>
+                    </Item.Root>
+                    <Item.Media>
                         {#if imageIds.length > 0}
                             <CornerstoneViewport
                                 {imageIds}
                                 viewportId="result-viewport"
+                                bind:activeImageIndex
                             />
                         {/if}
-                    </div>
+                    </Item.Media>
+                    {#if imageIds.length >= 1}
+                        <Item.Footer class="bg-card border-t">
+                            <ChangeDicomBar
+                                {imageIds}
+                                activeIndex={activeImageIndex}
+                                onselect={(i) => (activeImageIndex = i)}
+                            />
+                        </Item.Footer>
+                    {/if}
                 </div>
-                <div class="text-xs text-muted-foreground italic px-2">
+                <Item.Description class="italic px-2 text-xs">
                     * Interactive Viewport: Left-click and drag to adjust window
                     level (contrast), right-click and drag to zoom, wheel to
                     scroll stack.
-                </div>
+                </Item.Description>
             </div>
 
             <div class="flex flex-col gap-4">

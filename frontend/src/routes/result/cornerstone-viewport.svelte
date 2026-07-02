@@ -10,13 +10,15 @@
         renderingEngineId?: string;
         toolGroupId?: string;
         imageIds?: string[];
+        activeImageIndex?: number;
     }
 
-    let { 
-        viewportId = 'my-viewport', 
-        renderingEngineId = 'my-rendering-engine', 
-        toolGroupId = 'my-tool-group', 
-        imageIds = [] 
+    let {
+        viewportId = 'my-viewport',
+        renderingEngineId = 'my-rendering-engine',
+        toolGroupId = 'my-tool-group',
+        imageIds = [],
+        activeImageIndex = $bindable(0),
     }: Props = $props();
 
     let element: HTMLDivElement | undefined;
@@ -40,15 +42,20 @@
                 return;
             }
 
-            const existingEngine = cornerstone.getRenderingEngine(renderingEngineId);
-            renderingEngine = existingEngine ?? new cornerstone.RenderingEngine(renderingEngineId);
+            const el = element;
+
+            const existingEngine =
+                cornerstone.getRenderingEngine(renderingEngineId);
+            renderingEngine =
+                existingEngine ??
+                new cornerstone.RenderingEngine(renderingEngineId);
 
             const toolGroup = createToolGroup(toolGroupId);
 
             renderingEngine.enableElement({
                 viewportId,
                 type: Enums.ViewportType.STACK,
-                element,
+                element: el,
                 defaultOptions: {
                     background: [0, 0, 0] as [number, number, number],
                 },
@@ -65,10 +72,32 @@
                     renderingEngine.resize(true, false);
                 }
             });
-            resizeObserver.observe(element);
+            resizeObserver.observe(el);
+
+            const imageChangeHandler = (e: Event) => {
+                const ce = e as CustomEvent;
+                const index = ce.detail?.imageIdIndex as number | undefined;
+                if (typeof index === 'number') {
+                    activeImageIndex = index;
+                }
+            };
+
+            el.addEventListener(
+                'CORNERSTONE_STACK_NEW_IMAGE',
+                imageChangeHandler,
+            );
+
+            return () => {
+                el.removeEventListener(
+                    'CORNERSTONE_STACK_NEW_IMAGE',
+                    imageChangeHandler,
+                );
+            };
         };
 
-        setup().catch((e) => console.error('[CornerstoneViewport] setup error:', e));
+        setup().catch((e) =>
+            console.error('[CornerstoneViewport] setup error:', e),
+        );
 
         return () => {
             if (resizeObserver) resizeObserver.disconnect();
@@ -78,37 +107,34 @@
         };
     });
 
+    let prevImageIdsKey = '';
+
     $effect(() => {
         if (!browser || !viewportReady || !renderingEngine) return;
+        if (imageIds.length === 0) return;
 
-        console.log(`[CornerstoneViewport] Setting stack with imageIds:`, imageIds);
+        const viewport = renderingEngine.getViewport(
+            viewportId,
+        ) as cornerstone.Types.IStackViewport;
+        if (!viewport) return;
 
-        if (imageIds.length > 0) {
-            const viewport = renderingEngine.getViewport(viewportId) as cornerstone.Types.IStackViewport;
-            if (!viewport) {
-                console.error(`[CornerstoneViewport] getViewport returned undefined`);
-                return;
-            }
-            viewport.setStack(imageIds).then(() => {
+        const idsKey = imageIds.join(',');
+        const isNewStack = idsKey !== prevImageIdsKey;
+        prevImageIdsKey = idsKey;
+
+        if (isNewStack) {
+            viewport.setStack(imageIds, activeImageIndex).then(() => {
                 viewport.render();
-                console.log(`[CornerstoneViewport] setStack + render completed`);
-            }).catch((e) => {
-                console.error(`[CornerstoneViewport] setStack failed:`, e);
             });
         } else {
-            console.warn(`[CornerstoneViewport] No imageIds provided`);
+            const currentIndex = viewport.getCurrentImageIdIndex();
+            if (currentIndex !== activeImageIndex) {
+                viewport.setImageIdIndex(activeImageIndex).then(() => {
+                    viewport.render();
+                });
+            }
         }
     });
 </script>
 
-<div bind:this={element} class="cornerstone-viewport"></div>
-
-<style>
-    .cornerstone-viewport {
-        width: 100%;
-        height: 100%;
-        min-height: 400px;
-        background-color: #000;
-        position: relative;
-    }
-</style>
+<div bind:this={element} class="viewport-container"></div>
