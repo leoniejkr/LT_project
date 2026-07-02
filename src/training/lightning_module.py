@@ -79,7 +79,7 @@ class MultiLabelModule(L.LightningModule):
         if split == "val":
             self.val_auroc_per.update(probs, targets.int())
 
-        self.log(f"{split}/loss", loss, prog_bar=True, on_step=False, on_epoch=True, sync_dist=True)
+        self.log(f"{split}/loss", loss, prog_bar=True, on_step=True, on_epoch=True, sync_dist=True)
         return loss
 
     def _epoch_end(self, split: str):
