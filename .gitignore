@@ -39,3 +39,4 @@ data/preprocessed
 *.pyc
 *.log
 *.wandb
+/wandb
