@@ -134,10 +134,10 @@ def download_manifest(manifest_path, output_dir, workers, gen3_bin, dry_run=Fals
 def main():
     args = parse_args()
     
-    # If no limit specified, set a default of 10
+    # If no limit specified, set a default of 50
     if args.limit is None:
-        log.info("📝 No limit specified, defaulting to 10 images per modality")
-        args.limit = 10
+        log.info("📝 No limit specified, defaulting to 50 images per modality")
+        args.limit = 50
     
     # Check for gen3-client
     gen3_bin = check_gen3_client()
