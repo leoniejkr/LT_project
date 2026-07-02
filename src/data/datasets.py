@@ -60,7 +60,6 @@ def stratified_split(
             n_splits=2,
             order=2,
             sample_distribution_per_fold=[test_frac + val_frac, 1 - test_frac - val_frac],
-            random_state=seed,
         )
         train_idx, temp_idx = next(splitter.split(np.arange(len(df)).reshape(-1, 1), y))
 
@@ -71,7 +70,6 @@ def stratified_split(
             n_splits=2,
             order=2,
             sample_distribution_per_fold=[1 - ratio, ratio],
-            random_state=seed,
         )
         val_idx, test_idx = next(splitter2.split(np.arange(len(df_temp)).reshape(-1, 1), y_temp))
 

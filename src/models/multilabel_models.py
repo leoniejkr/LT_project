@@ -1,15 +1,3 @@
-"""
-src/models/multilabel_models.py
-────────────────────────────────
-CXR:  DenseNet-121 pretrained via TorchXRayVision (CheXpert weights)
-      → GlobalAvgPool → Dropout → Linear(num_labels)
-
-CT:   SwinUNETR encoder (MONAI, pretrained on BTCV)
-      → AdaptiveAvgPool3d → Dropout → Linear(num_labels)
-
-Both optionally fuse tabular metadata features after pooling.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -22,56 +10,42 @@ log = logging.getLogger(__name__)
 
 NUM_LABELS = 13   # 12 imaging primaries + normal
 
-
 # ══════════════════════════════════════════════════════════════════════════════
-# CXR — DenseNet-121 with CheXpert pretraining
+# CXR — Medical ViT (BiomedCLIP) oder RadImageNet
 # ══════════════════════════════════════════════════════════════════════════════
 
-class CXRDenseNet(nn.Module):
+class CXRMedicalFoundationModel(nn.Module):
     """
-    DenseNet-121 pretrained on CheXpert (14 pathologies) via torchxrayvision.
-    We strip the original classification head and attach a new multi-label head
-    tuned to our label set.
-
-    torchxrayvision gives us domain-specific weights: the features already
-    encode chest pathology representations, not general ImageNet features.
-
-    Install: pip install torchxrayvision
+    Ersetzt DenseNet durch ein modernes Medical ViT oder CNN via Hugging Face / timm.
+    Standardmäßig wird hier Microsofts BiomedCLIP (ViT-B/16) geladen.
     """
 
     def __init__(
         self,
         num_labels: int = NUM_LABELS,
-        weights: str = "densenet121-res224-chex",   # CheXpert pretrained
+        model_name: str = "microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224",
         dropout: float = 0.3,
-        freeze_backbone_epochs: int = 0,             # 0 = no freezing
-        meta_dim: int = 0,                           # 0 = no metadata fusion
+        meta_dim: int = 0,
     ):
         super().__init__()
-        self.freeze_backbone_epochs = freeze_backbone_epochs
         self.meta_dim = meta_dim
 
-        # ── Load pretrained DenseNet via torchxrayvision ─────────────────────
+        log.info(f"Lade CXR Medical Backbone: {model_name}...")
         try:
-            import torchxrayvision as xrv
-            base = xrv.models.DenseNet(weights=weights)
-            self.features = base.features          # DenseNet feature extractor
-            in_features   = base.classifier.in_features
-            log.info(f"Loaded CXR backbone: {weights} ({in_features} features)")
-        except ImportError:
-            log.warning(
-                "torchxrayvision not found — falling back to ImageNet DenseNet.\n"
-                "Install: pip install torchxrayvision"
-            )
-            from torchvision.models import densenet121, DenseNet121_Weights
-            base = densenet121(weights=DenseNet121_Weights.IMAGENET1K_V1)
-            self.features = base.features
-            in_features   = base.classifier.in_features
+            from transformers import AutoModel
+            # Wir nutzen nur den Vision-Tower von BiomedCLIP
+            base_model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
+            self.features = base_model.visual
+            in_features = self.features.config.hidden_size # Meistens 768 für ViT-B
+        except Exception as e:
+            log.warning(f"Konnte Hugging Face Model nicht laden ({e}). Falle zurück auf timm ViT.")
+            import timm
+            self.features = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=0)
+            in_features = self.features.num_features
 
-        self.pool    = nn.AdaptiveAvgPool2d((1, 1))
         self.dropout = nn.Dropout(p=dropout)
 
-        # Optional metadata fusion
+        # Classifier Head mit optionaler Tabular-Metadaten-Fusion
         head_in = in_features + meta_dim
         self.classifier = nn.Sequential(
             nn.Linear(head_in, 256),
@@ -81,119 +55,63 @@ class CXRDenseNet(nn.Module):
         )
 
     def forward(self, x: torch.Tensor, metadata: Optional[torch.Tensor] = None) -> torch.Tensor:
-        # x: [B, 3, H, W] — already normalized
-        feats = self.features(x)
-        feats = self.pool(feats).flatten(1)     # [B, in_features]
+        # BiomedCLIP erwartet [B, 3, 224, 224] -> passt perfekt zu deinem Preprocessing
+        
+        # Hugging Face ViT Output extrahieren (Pooler Output oder CLS-Token)
+        outputs = self.features(x)
+        if hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
+            feats = outputs.pooler_output
+        elif hasattr(outputs, "last_hidden_state"):
+            feats = outputs.last_hidden_state[:, 0]  # CLS token
+        else:
+            feats = outputs # Falls es ein timm-Modell ohne Head ist
+            
         feats = self.dropout(feats)
 
         if self.meta_dim > 0 and metadata is not None:
             feats = torch.cat([feats, metadata], dim=1)
 
-        return self.classifier(feats)           # [B, num_labels] — raw logits
-
-    def freeze_backbone(self):
-        for p in self.features.parameters():
-            p.requires_grad = False
-        log.info("CXR backbone frozen")
-
-    def unfreeze_backbone(self):
-        for p in self.features.parameters():
-            p.requires_grad = True
-        log.info("CXR backbone unfrozen")
+        return self.classifier(feats)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# CT — SwinUNETR encoder pretrained on BTCV
+# CT — Medical 3D-ResNet (Med3D / MONAI)
 # ══════════════════════════════════════════════════════════════════════════════
 
-SWIN_BTCV_WEIGHTS_URL = (
-    "https://github.com/Project-MONAI/MONAI-extra-test-data/releases/download/"
-    "0.8.1/swin_unetr.base_5000ep_f48_lr2e-4_pretrained.pt"
-)
-
-
-def _load_swin_pretrained(model: nn.Module, weights_path: str) -> nn.Module:
+class CTMedical3DClassifier(nn.Module):
     """
-    Load MONAI SwinUNETR pretrained weights (encoder only).
-    The checkpoint contains both encoder and decoder; we only use the encoder.
-    """
-    import urllib.request
-    from pathlib import Path
-
-    cache = Path(weights_path)
-    if not cache.exists():
-        log.info(f"Downloading SwinUNETR weights → {cache} …")
-        cache.parent.mkdir(parents=True, exist_ok=True)
-        urllib.request.urlretrieve(SWIN_BTCV_WEIGHTS_URL, str(cache))
-
-    state = torch.load(str(cache), map_location="cpu")
-
-    # MONAI checkpoints nest weights under 'state_dict' or 'net'
-    if "state_dict" in state:
-        state = state["state_dict"]
-    elif "net" in state:
-        state = state["net"]
-
-    # Keep only swinViT (encoder) keys
-    encoder_state = {
-        k.replace("module.swinViT.", "").replace("swinViT.", ""): v
-        for k, v in state.items()
-        if "swinViT" in k
-    }
-
-    missing, unexpected = model.swinViT.load_state_dict(encoder_state, strict=False)
-    log.info(
-        f"SwinUNETR encoder weights loaded — "
-        f"missing:{len(missing)}  unexpected:{len(unexpected)}"
-    )
-    return model
-
-
-class CTSwinClassifier(nn.Module):
-    """
-    SwinUNETR encoder for 3D CT classification.
-    Encoder output: hierarchical features → we take the bottleneck,
-    apply 3D global average pooling, then classify.
-
-    Input: [B, 1, D, H, W]  (96×96×96 after crop)
+    3D-CNN Classifier basierend auf MONAIs ResNet3D.
+    Perfekt geeignet für den Transfer von Med3D (3D-ResNet Vortraining auf CTs).
+    Input: [B, 1, D, H, W] -> (96x96x96 aus deinem Preprocessing)
     """
 
     def __init__(
         self,
         num_labels: int = NUM_LABELS,
-        img_size: tuple[int, int, int] = (96, 96, 96),
-        feature_size: int = 48,
+        spatial_dims: int = 3,
         dropout: float = 0.3,
-        pretrained_weights: Optional[str] = "weights/swin_unetr_btcv.pt",
         meta_dim: int = 0,
     ):
         super().__init__()
         self.meta_dim = meta_dim
 
         try:
-            from monai.networks.nets import SwinUNETR
+            from monai.networks.nets import resnet50
+            # Wir bauen ein 3D-ResNet50 mit 1 Input-Kanal (CT-Dichte)
+            self.backbone = resnet50(
+                spatial_dims=spatial_dims, 
+                in_channels=1, 
+                num_classes=1  # Dummy, wir kappen den Head
+            )
+            in_features = self.backbone.fc.in_features
+            self.backbone.fc = nn.Identity() # Head entfernen
+            log.info("MONAI ResNet3D-50 geladen.")
         except ImportError:
-            raise ImportError("Install MONAI: pip install monai[all]")
+            raise ImportError("Bitte installiere MONAI: pip install monai")
 
-        # Full SwinUNETR (we only use the encoder path in forward)
-        self.swin = SwinUNETR(
-            img_size=img_size,
-            in_channels=1,
-            out_channels=14,        # dummy — we replace the head
-            feature_size=feature_size,
-            use_checkpoint=True,    # gradient checkpointing → lower VRAM
-        )
-
-        if pretrained_weights:
-            _load_swin_pretrained(self, pretrained_weights)
-
-        # Encoder output at deepest layer: feature_size * 16
-        encoder_out_dim = feature_size * 16     # 48 * 16 = 768
-
-        self.pool    = nn.AdaptiveAvgPool3d((1, 1, 1))
         self.dropout = nn.Dropout(p=dropout)
 
-        head_in = encoder_out_dim + meta_dim
+        head_in = in_features + meta_dim
         self.classifier = nn.Sequential(
             nn.Linear(head_in, 512),
             nn.ReLU(inplace=True),
@@ -202,19 +120,14 @@ class CTSwinClassifier(nn.Module):
         )
 
     def forward(self, x: torch.Tensor, metadata: Optional[torch.Tensor] = None) -> torch.Tensor:
-        # Extract encoder features from SwinUNETR (skip decoder)
-        # SwinUNETR.swinViT returns a list of hierarchical feature maps
-        hidden_states = self.swin.swinViT(x, self.swin.normalize)
-        feats = hidden_states[-1]           # deepest encoder feature [B, C, d, h, w]
-
-        feats = self.pool(feats).flatten(1) # [B, encoder_out_dim]
+        # x: [B, 1, 96, 96, 96]
+        feats = self.backbone(x) # liefert [B, in_features]
         feats = self.dropout(feats)
 
         if self.meta_dim > 0 and metadata is not None:
             feats = torch.cat([feats, metadata], dim=1)
 
-        return self.classifier(feats)       # [B, num_labels] — raw logits
-
+        return self.classifier(feats)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Asymmetric Loss  (better than BCE for multi-label imbalance)

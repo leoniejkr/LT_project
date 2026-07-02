@@ -44,7 +44,8 @@ def train_cxr(cfg: dict, use_metadata: bool, resume: str | None):
     )
 
     from src.data.datasets import make_cxr_dataloaders, PRIMARY_LABELS, METADATA_LABELS
-    from src.models.multilabel_models import CXRDenseNet, AsymmetricLoss
+    from src.models.multilabel_models import AsymmetricLoss
+    from src.models.multilabel_models import CXRMedicalFoundationModel
     from src.training.lightning_module import MultiLabelModule, tune_thresholds
     import json
 
@@ -75,9 +76,9 @@ def train_cxr(cfg: dict, use_metadata: bool, resume: str | None):
     )
 
     # ── Model ─────────────────────────────────────────────────────────────────
-    model = CXRDenseNet(
+    model = CXRMedicalFoundationModel(
         num_labels=len(label_cols),
-        weights=cxr_cfg.get("pretrained_weights", "densenet121-res224-chex"),
+        model_name=cxr_cfg.get("pretrained_weights", "microsoft/BiomedCLIP-PubMedBERT_256-vit_base_patch16_224"),
         dropout=0.3,
         meta_dim=meta_dim,
     )
@@ -170,7 +171,8 @@ def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
     )
 
     from src.data.datasets import make_ct_dataloaders, PRIMARY_LABELS, METADATA_LABELS
-    from src.models.multilabel_models import CTSwinClassifier, AsymmetricLoss
+    from src.models.multilabel_models import AsymmetricLoss
+    from src.models.multilabel_models import CTMedical3DClassifier
     from src.training.lightning_module import MultiLabelModule, tune_thresholds
     import json
 
@@ -202,12 +204,9 @@ def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
     )
 
     # ── Model ─────────────────────────────────────────────────────────────────
-    model = CTSwinClassifier(
+    model = CTMedical3DClassifier(
         num_labels=len(label_cols),
-        img_size=tuple(ct_cfg["input_size"]),
-        feature_size=48,
         dropout=0.3,
-        pretrained_weights="weights/swin_unetr_btcv.pt",
         meta_dim=meta_dim,
     )
 
