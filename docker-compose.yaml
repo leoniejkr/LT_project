@@ -10,8 +10,17 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  db_dicom:
-    image: jodogne/orthanc:1.12.11
+  orthanc:
+    image: orthancteam/orthanc
+    ports:
+      - "8042:8042"
+      - "4242:4242"
+    volumes:
+      - orthanc_storage:/var/lib/orthanc/db:Z
+    environment:
+      ORTHANC__NAME: "Orthanc Database"
+      ORTHANC__REGISTERED_USERS: |
+        {"user": "user"}
 
   modelling:
     build: ./modelling
@@ -23,7 +32,7 @@ services:
       - USE_MOCK=true
 
   backend:
-    build: 
+    build:
       context: ./backend
       target: dev
     volumes:
@@ -57,3 +66,4 @@ services:
 
 volumes:
   postgres_data:
+  orthanc_storage:
