@@ -161,10 +161,10 @@ def _clahe(x: "torch.Tensor") -> "torch.Tensor":
 
 def build_cxr_transforms():
     return Compose([
-        LoadImage(image_only=True),
+        LoadImage(image_only=True, reader="ITKReader"), # ITKReader fängt Multi-Series oft besser ab
         EnsureChannelFirst(),
-        Lambda(func=_squeeze_z),                         # [C,H,W,1] → [C,H,W]
-        ScaleIntensityRange(                             # pixel range from debug: 0–14363
+        Lambda(func=_force_2d_spatial),                  # <── Ersetzt _squeeze_z durch härtere Variante
+        ScaleIntensityRange(                             
             a_min=0, a_max=16383, b_min=0.0, b_max=1.0, clip=True,
         ),
         Lambda(func=_clahe),
@@ -175,6 +175,22 @@ def build_cxr_transforms():
         ),
     ])
 
+def _force_2d_spatial(x: "torch.Tensor") -> "torch.Tensor":
+    """
+    Egal ob [C, H, W, 1], [C, 1, H, W] oder [C, Slices, H, W] bei Multi-Frame DICOMs:
+    Schneidet das Tensor-Volumen radikal so ab, dass nur der erste 2D-Frame [C, H, W] übrig bleibt.
+    """
+    # Wenn MONAI fälschlicherweise ein 3D-Volumen liest (z.B. [C, D, H, W])
+    if x.ndim == 4:
+        if x.shape[-1] == 1:       # [C, H, W, 1]
+            return x[..., 0]
+        elif x.shape[1] == 1:     # [C, 1, H, W]
+            return x[:, 0, :, :]
+        else:
+            # Multi-Frame Fall: Nimm einfach das allererste Bild (Slice 0)
+            return x[:, 0, :, :]
+            
+    return x # Wenn es schon [C, H, W] ist
 
 # ── Core processing function ──────────────────────────────────────────────────
 
@@ -217,7 +233,28 @@ def process_one(
 
         # ── 4. MONAI transform ────────────────────────────────────────────────
         # LoadImage on a directory reads the whole DICOM series
-        tensor = transforms(str(dicom_dir))
+        # ── 4. MONAI transform ────────────────────────────────────────────────
+        # ── 4. MONAI transform ────────────────────────────────────────────────
+        try:
+            tensor = transforms(str(dicom_dir))
+        except Exception as e:
+            if "contains more than one DICOM series" in str(e):
+                try:
+                    # Sortiert die DICOMs und pickt das erste File heraus
+                    dcm_files = sorted([f for f in dicom_dir.iterdir() if f.is_file() and is_dicom(f)])
+                    if not dcm_files:
+                        log.warning(f"No valid DICOM inside multi-series directory for {submitter_id}")
+                        return ""
+                    first_file = dcm_files[0]
+                    tensor = transforms(str(first_file))
+                except Exception as inner_e:
+                    log.warning(f"Fallback single-file transform failed [{submitter_id}]: {inner_e}")
+                    return ""
+            else:
+                log.warning(f"Transform failed [{submitter_id}]: {e}")
+                return ""
+
+        # Erst hier wird 'arr' definiert – und zwar garantiert ohne Absturz
         arr = tensor.numpy() if hasattr(tensor, "numpy") else np.array(tensor)
 
         # ── 5. Save ───────────────────────────────────────────────────────────
