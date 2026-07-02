@@ -72,14 +72,22 @@
     </div>
 
     {#if result}
-        <Item.Root variant="outline">
-            <div>Patient ID:{patient.id}</div>
-            <div>Age:{patient.age}</div>
-            <div>Gender:{patient.gender}</div>
-            <div>Admitted to ICU:{patient.admittedToIcu ? "Yes" : "No"}</div>
-            <div>
+        <Item.Root variant="outline" class="flex">
+            <Badge variant="secondary" class="h-8 text-md"
+                >Patient ID: {patient.id}</Badge
+            >
+            <Badge variant="secondary" class="h-8 text-md">
+                Age: {patient.age}
+            </Badge>
+            <Badge variant="secondary" class="h-8 text-md">
+                Gender: {patient.gender}
+            </Badge>
+            <Badge variant="secondary" class="h-8 text-md"
+                >Admitted to ICU: {patient.admittedToIcu ? "Yes" : "No"}</Badge
+            >
+            <Badge variant="secondary" class="h-8 text-md">
                 Ventilator Required: {patient.requiresVentilator ? "Yes" : "No"}
-            </div>
+            </Badge>
         </Item.Root>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
