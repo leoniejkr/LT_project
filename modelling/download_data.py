@@ -136,8 +136,9 @@ def main():
     
     # If no limit specified, set a default of 50
     if args.limit is None:
-        log.info("📝 No limit specified, defaulting to 50 images per modality")
-        args.limit = 50
+        log.info("Kein Limit angegeben – lade alle verfügbaren Bilder herunter (Max)!")
+    else:
+        log.info(f"Limit manuell gesetzt auf: {args.limit} Bilder pro Modalität")
     
     # Check for gen3-client
     gen3_bin = check_gen3_client()
