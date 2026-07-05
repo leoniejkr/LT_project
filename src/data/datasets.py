@@ -322,6 +322,12 @@ def make_cxr_dataloaders(
         df, label_cols, val_frac, test_frac, seed
     )
     log.info(f"CXR split — train:{len(df_train)} val:{len(df_val)} test:{len(df_test)}")
+    print("=== POSITIVE SAMPLES PRO KLASSE IN TRAINING ===")
+    print(df_train[label_cols].sum())
+
+    print("\n=== POSITIVE SAMPLES PRO KLASSE IN VALIDATION ===")
+    print(df_val[label_cols].sum())
+    print(df.columns)
 
     train_ds = CXRDataset(df_train, label_cols, meta_cols, prep_dir, augment=True)
     val_ds   = CXRDataset(df_val,   label_cols, meta_cols, prep_dir, augment=False)
