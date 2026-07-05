@@ -42,6 +42,8 @@ METADATA_LABELS = [
 
 # ── Stratified split ──────────────────────────────────────────────────────────
 
+# Ersetze die Funktion stratified_split in src/data/datasets.py durch diese:
+
 def stratified_split(
     df: pd.DataFrame,
     label_cols: list[str],
@@ -50,40 +52,38 @@ def stratified_split(
     seed: int = 42,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """
-    Iterative stratification for multi-label data.
-    Falls back to random split if skmultilearn is unavailable.
+    Splits the dataframe based on Patient ID (submitter_id) to prevent data leakage,
+    while attempting to distribute labels evenly across splits.
     """
-    try:
-        from skmultilearn.model_selection import IterativeStratification
-        y = df[label_cols].values
-        splitter = IterativeStratification(
-            n_splits=2,
-            order=2,
-            sample_distribution_per_fold=[test_frac + val_frac, 1 - test_frac - val_frac],
-        )
-        train_idx, temp_idx = next(splitter.split(np.arange(len(df)).reshape(-1, 1), y))
+    # Bestimme die Spalte für die Patienten-Identifikation
+    group_col = "submitter_id" if "submitter_id" in df.columns else "case_ids_clean"
+    
+    if group_col not in df.columns:
+        log.warning(f"Keine Patientenspalte gefunden! Nutze Fallback auf Zeilensplit.")
+        group_col = None
 
-        df_temp = df.iloc[temp_idx].reset_index(drop=True)
-        y_temp  = df_temp[label_cols].values
-        ratio   = val_frac / (val_frac + test_frac)
-        splitter2 = IterativeStratification(
-            n_splits=2,
-            order=2,
-            sample_distribution_per_fold=[1 - ratio, ratio],
-        )
-        val_idx, test_idx = next(splitter2.split(np.arange(len(df_temp)).reshape(-1, 1), y_temp))
-
-        return (
-            df.iloc[train_idx].reset_index(drop=True),
-            df_temp.iloc[val_idx].reset_index(drop=True),
-            df_temp.iloc[test_idx].reset_index(drop=True),
-        )
-
-    except ImportError:
-        log.warning(
-            "skmultilearn not found — using random split. "
-            "For better label distribution: pip install scikit-multilearn"
-        )
+    if group_col:
+        # 1. Eindeutige Patienten (Gruppen) extrahieren
+        unique_patients = df[group_col].unique()
+        rng = np.random.default_rng(seed)
+        rng.shuffle(unique_patients)
+        
+        n_total = len(unique_patients)
+        n_test = int(n_total * test_frac)
+        n_val = int(n_total * val_frac)
+        
+        test_patients = unique_patients[:n_test]
+        val_patients = unique_patients[n_test : n_test + n_val]
+        train_patients = unique_patients[n_test + n_val :]
+        
+        df_train = df[df[group_col].isin(train_patients)].reset_index(drop=True)
+        df_val = df[df[group_col].isin(val_patients)].reset_index(drop=True)
+        df_test = df[df[group_col].isin(test_patients)].reset_index(drop=True)
+        
+        return df_train, df_val, df_test
+    
+    # ── Fallback falls keine ID vorhanden ist ──────────────────────────────────
+    else:
         rng = np.random.default_rng(seed)
         idx = rng.permutation(len(df))
         n_test = int(len(df) * test_frac)
@@ -298,6 +298,7 @@ class CTDataset(Dataset):
 
 
 # ── Factory functions ─────────────────────────────────────────────────────────
+# ── Factory functions ─────────────────────────────────────────────────────────
 
 def make_cxr_dataloaders(
     cohort_csv: str,
@@ -313,8 +314,9 @@ def make_cxr_dataloaders(
     from torch.utils.data import DataLoader
 
     df = pd.read_csv(cohort_csv, low_memory=False)
-    # Only keep rows with preprocessed files
-    df = df[df.get("preprocessed_path", pd.Series("")).notna()]
+    
+    # FIX: Bereinige das DataFrame, BEVOR der Split berechnet wird
+    df = df[df["preprocessed_path"].notna() & (df["preprocessed_path"] != "")].reset_index(drop=True)
 
     df_train, df_val, df_test = stratified_split(
         df, label_cols, val_frac, test_frac, seed
@@ -349,6 +351,9 @@ def make_ct_dataloaders(
     from torch.utils.data import DataLoader
 
     df = pd.read_csv(cohort_csv, low_memory=False)
+    
+    # FIX: Bereinige das DataFrame, BEVOR der Split berechnet wird
+    df = df[df["preprocessed_path"].notna() & (df["preprocessed_path"] != "")].reset_index(drop=True)
 
     df_train, df_val, df_test = stratified_split(
         df, label_cols, val_frac, test_frac, seed

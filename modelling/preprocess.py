@@ -118,31 +118,21 @@ def find_zip_for_series(image_root: Path, modality: str, submitter_id: str) -> P
 
 def build_ct_transforms():
     return Compose([
-        LoadImage(image_only=True),          # reads DICOM series directory
+        LoadImage(image_only=True),          # Liest das DICOM-Verzeichnis ein
         EnsureChannelFirst(),
         Orientation(axcodes="RAS"),
         Spacing(pixdim=CT_TARGET_SPACING, mode="bilinear"),
+        # FIX: clippen auf das Lungenfenster, behält aber die HU-Skala für NormalizeIntensity bei
         ScaleIntensityRange(
             a_min=CT_HU_LOW, a_max=CT_HU_HIGH,
-            b_min=0.0, b_max=1.0, clip=True,
+            b_min=float(CT_HU_LOW), b_max=float(CT_HU_HIGH), 
+            clip=True,
         ),
         CropForeground(source_key=None),
         Resize(spatial_size=CT_TARGET_SHAPE, mode="area"),
+        # Standardisiert basierend auf den echten Lungen-Dichtewerten
         NormalizeIntensity(nonzero=True, channel_wise=True),
     ])
-
-
-def _squeeze_z(x: "torch.Tensor") -> "torch.Tensor":
-    """
-    MONAI LoadImage on a single-slice DICOM returns [C, H, W, 1].
-    Squeeze the trailing Z-dim so downstream 2D transforms get [C, H, W].
-    Also handles [C, H, W] (already 2D) and [C, 1, H, W] edge cases.
-    """
-    if x.ndim == 4 and x.shape[-1] == 1:
-        return x[..., 0]          # [C, H, W, 1] → [C, H, W]
-    if x.ndim == 4 and x.shape[1] == 1:
-        return x[:, 0, :, :]     # [C, 1, H, W] → [C, H, W]
-    return x                      # already [C, H, W]
 
 
 def _clahe(x: "torch.Tensor") -> "torch.Tensor":

@@ -55,8 +55,8 @@ python modelling/preprocess.py \
 ```
 
 Outputs:
-- `data/preprocessed/ct/<object_id>.nii.gz`   — [1, 224, 224, 96], HU-windowed, z-score norm
-- `data/preprocessed/cxr/<object_id>.npy`     — [1, 224, 224], CLAHE + ImageNet norm
+- `data/preprocessed/ct/...`  — 
+- `data/preprocessed/cxr/...`     — 
 - Updated CSVs with `preprocessed_path` column
 
 ---

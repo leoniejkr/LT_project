@@ -226,6 +226,34 @@ def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
         dropout=0.3,
         meta_dim=meta_dim,
     )
+    
+    # ── NEU: Dynamische Berechnung der pos_weights für CT ──. IST STABILER
+    import pandas as pd
+    import numpy as np
+    
+    # Pfad zur preprocessed CSV einlesen
+    ct_csv_path = data_cfg["cohort_ct"].replace(".csv", "_preprocessed.csv")
+    df_ct = pd.read_csv(ct_csv_path)
+    
+    # Nur Zeilen zählen, die auch wirklich ein Bild generiert haben
+    df_ct = df_ct[df_ct["preprocessed_path"].notna() & (df_ct["preprocessed_path"] != "")]
+    
+    pos_weights = []
+    max_weight_cap = 25.0  # MAX INFLUENCE CAP, um extreme Gewichte zu verhindern
+    for col in label_cols:
+        pos_examples = df_ct[col].sum()
+        neg_examples = len(df_ct) - pos_examples
+        # Verhindert Division durch Null bei 0 Samples
+        weight = neg_examples / max(pos_examples, 1.0)
+        weight = min(weight, max_weight_cap)
+        pos_weights.append(weight)
+        
+    ct_pos_weight_tensor = torch.tensor(pos_weights, dtype=torch.float32)
+    log.info(f"Dynamische CT-Klassengewichte berechnet: {pos_weights} (capped bei {max_weight_cap}))")
+
+    # # Wir wechseln temporär auf BCE mit Gewichten, um NaNs zu verhindern!
+    # import torch.nn as nn
+    # loss_fn = nn.BCEWithLogitsLoss(pos_weight=ct_pos_weight_tensor)
 
     loss_cfg = ct_cfg["loss"]
     loss_fn  = AsymmetricLoss(
@@ -286,6 +314,7 @@ def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
         accumulate_grad_batches=ct_cfg["accumulate_grad_batches"],
         callbacks=callbacks,
         logger=logger,
+        gradient_clip_val=1.0,
         log_every_n_steps=log_cfg["log_every_n_steps"],
     )
 

@@ -51,14 +51,13 @@ class MultiLabelModule(L.LightningModule):
         self.freeze_epochs = freeze_backbone_epochs
 
         # ── Metrics ──────────────────────────────────────────────────────────
-        metric_kw = dict(num_labels=num_labels, average="macro")
+        metric_kw = dict(num_labels=num_labels, average="none")  # <-- WICHTIG: auf "none" ändern!
 
         for split in ("train", "val", "test"):
             setattr(self, f"{split}_auroc", MultilabelAUROC(**metric_kw))
             setattr(self, f"{split}_map",   MultilabelAveragePrecision(**metric_kw))
             setattr(self, f"{split}_f1",    MultilabelF1Score(**metric_kw, threshold=0.5))
 
-        # Per-label AUROC for val (diagnostic)
         self.val_auroc_per = MultilabelAUROC(num_labels=num_labels, average="none")
 
     # ── Shared step ──────────────────────────────────────────────────────────
@@ -83,28 +82,45 @@ class MultiLabelModule(L.LightningModule):
         return loss
 
     def _epoch_end(self, split: str):
-        auroc = getattr(self, f"{split}_auroc").compute()
-        mAP   = getattr(self, f"{split}_map").compute()
-        f1    = getattr(self, f"{split}_f1").compute()
+        # Berechnet die Rohwerte pro Klasse (Form: [num_labels])
+        auroc_per_class = getattr(self, f"{split}_auroc").compute()
+        map_per_class   = getattr(self, f"{split}_map").compute()
+        f1_per_class    = getattr(self, f"{split}_f1").compute()
 
-        self.log(f"{split}/AUROC", auroc, prog_bar=True, sync_dist=True)
-        self.log(f"{split}/mAP",   mAP,   prog_bar=True, sync_dist=True)
-        self.log(f"{split}/F1",    f1,    sync_dist=True)
+        # ── Sicherer Macro-Schnitt ───────────────────────────────────────────
+        # Wir filtern NaN- oder Null-Werte aus, die durch fehlende Positives/Negatives entstehen
+        valid_auroc = auroc_per_class[~torch.isnan(auroc_per_class) & (auroc_per_class > 0.0)]
+        valid_map   = map_per_class[~torch.isnan(map_per_class)]
+        valid_f1    = f1_per_class[~torch.isnan(f1_per_class)]
 
+        # Falls gar keine Klasse valide Daten hatte, Fallback auf 0.0, sonst Mittelwert
+        macro_auroc = valid_auroc.mean() if len(valid_auroc) > 0 else torch.tensor(0.0)
+        macro_mAP   = valid_map.mean()   if len(valid_map) > 0   else torch.tensor(0.0)
+        macro_f1    = valid_f1.mean()    if len(valid_f1) > 0    else torch.tensor(0.0)
+
+        # Logge die bereinigten Macro-Werte
+        self.log(f"{split}/AUROC", macro_auroc, prog_bar=True, sync_dist=True)
+        self.log(f"{split}/mAP",   macro_mAP,   prog_bar=True, sync_dist=True)
+        self.log(f"{split}/F1",    macro_f1,    prog_bar=True, sync_dist=True)
+
+        # Reset der internen Stat-Tracker
         getattr(self, f"{split}_auroc").reset()
         getattr(self, f"{split}_map").reset()
         getattr(self, f"{split}_f1").reset()
 
+        # Zusätzliches Per-Label-Logging für die Validierung
         if split == "val":
-            per_label = self.val_auroc_per.compute()
             self.val_auroc_per.reset()
-            for name, auc in zip(self.label_names, per_label):
-                self.log(f"val/auroc_{name}", auc, sync_dist=True)
+            for name, auc in zip(self.label_names, auroc_per_class):
+                # Wenn der Wert ungültig ist, schreiben wir stattdessen NaN ins Log
+                val_to_log = auc.item() if not torch.isnan(auc) and auc.item() > 0.0 else float('nan')
+                self.log(f"val/auroc_{name}", val_to_log, sync_dist=True)
+            
             log.info(
                 "Val per-label AUROC:\n" +
-                "\n".join(f"  {n:<30}: {v:.3f}" for n, v in zip(self.label_names, per_label))
+                "\n".join(f"  {n:<30}: {auc.item():.3f}" if not torch.isnan(auc) and auc.item() > 0.0 else f"  {n:<30}: NO_SAMPLES" for n, auc in zip(self.label_names, auroc_per_class))
             )
-
+        
     # ── Lightning hooks ───────────────────────────────────────────────────────
 
     def training_step(self, batch, batch_idx):
@@ -136,29 +152,27 @@ class MultiLabelModule(L.LightningModule):
     # ── Optimizer + scheduler ─────────────────────────────────────────────────
 
     def configure_optimizers(self):
+        # Nutzt die LR und das Weight Decay aus deiner Config
         optimizer = torch.optim.AdamW(
-            filter(lambda p: p.requires_grad, self.parameters()),
-            lr=self.hparams.lr,
-            weight_decay=self.hparams.weight_decay,
+            self.parameters(), 
+            lr=self.hparams.lr if hasattr(self, "hparams") else 1e-4, 
+            weight_decay=self.hparams.weight_decay if hasattr(self, "hparams") else 1e-4
         )
-
-        # Linear warmup → cosine decay
-        def lr_lambda(epoch):
-            warmup = self.hparams.warmup_epochs
-            total  = self.hparams.max_epochs
-            if epoch < warmup:
-                return float(epoch + 1) / float(max(1, warmup))
-            progress = float(epoch - warmup) / float(max(1, total - warmup))
-            import math
-            return 0.5 * (1.0 + math.cos(math.pi * progress))
-
-        scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
-
+        
+        # Der Scheduler überwacht den Epochen-Loss der Validierung
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, 
+            mode="min", 
+            factor=0.1, 
+            patience=3, 
+        )
+        
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "interval":  "epoch",
+                "monitor": "val/loss_epoch",  # Wichtig: Muss exakt zu deinem self.log() passen
+                "interval": "epoch",
                 "frequency": 1,
             },
         }

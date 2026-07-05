@@ -1,0 +1,15 @@
+{
+  "covid": 0.1,
+  "bacterial_pneumonia": 0.1,
+  "viral_pneumonia": 0.1,
+  "lung_abscess": 0.5,
+  "emphysema_copd": 0.1,
+  "ild_fibrosis": 0.35,
+  "pleural_effusion": 0.35,
+  "pneumothorax": 0.5,
+  "atelectasis": 0.85,
+  "pulm_embolism": 0.55,
+  "ards": 0.65,
+  "lung_malignancy": 0.5,
+  "normal": 0.5
+}
