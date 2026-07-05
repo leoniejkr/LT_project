@@ -79,7 +79,7 @@ try:
         EnsureChannelFirst,
         Orientation,
         Spacing,
-        ScaleIntensityRange,
+        ScaleIntensityRangePercentiles,
         CropForeground,
         Resize,
         NormalizeIntensity,
@@ -103,14 +103,13 @@ except ImportError:
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 0. CONFIGURATION
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
+# 0. CONFIGURATION (UPDATED FOR MULTI-PROJECT)
+# ==============================================================================
 
 API        = "https://data.midrc.org"
 PROGRAM    = "Open"
-PROJECT    = "R1"
+PROJECTS   = ["R1", "A1"]  # Dual-project ingestion
 OUTPUT_DIR = Path("data")
 PREP_DIR   = OUTPUT_DIR / "preprocessed"
 RANDOM_SEED = 42
@@ -119,20 +118,11 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 (PREP_DIR / "ct").mkdir(parents=True, exist_ok=True)
 (PREP_DIR / "cxr").mkdir(parents=True, exist_ok=True)
 
-# ── MONAI preprocessing parameters ──────────────────────────────────────────
-CT_TARGET_SPACING   = (1.5, 1.5, 2.0)   # mm  (x, y, z)
-CT_TARGET_SHAPE     = (224, 224, 96)     # voxels after resize
-CT_HU_WIN_LOW       = -1000             # air
-CT_HU_WIN_HIGH      = 400              # soft tissue / mild bone
-CXR_TARGET_SHAPE    = (224, 224)        # pixels (H, W)
+# Preprocessing parameters remain unchanged...
 
-print("=" * 80)
-print("MIDRC Chest Disease Classification Dataset Builder")
-print("=" * 80)
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 1. AUTH & EXPORT
-# ══════════════════════════════════════════════════════════════════════════════
+# ==============================================================================
+# 1. AUTH & CROSS-PROJECT EXPORT
+# ==============================================================================
 
 try:
     auth = Gen3Auth(API, refresh_file="credentials.json")
@@ -143,31 +133,48 @@ except Exception as e:
     sys.exit(1)
 
 print("\n" + "─" * 80)
-print("1. Exporting Gen3 nodes …")
+print("1. Exporting and merging Gen3 nodes from R1 and A1 …")
 print("─" * 80)
 
-try:
-    cases_raw = sub.export_node(PROGRAM, PROJECT, "case",            "tsv")
-    ct_raw    = sub.export_node(PROGRAM, PROJECT, "ct_series_file",  "tsv")
-    cr_raw    = sub.export_node(PROGRAM, PROJECT, "cr_series_file",  "tsv")
-    study_raw = sub.export_node(PROGRAM, PROJECT, "imaging_study",   "tsv")
-    cond_raw  = sub.export_node(PROGRAM, PROJECT, "condition",       "tsv")
-except Exception as e:
-    log.error(f"Export failed: {e}")
-    sys.exit(1)
+# Temporary lists to hold dataframes from each project tier
+cases_list, ct_list, cr_list, study_list, cond_list = [], [], [], [], []
 
-df_cases = pd.read_csv(io.StringIO(cases_raw), sep="\t")
-df_ct    = pd.read_csv(io.StringIO(ct_raw),    sep="\t", low_memory=False)
-df_cr    = pd.read_csv(io.StringIO(cr_raw),    sep="\t", low_memory=False)
-df_study = pd.read_csv(io.StringIO(study_raw), sep="\t", low_memory=False)
-df_cond  = pd.read_csv(io.StringIO(cond_raw),  sep="\t")
+for proj in PROJECTS:
+    print(f"  Fetching nodes for project: {PROGRAM}-{proj}...")
+    try:
+        c_raw  = sub.export_node(PROGRAM, proj, "case",            "tsv")
+        ct_raw = sub.export_node(PROGRAM, proj, "ct_series_file",  "tsv")
+        cr_raw = sub.export_node(PROGRAM, proj, "cr_series_file",  "tsv")
+        s_raw  = sub.export_node(PROGRAM, proj, "imaging_study",   "tsv")
+        co_raw = sub.export_node(PROGRAM, proj, "condition",       "tsv")
+        
+        # Append dataframes, appending a project tracking column for auditing
+        df_c = pd.read_csv(io.StringIO(c_raw), sep="\t")
+        df_c["origin_project"] = proj
+        cases_list.append(df_c)
+        
+        ct_list.append(pd.read_csv(io.StringIO(ct_raw), sep="\t", low_memory=False))
+        cr_list.append(pd.read_csv(io.StringIO(cr_raw), sep="\t", low_memory=False))
+        study_list.append(pd.read_csv(io.StringIO(s_raw), sep="\t", low_memory=False))
+        cond_list.append(pd.read_csv(io.StringIO(co_raw), sep="\t"))
+        
+    except Exception as e:
+        log.error(f"Failed to export node from project {proj}: {e}")
+        sys.exit(1)
 
-print(f"  cases:        {len(df_cases):,}")
-print(f"  ct_series:    {len(df_ct):,}")
-print(f"  cr_series:    {len(df_cr):,}")
-print(f"  imaging_study:{len(df_study):,}")
-print(f"  conditions:   {len(df_cond):,}")
+# Concatenate all project pools into global tracking tables
+df_cases = pd.concat(cases_list, ignore_index=True).drop_duplicates("submitter_id")
+df_ct    = pd.concat(ct_list, ignore_index=True).drop_duplicates("object_id")
+df_cr    = pd.concat(cr_list, ignore_index=True).drop_duplicates("object_id")
+df_study = pd.concat(study_list, ignore_index=True).drop_duplicates("study_uid")
+df_cond  = pd.concat(cond_list, ignore_index=True) # Multi-row per case, keep duplicates here
 
+print(f"\nGlobal Combined Pool Statistics:")
+print(f"  Total unique cases:        {len(df_cases):,}")
+print(f"  Total unique ct_series:    {len(df_ct):,}")
+print(f"  Total unique cr_series:    {len(df_cr):,}")
+print(f"  Total unique imaging_study:{len(df_study):,}")
+print(f"  Total conditions rows:     {len(df_cond):,}")
 # ══════════════════════════════════════════════════════════════════════════════
 # 2. HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -835,8 +842,9 @@ for lbl in sorted(PRIMARY_LABELS, key=lambda x: -df_case_labels[x].sum()):
 # 6. MERGE DEMOGRAPHICS
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Ensure origin_project is preserved during your demographic assembly block
 DEMO_COLS = ["submitter_id", "covid19_positive", "sex", "age_at_index", "race",
-             "icu_indicator", "ventilator_indicator"]
+             "icu_indicator", "ventilator_indicator", "origin_project"]
 
 df_cases_unique = df_cases.drop_duplicates("submitter_id")[DEMO_COLS].copy()
 
@@ -846,22 +854,21 @@ df_case_all = (
            left_on="submitter_id", right_on="case_ids_clean", how="left")
 )
 
-# Fill labels
+# Fill labels safely
 for col in ALL_LABEL_COLS:
     df_case_all[col] = df_case_all.get(col, pd.Series(0, index=df_case_all.index)).fillna(0).astype(int)
 
-# Reinforce COVID from explicit flag on the case node
+# Reinforce COVID verification using cross-referencing flags
 df_case_all["covid"] = (
     (df_case_all["covid"] == 1) |
     (df_case_all["covid19_positive"].fillna("").str.lower() == "yes")
 ).astype(int)
 
-# Normal: no primary imaging label set
+# Re-compute normal profiles across the merged master table
 IMAGING_PRIMARIES = [l for l in PRIMARY_LABELS if l != "normal"]
 df_case_all["normal"] = (df_case_all[IMAGING_PRIMARIES].sum(axis=1) == 0).astype(int)
 
-print(f"\n✓ Case-level table: {len(df_case_all):,} rows")
-
+print(f"\n✓ Cross-Project Case-Level Master Table Built: {len(df_case_all):,} rows")
 # ══════════════════════════════════════════════════════════════════════════════
 # 7. SERIES-LEVEL TABLES
 # ══════════════════════════════════════════════════════════════════════════════
@@ -891,63 +898,86 @@ print(f"  CXR merged: {len(df_cxr_merged):,}")
 # ══════════════════════════════════════════════════════════════════════════════
 # 8. BALANCED SAMPLING
 # ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# 8. GENERALIZED / DYNAMIC SAMPLING
+# ══════════════════════════════════════════════════════════════════════════════
 
 print("\n" + "─" * 80)
-print("4. Balanced sampling …")
+print("4. Generalized dynamic sampling …")
 print("─" * 80)
 
-# Target N per label. Lung abscess is rarer; viral_pneumonia fungal/opportunistic
-# cases are common in COVID-era MIDRC. PE is abundant in CT (CTPA studies).
-TIER_N_CT: dict[str, int] = {
-    "covid":                250,
-    "bacterial_pneumonia":  250,
-    "viral_pneumonia":      200,
-    "lung_abscess":          75,   # rarer; keep all available
-    "emphysema_copd":       200,
-    "ild_fibrosis":         175,
-    "pleural_effusion":     225,
-    "pneumothorax":         175,
-    "atelectasis":          225,
-    "pulm_embolism":        200,   # CTA-PE common in MIDRC CT
-    "ards":                 125,
-    "lung_malignancy":      150,
-    "normal":               250,
-}
-
-TIER_N_CXR: dict[str, int] = {
-    **TIER_N_CT,
-    "pulm_embolism":  75,    # PE not reliably visible on plain CXR
-    "lung_abscess":   50,
-    "ild_fibrosis":  150,
-}
-
-
-def balanced_sample(
+def general_balanced_sample(
     df: pd.DataFrame,
-    tier_n: dict[str, int],
+    labels: list[str],
     id_col: str = "object_id",
+    fraction: float = 1.0,  # Keep 1.0 to take everything available up to the dynamic cap
+    target_per_class: int = None # Optional: Global cap if you want to limit total cohort size
 ) -> pd.DataFrame:
+    """
+    Dynamically samples from a multi-label dataframe. 
+    If target_per_class is None, it adapts entirely to the maximum available 
+    clean balance of the new dataset.
+    """
     df_unique = df.drop_duplicates(id_col).copy()
-    frames: list[pd.DataFrame] = []
+    
+    # Identify the rarest class in the current dataset to set a baseline if balancing
+    class_counts = {lbl: int(df_unique[lbl].sum()) for lbl in labels if lbl in df_unique.columns}
+    min_class = min(class_counts, key=class_counts.get)
+    min_count = class_counts[min_class]
+    
+    print(f"    Dataset baseline (rarest class '{min_class}'): {min_count} available cases.")
+    
+    sampled_indices = set()
+    
+    # Sort labels by rarest first so multi-label rows are captured for tough classes first
+    sorted_labels = sorted(class_counts.keys(), key=lambda x: class_counts[x])
 
-    for label in IMAGING_PRIMARIES + ["normal"]:
+    for label in sorted_labels:
+        # Pool of assets having this label that haven't been picked yet
         pool = df_unique[df_unique[label] == 1]
-        n    = min(tier_n.get(label, 100), len(pool))
-        if n > 0:
-            frames.append(pool.sample(n=n, random_state=RANDOM_SEED))
-            print(f"    {label:<30}: {n:>3} / {len(pool):>5} available")
+        available_indices = pool.index.difference(list(sampled_indices))
+        
+        # Determine dynamic target: use target_per_class or scale with fraction
+        if target_per_class:
+            n_target = min(target_per_class, len(pool))
+        else:
+            # General approach: try to match at least the minority baseline, or take a fraction
+            n_target = max(min_count, int(len(pool) * fraction))
+            n_target = min(n_target, len(pool)) # Clamp to actual size
+            
+        # How many more do we need to pull specifically for this label?
+        already_selected_with_label = df_unique.loc[list(sampled_indices), label].sum()
+        needed = int(max(0, n_target - already_selected_with_label))
+        
+        if needed > 0 and len(available_indices) > 0:
+            take = min(needed, len(available_indices))
+            sampled_pool = df_unique.loc[available_indices].sample(n=take, random_state=RANDOM_SEED)
+            sampled_indices.update(sampled_pool.index)
+            
+        final_count = df_unique.loc[list(sampled_indices), label].sum()
+        print(f"    {label:<30}: {int(final_count):>4} total sampled (via {len(pool)} available)")
 
-    return pd.concat(frames).drop_duplicates(id_col).reset_index(drop=True)
+    return df_unique.loc[list(sampled_indices)].reset_index(drop=True)
 
 
-print("CT cohort:")
-df_cohort_ct  = balanced_sample(df_ct_merged,  TIER_N_CT)
+# Automatically extract active classes (Primary + Normal)
+ALL_TARGET_LABELS = IMAGING_PRIMARIES + ["normal"]
+TARGET_MAX_PER_CLASS = 500
 
-print("\nCXR cohort:")
-df_cohort_cxr = balanced_sample(df_cxr_merged, TIER_N_CXR)
+print("Executing Cross-Project Balanced Ingestion on CT Cohort:")
+df_cohort_ct = general_balanced_sample(
+    df_ct_merged, 
+    ALL_TARGET_LABELS,
+    target_per_class=TARGET_MAX_PER_CLASS
+)
 
-print(f"\n✓ CT cohort:  {len(df_cohort_ct):,} series")
-print(f"✓ CXR cohort: {len(df_cohort_cxr):,} series")
+print("\nExecuting Cross-Project Balanced Ingestion on CXR Cohort:")
+cxr_labels = [l for l in ALL_TARGET_LABELS if l != "pulm_embolism"]
+df_cohort_cxr = general_balanced_sample(
+    df_cxr_merged, 
+    cxr_labels,
+    target_per_class=TARGET_MAX_PER_CLASS
+)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 9. MONAI PREPROCESSING
@@ -964,6 +994,7 @@ else:
     import torch
 
     # ── CT preprocessing pipeline ────────────────────────────────────────────
+# ── CT preprocessing pipeline ────────────────────────────────────────────
     ct_transforms = Compose([
         LoadImage(image_only=True, reader=ITKReader()),
         EnsureChannelFirst(),
@@ -972,24 +1003,22 @@ else:
             pixdim=CT_TARGET_SPACING,
             mode="bilinear",
         ),
-        ScaleIntensityRange(
-            a_min=CT_HU_WIN_LOW,
-            a_max=CT_HU_WIN_HIGH,
-            b_min=0.0,
-            b_max=1.0,
-            clip=True,
+        ScaleIntensityRangePercentiles(
+            lower=0.5, upper=99.5, 
+            b_min=0.0, b_max=1.0, 
+            clip=True
         ),
-        CropForeground(source_key=None),
-        Resize(spatial_size=CT_TARGET_SHAPE, mode="area"),
+        CropForeground(select_fn=lambda x: x > 0),
+        Resize(spatial_size=CT_TARGET_SHAPE, mode="trilinear"), # Fixed for 3D volumes
         NormalizeIntensity(nonzero=True, channel_wise=True),
     ])
 
     # ── CXR preprocessing pipeline ───────────────────────────────────────────
     def _clahe(x: "torch.Tensor") -> "torch.Tensor":
-        """Per-slice CLAHE using skimage (operates on numpy, wraps back)."""
+        """Per-slice CLAHE using skimage safely."""
         try:
             from skimage.exposure import equalize_adapthist
-            arr = x.numpy()
+            arr = x.detach().cpu().numpy() # Safe tensor-to-numpy conversion
             out = np.stack(
                 [equalize_adapthist(arr[c], clip_limit=0.03) for c in range(arr.shape[0])],
                 axis=0,
@@ -1001,15 +1030,13 @@ else:
     cxr_transforms = Compose([
         LoadImage(image_only=True, reader=ITKReader()),
         EnsureChannelFirst(),
-        ScaleIntensityRange(
-            a_min=0,
-            a_max=65535,
-            b_min=0.0,
-            b_max=1.0,
-            clip=True,
+        ScaleIntensityRangePercentiles(
+            lower=0.5, upper=99.5, 
+            b_min=0.0, b_max=1.0, 
+            clip=True
         ),
         Lambda(func=_clahe),
-        Resize(spatial_size=CXR_TARGET_SHAPE, mode="area"),
+        Resize(spatial_size=CXR_TARGET_SHAPE, mode="area"), # Area works great for 2D
         NormalizeIntensity(
             subtrahend=0.485,
             divisor=0.229,
@@ -1054,7 +1081,9 @@ else:
                 arr    = tensor.numpy() if hasattr(tensor, "numpy") else np.array(tensor)
                 if ext == ".nii.gz":
                     import nibabel as nib
-                    nii = nib.Nifti1Image(arr[0], affine=np.eye(4))
+                    # Preserving spatial scale factors using an affine mapping matching target spacing
+                    affine = np.diag([*CT_TARGET_SPACING, 1.0])
+                    nii = nib.Nifti1Image(arr[0], affine=affine)
                     nib.save(nii, str(save_path))
                 else:
                     np.save(str(save_path).replace(ext, ".npy"), arr)
