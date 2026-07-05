@@ -110,7 +110,7 @@ log = logging.getLogger(__name__)
 
 API        = "https://data.midrc.org"
 PROGRAM    = "Open"
-PROJECT    = "A1"
+PROJECT    = "R1"
 OUTPUT_DIR = Path("data")
 PREP_DIR   = OUTPUT_DIR / "preprocessed"
 RANDOM_SEED = 42
