@@ -134,7 +134,7 @@ def download_manifest(manifest_path, output_dir, workers, gen3_bin, dry_run=Fals
 def main():
     args = parse_args()
     
-    # If no limit specified, set a default of 50
+    # If no limit specified, set a default of specified limit
     if args.limit is None:
         log.info("Kein Limit angegeben – lade alle verfügbaren Bilder herunter (Max)!")
     else:

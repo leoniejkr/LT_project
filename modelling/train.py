@@ -318,8 +318,8 @@ def train_ct(cfg: dict, use_metadata: bool, resume: str | None):
         log_every_n_steps=log_cfg["log_every_n_steps"],
     )
 
-    print(f"Bilder im Trainingsset: {len(df_ct.train_dataset)}")
-    print(f"Bilder im Validierungsset: {len(df_ct.val_dataset)}")
+    print(f"Bilder im Trainingsset: {len(df_ct.df_train)}")
+    print(f"Bilder im Validierungsset: {len(df_ct.df_val)}")
     trainer.fit(module, train_loader, val_loader, ckpt_path=resume)
 
     trainer.test(module, test_loader, ckpt_path="best")

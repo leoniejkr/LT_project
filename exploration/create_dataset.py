@@ -118,7 +118,19 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 (PREP_DIR / "ct").mkdir(parents=True, exist_ok=True)
 (PREP_DIR / "cxr").mkdir(parents=True, exist_ok=True)
 
-# Preprocessing parameters remain unchanged...
+# ── MONAI preprocessing parameters (Guarantees definition scope) ──────────────
+CT_TARGET_SPACING   = (1.5, 1.5, 2.0)   # mm  (x, y, z)
+CT_TARGET_SHAPE     = (224, 224, 96)     # voxels after resize
+CT_HU_WIN_LOW       = -1000             # air
+CT_HU_WIN_HIGH      = 400               # soft tissue / mild bone
+CXR_TARGET_SHAPE    = (224, 224)        # pixels (H, W)
+
+# ── Dynamic Sampler Limit ────────────────────────────────────────────────────
+TARGET_MAX_PER_CLASS = 500  # Cap majority classes to prevent balancing issues
+
+print("=" * 80)
+print("MIDRC Chest Disease Cross-Project Dataset Builder")
+print("=" * 80)
 
 # ==============================================================================
 # 1. AUTH & CROSS-PROJECT EXPORT
@@ -994,7 +1006,6 @@ else:
     import torch
 
     # ── CT preprocessing pipeline ────────────────────────────────────────────
-# ── CT preprocessing pipeline ────────────────────────────────────────────
     ct_transforms = Compose([
         LoadImage(image_only=True, reader=ITKReader()),
         EnsureChannelFirst(),

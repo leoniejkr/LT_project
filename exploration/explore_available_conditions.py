@@ -28,11 +28,33 @@ except Exception as e:
 
 # Export all data nodes
 print("Exporting data nodes...")
-cond_raw = sub.export_node("Open", "A1", "condition", "tsv")
-obs_raw = sub.export_node("Open", "A1", "observation", "tsv")
+cond_raw = sub.export_node("Open", "R1", "condition", "tsv")
+obs_raw = sub.export_node("Open", "R1", "observation", "tsv")
+study_raw = sub.export_node("Open", "R1", "imaging_study", "tsv")
 
 df_cond = pd.read_csv(io.StringIO(cond_raw), sep="\t")
 df_obs = pd.read_csv(io.StringIO(obs_raw), sep="\t", low_memory=False)
+df_study = pd.read_csv(io.StringIO(study_raw), sep="\t", low_memory=False)
+print("Imaging Study Columns:", list(df_study.columns))
+
+report_raw = sub.export_node("Open", "R1", "radiology_report", "tsv")
+anno_raw   = sub.export_node("Open", "R1", "annotation", "tsv")
+
+df_report = pd.read_csv(io.StringIO(report_raw), sep="\t", low_memory=False)
+df_anno   = pd.read_csv(io.StringIO(anno_raw), sep="\t", low_memory=False)
+
+print(f"Radiology Report Shape: {df_report.shape}")
+print("Radiology Report Columns:", list(df_report.columns))
+
+print(f"\nAnnotation Shape: {df_anno.shape}")
+print("Annotation Columns:", list(df_anno.columns))
+
+print("\n" + "="*80)
+print("HIDDEN TARGET PHENOTYPES IN ANNOTATIONS")
+print("="*80)
+print(df_anno["annotation_name"].value_counts())
+print("-" * 80)
+print(df_anno["annotation_long_name"].value_counts().head(20))
 
 print(f"\n{'='*80}")
 print("CONDITION NODE ANALYSIS")
@@ -76,3 +98,9 @@ with open("exploration/available_observations.txt", "w") as f:
 print("\n✓ Full lists saved to:")
 print("  • exploration/available_conditions.txt")
 print("  • exploration/available_observations.txt")
+
+# Check for any column that might hold hidden diagnostic variables
+for col in df_cond.columns:
+    non_null = df_cond[col].dropna().nunique()
+    if non_null > 0:
+        print(f"Column '{col}' has {non_null} unique entries (Sample: {df_cond[col].dropna().iloc[0:2].tolist()})")
