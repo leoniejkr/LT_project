@@ -32,6 +32,7 @@ dicom_previews
 dicom_data
 
 data/preprocessed
+data_hybrid/midrc_images
 
 /images
 
