@@ -1,49 +1,35 @@
-#!/usr/bin/env python3
-"""
-scripts/train.py
-─────────────────
-Builds a unified dataframe combining Kaggle hub (NIH) + Preprocessed MIDRC (Covid),
-splits safely by Patient ID, and handles the multi-label 2D training sequence.
-"""
-
 import os
-import sys
-import logging
-import argparse
-from pathlib import Path
 import pandas as pd
-from sklearn.model_selection import train_test_split
-
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from PIL import Image
 from torchvision import transforms
+from sklearn.model_selection import GroupShuffleSplit
+from PIL import Image
 import torchvision.models as models
+import wandb
+from tqdm import tqdm
 
-import lightning as L
-from lightning.pytorch.callbacks import ModelCheckpoint, LearningRateMonitor
+# 1. Classes & Global Configurations
+ALL_CLASSES = ['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema', 'Effusion', 
+               'Emphysema', 'Fibrosis', 'Hernia', 'Infiltration', 'Mass', 'Nodule', 
+               'Pleural_Thickening', 'Pneumonia', 'Pneumothorax', 'Covid']
 
-# Adjust paths to allow module discovery
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from src.lightning_module import MultiLabelModule, tune_thresholds
+config = {
+    "batch_size": 32,
+    "epochs": 10,
+    "learning_rate": 1e-4,
+    "architecture": "ResNet50",
+    "dataset": "NIH-MIDRC-Hybrid",
+    "resolution": 224
+}
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-log = logging.getLogger(__name__)
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
 
-NIH_CLASSES = [
-    'Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema', 'Effusion', 
-    'Emphysema', 'Fibrosis', 'Hernia', 'Infiltration', 'Mass', 'Nodule', 
-    'Pleural_Thickening', 'Pneumonia', 'Pneumothorax'
-]
-ALL_CLASSES = NIH_CLASSES + ['Covid']
-
-
-class Hybrid2DChestDataset(Dataset):
-    """Loads a unified 2D image coordinate and converts it to a standard 3-channel input."""
-    def __init__(self, dataframe, class_list, transform=None):
+class HybridXRayDataset(Dataset):
+    def __init__(self, dataframe, transform=None):
         self.df = dataframe
-        self.class_list = class_list
         self.transform = transform
 
     def __len__(self):
@@ -51,132 +37,103 @@ class Hybrid2DChestDataset(Dataset):
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        
-        # Always convert to RGB (3-channel) because ImageNet backbones expect 3 input channels!
         image = Image.open(row['img_path']).convert('RGB')
-        targets = torch.tensor(row[self.class_list].values.astype('float32'), dtype=torch.float32)
-        
+        labels = torch.tensor(row[ALL_CLASSES].values.astype(np.float32))
         if self.transform:
             image = self.transform(image)
-            
-        return image, targets
+        return image, labels
 
 
-def build_master_dataframe(nih_root: str, midrc_manifest: str) -> pd.DataFrame:
-    """Reads both metadata sheets and creates a harmonized tracking file."""
-    log.info("Constructing consolidated master dataset tracker...")
+# ALL EXECUTION CODE MUST BE INSIDE THIS GUARD:
+if __name__ == '__main__':
+    # Initialize wandb experiment tracking
+    wandb.init(project="hybrid-xray-covid", name="experiment-1",config=config)
 
-    # 1. Parse NIH (Kaggle)
-    nih_csv = os.path.join(nih_root, "Data_Entry_2017.csv")
-    df_nih_raw = pd.read_csv(nih_csv)
-    
-    labels_dummies = df_nih_raw["Finding Labels"].str.get_dummies(sep="|")
-    df_nih = pd.concat([df_nih_raw, labels_dummies], axis=1)
+    # 2. Grouped Split by Patient ID
+    df = pd.read_csv("data_hybrid/combined_master.csv", low_memory=False)
+    df['patient_id'] = df['patient_id'].astype(str)
 
-    df_nih_clean = pd.DataFrame()
-    # Ensure correct mapping down into the unpacked Kaggle folder structure
-    df_nih_clean['img_path'] = df_nih['Image Index'].apply(lambda x: os.path.join(nih_root, "images", x))
-    df_nih_clean['patient_id'] = "nih_" + df_nih['Patient ID'].astype(str)
+    gss1 = GroupShuffleSplit(n_splits=1, test_size=0.1, random_state=42)
+    train_val_idx, test_idx = next(gss1.split(df, groups=df['patient_id']))
+    df_train_val = df.iloc[train_val_idx].reset_index(drop=True)
+    df_test = df.iloc[test_idx].reset_index(drop=True)
 
-    for cls in NIH_CLASSES:
-        df_nih_clean[cls] = df_nih[cls] if cls in df_nih.columns else 0
-    df_nih_clean['Covid'] = 0
+    gss2 = GroupShuffleSplit(n_splits=1, test_size=0.111, random_state=42)
+    train_idx, val_idx = next(gss2.split(df_train_val, groups=df_train_val['patient_id']))
+    df_train = df_train_val.iloc[train_idx].reset_index(drop=True)
+    df_val = df_train_val.iloc[val_idx].reset_index(drop=True)
 
-    # 2. Parse Preprocessed MIDRC COVID targets
-    if os.path.exists(midrc_manifest):
-        df_midrc = pd.read_csv(midrc_manifest)
-        df_midrc_clean = pd.DataFrame()
-        df_midrc_clean['img_path'] = df_midrc['img_path']
-        df_midrc_clean['patient_id'] = "midrc_" + df_midrc['patient_id'].astype(str)
-        
-        for cls in NIH_CLASSES:
-            df_midrc_clean[cls] = 0
-        df_midrc_clean['Covid'] = 1
-        
-        # Combine them
-        df_master = pd.concat([df_nih_clean, df_midrc_clean], axis=0).reset_index(drop=True)
-    else:
-        log.warning(f"MIDRC manifest not found at {midrc_manifest}. Running NIH only.")
-        df_master = df_nih_clean
-
-    return df_master
-
-
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--nih-dir", required=True, help="Path to kagglehub downloaded dataset directory")
-    p.add_argument("--midrc-manifest", default="data_hybrid/midrc_processed_manifest.csv")
-    p.add_argument("--epochs", type=int, default=10)
-    p.add_argument("--batch-size", type=int, default=32)
-    p.add_argument("--lr", type=float, default=1e-4)
-    args = p.parse_args()
-
-    # 1. Prepare master layout
-    df_master = build_master_dataframe(args.nih_dir, args.midrc_manifest)
-
-    # 2. PATIENT-SAFE SPLIT (Crucial step to avoid data-leakage across subsets)
-    unique_patients = df_master["patient_id"].unique()
-    train_p, val_p = train_test_split(unique_patients, test_size=0.15, random_state=42)
-    
-    df_train = df_master[df_master["patient_id"].isin(train_p)].copy().reset_index(drop=True)
-    df_val = df_master[df_master["patient_id"].isin(val_p)].copy().reset_index(drop=True)
-    log.info(f"Splits complete: Train items={len(df_train):,}, Val items={len(df_val):,}")
-
-    # 3. Transform setups
+    # 4. Transformations and DataLoaders
     train_transforms = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((config["resolution"], config["resolution"])),
         transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(10),
+        transforms.RandomRotation(15),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
     val_transforms = transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((config["resolution"], config["resolution"])),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    # 4. DataLoaders
-    train_ds = Hybrid2DChestDataset(df_train, class_list=ALL_CLASSES, transform=train_transforms)
-    val_ds = Hybrid2DChestDataset(df_val, class_list=ALL_CLASSES, transform=val_transforms)
-
-    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=4, pin_memory=True)
-    val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=4, pin_memory=True)
-
-    # 5. Model initialization using standard torchvision ResNet50
-    # Change num_classes out of the classification head from 1000 (ImageNet) to 15
-    base_model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-    base_model.fc = nn.Linear(base_model.fc.in_features, len(ALL_CLASSES))
-
-    # Initialize Multi Label Pipeline Module
-    module = MultiLabelModule(
-        model=base_model,
-        label_names=ALL_CLASSES,
-        loss_fn=nn.BCEWithLogitsLoss(), # BCE is required since classifications are non-exclusive
-        lr=args.lr,
-        max_epochs=args.epochs
+    # Fixed: Added num_workers=4, dropped unsupported pin_memory
+    train_loader = DataLoader(
+        HybridXRayDataset(df_train, train_transforms), 
+        batch_size=config["batch_size"], 
+        shuffle=True,
+        num_workers=4
+    )
+    val_loader = DataLoader(
+        HybridXRayDataset(df_val, val_transforms), 
+        batch_size=config["batch_size"], 
+        shuffle=False,
+        num_workers=4
     )
 
-    # 6. Callbacks and training sequence
-    ckpt_cb = ModelCheckpoint(monitor="val_auc", mode="max", save_top_k=1, filename="best_hybrid_model")
-    lr_cb = LearningRateMonitor(logging_interval="epoch")
+    # 5. Model Compilation
+    model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+    model.fc = nn.Linear(model.fc.in_features, len(ALL_CLASSES))
+    model = model.to(DEVICE)
 
-    trainer = L.Trainer(
-        max_epochs=args.epochs,
-        accelerator="auto",
-        devices=1,
-        callbacks=[ckpt_cb, lr_cb]
-    )
+    wandb.watch(model, log="all", log_freq=100)
 
-    log.info("Starting training engine run...")
-    trainer.fit(module, train_loader, val_loader)
+    # Positional weights for extreme class imbalance handling
+    total_samples = 113120
+    class_counts = np.array([11559, 2776, 4667, 2303, 13317, 2516, 1686, 227, 19894, 5782, 6331, 3385, 1431, 5302, 1000])
+    neg_counts = total_samples - class_counts
+    pos_weights = neg_counts / class_counts
+    pos_weights_tensor = torch.tensor(pos_weights, dtype=torch.float32).to(DEVICE)
 
-    # 7. Post-training inference calibration
-    log.info("Starting post-training validation threshold tuning...")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    best_thresholds = tune_thresholds(module, val_loader, ALL_CLASSES, device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights_tensor)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
 
+    # 6. Hybrid Multi-Label Training Loop Execution
+    for epoch in range(config["epochs"]):
+        model.train()
+        running_loss = 0.0
+        
+        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{config['epochs']}", leave=True)
+        
+        for images, labels in progress_bar:
+            images, labels = images.to(DEVICE), labels.to(DEVICE)
+            
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            
+            running_loss += loss.item() * images.size(0)
+            progress_bar.set_postfix(batch_loss=f"{loss.item():.4f}")
+            
+        epoch_loss = running_loss / len(train_loader.dataset)
+        print(f"\n🎉 Epoch {epoch+1} Complete. Average Training Loss: {epoch_loss:.4f}")
+        
+        wandb.log({
+            "epoch": epoch + 1,
+            "train_loss": epoch_loss
+        })
 
-if __name__ == "__main__":
-    main()
+    wandb.finish()
