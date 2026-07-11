@@ -180,27 +180,31 @@ if __name__ == '__main__':
     )
 
     # 7. Hybrid Multi-Label Training Loop Execution
-    for epoch in range(config["epochs"]):
+    for epoch in range(0, config["epochs"]+1):
         # ─── TRAINING PASS ──────────────────────────────────────────────────
-        model.train()
-        running_train_loss = 0.0
-        
-        train_progress = tqdm(train_loader, desc=f"Epoch {epoch+1}/{config['epochs']} [Train]", leave=True)
-        for images_primary, images_context, labels in train_progress:
-            images_primary = images_primary.to(DEVICE)
-            images_context = images_context.to(DEVICE)
-            labels = labels.to(DEVICE)
+        if epoch == 0:
+            print("Running baseline validation pass prior to weight optimization adjustments...")
+            epoch_train_loss = 0.0
+        else: 
+            model.train()
+            running_train_loss = 0.0
             
-            optimizer.zero_grad()
-            outputs = model(images_primary, images_context)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
-            
-            running_train_loss += loss.item() * images_primary.size(0)
-            train_progress.set_postfix(batch_loss=f"{loss.item():.4f}")
-            
-        epoch_train_loss = running_train_loss / len(train_loader.dataset)
+            train_progress = tqdm(train_loader, desc=f"Epoch {epoch+1}/{config['epochs']} [Train]", leave=True)
+            for images_primary, images_context, labels in train_progress:
+                images_primary = images_primary.to(DEVICE)
+                images_context = images_context.to(DEVICE)
+                labels = labels.to(DEVICE)
+                
+                optimizer.zero_grad()
+                outputs = model(images_primary, images_context)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+                
+                running_train_loss += loss.item() * images_primary.size(0)
+                train_progress.set_postfix(batch_loss=f"{loss.item():.4f}")
+                
+            epoch_train_loss = running_train_loss / len(train_loader.dataset)
         
         # ─── VALIDATION PASS ────────────────────────────────────────────────
         model.eval()
@@ -225,30 +229,47 @@ if __name__ == '__main__':
                 
         epoch_val_loss = running_val_loss / len(val_loader.dataset)
         
-        # Step the Plateau scheduler using the validation loss step
-        scheduler.step(epoch_val_loss)
+        # Only step the scheduler during actual training epochs (Epoch > 0)
+        if epoch > 0:
+            scheduler.step(epoch_val_loss)
         
         all_val_labels = np.vstack(all_val_labels)
         all_val_preds = np.vstack(all_val_preds)
         
+        # Compute macro and per-class metrics securely
         try:
             epoch_macro_auc = roc_auc_score(all_val_labels, all_val_preds, average="macro")
         except ValueError:
             epoch_macro_auc = 0.5
 
-        print(f"\n🎉 Epoch {epoch+1} Complete!")
-        print(f"Train Loss: {epoch_train_loss:.4f} | Val Loss: {epoch_val_loss:.4f} | Macro AUC: {epoch_macro_auc:.4f}\n")
-        
-        # Fetch current learning rates dynamically for log transparency
-        current_lrs = [param_group['lr'] for param_group in optimizer.param_groups]
-        
-        wandb.log({
-            "epoch": epoch + 1,
-            "train_loss": epoch_train_loss,
+        # Build a dictionary to track metrics dynamically
+        metrics_to_log = {
+            "epoch": epoch,
+            "train_loss": epoch_train_loss if epoch > 0 else 0.0,
             "val_loss": epoch_val_loss,
-            "val_macro_auc": epoch_macro_auc,
-            "backbone_lr": current_lrs[0],
-            "classifier_lr": current_lrs[2]
-        })
+            "val_macro_auc": epoch_macro_auc
+        }
+
+        print(f"\n🎉 Epoch {epoch} Performance Summary:")
+        print(f"Val Loss: {epoch_val_loss:.4f} | Macro AUC: {epoch_macro_auc:.4f}")
+        
+        # Extract per-class AUC scores cleanly
+        for i, class_name in enumerate(ALL_CLASSES):
+            try:
+                class_auc = roc_auc_score(all_val_labels[:, i], all_val_preds[:, i])
+                metrics_to_log[f"val_auc_class/{class_name}"] = class_auc
+                print(f" -> {class_name}: AUC = {class_auc:.4f}")
+            except ValueError:
+                metrics_to_log[f"val_auc_class/{class_name}"] = 0.5
+                print(f" -> {class_name}: AUC = 0.5000 (Insufficient class instances)")
+
+        # Extract current learning rates for log transparency
+        if epoch > 0:
+            current_lrs = [param_group['lr'] for param_group in optimizer.param_groups]
+            metrics_to_log["backbone_lr"] = current_lrs[0]
+            metrics_to_log["classifier_lr"] = current_lrs[2]
+
+        print("\n")
+        wandb.log(metrics_to_log)
 
     wandb.finish()
