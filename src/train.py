@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from sklearn.model_selection import GroupShuffleSplit
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score  
 from PIL import Image
 import torchvision.models as models
@@ -20,7 +20,8 @@ ALL_CLASSES = ['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema', 'Effusio
 config = {
     "batch_size": 32,
     "epochs": 10,
-    "learning_rate": 1e-4,
+    "backbone_lr": 1e-5,        # Conservative LR for pre-trained weights
+    "classifier_lr": 1e-4,      # Aggressive LR for head convergence
     "architecture": "DualStream-ResNet50",
     "dataset": "NIH-MIDRC-Hybrid-PatientContext",
     "resolution": 224
@@ -28,7 +29,8 @@ config = {
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
 
-# 2. NEW: Patient Context Multi-Image Dataset
+
+# 2. Patient Context Multi-Image Dataset
 class PatientContextMultiViewDataset(Dataset):
     def __init__(self, dataframe, class_list, transform=None):
         self.df = dataframe.reset_index(drop=True)
@@ -69,7 +71,7 @@ class PatientContextMultiViewDataset(Dataset):
         return img_primary, img_context, labels
 
 
-# 3. NEW: Dual-Input Model Architecture 
+# 3. Dual-Input Model Architecture 
 class DualViewXRayNet(nn.Module):
     def __init__(self, num_classes=15):
         super(DualViewXRayNet, self).__init__()
@@ -97,25 +99,37 @@ if __name__ == '__main__':
     # Initialize wandb experiment tracking
     wandb.init(project="hybrid-xray-covid", name="dual-view-experiment", config=config)
 
-    # 4. Grouped Split by Patient ID
+    # 4. STRATEGY 1: Stratified Patient Splitting (No Data Leaks)
     df = pd.read_csv("data_hybrid/combined_master.csv", low_memory=False)
     df['patient_id'] = df['patient_id'].astype(str)
 
-    gss1 = GroupShuffleSplit(n_splits=1, test_size=0.1, random_state=42)
-    train_val_idx, test_idx = next(gss1.split(df, groups=df['patient_id']))
-    df_train_val = df.iloc[train_val_idx].reset_index(drop=True)
-    df_test = df.iloc[test_idx].reset_index(drop=True)
+    # Generate a compound balancing key across critical target labels for robust stratification
+    df['stratify_key'] = df['Covid'].astype(str) + "_" + df['Effusion'].astype(str)
+    patient_labels = df.groupby('patient_id')['stratify_key'].first()
 
-    gss2 = GroupShuffleSplit(n_splits=1, test_size=0.111, random_state=42)
-    train_idx, val_idx = next(gss2.split(df_train_val, groups=df_train_val['patient_id']))
-    df_train = df_train_val.iloc[train_idx].reset_index(drop=True)
-    df_val = df_train_val.iloc[val_idx].reset_index(drop=True)
+    # Split patient IDs securely while maintaining identical class distributions across splits
+    train_val_patients, test_patients = train_test_split(
+        patient_labels.index, test_size=0.1, random_state=42, stratify=patient_labels.values
+    )
+    train_patients, val_patients = train_test_split(
+        train_val_patients, test_size=0.111, random_state=42, stratify=patient_labels[train_val_patients].values
+    )
 
-    # 5. Transformations and Updated DataLoaders
+    df_train = df[df['patient_id'].isin(train_patients)].reset_index(drop=True)
+    df_val = df[df['patient_id'].isin(val_patients)].reset_index(drop=True)
+    df_test = df[df['patient_id'].isin(test_patients)].reset_index(drop=True)
+
+    # 5. STRATEGY 2: Medical-Grade Augmentation Space
     train_transforms = transforms.Compose([
         transforms.Resize((config["resolution"], config["resolution"])),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
+        transforms.RandomHorizontalFlip(),          # Natural horizontal mirroring
+        transforms.RandomRotation(5),               # Subtle rotation keeps anatomical correctness
+        transforms.RandomAffine(                    # Compensates for breathing/position variations
+            degrees=0, 
+            translate=(0.1, 0.05), 
+            scale=(0.85, 1.15), 
+            shear=5
+        ),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
@@ -153,7 +167,17 @@ if __name__ == '__main__':
     pos_weights_tensor = torch.tensor(pos_weights, dtype=torch.float32).to(DEVICE)
 
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights_tensor)
-    optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
+
+    # STRATEGY 3: Differential Learning Rates & Plateau Scheduling
+    optimizer = torch.optim.Adam([
+        {'params': model.frontal_features.parameters(), 'lr': config["backbone_lr"]},
+        {'params': model.context_features.parameters(), 'lr': config["backbone_lr"]},
+        {'params': model.classifier.parameters(),       'lr': config["classifier_lr"]}
+    ], betas=(0.9, 0.999))
+
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='min', factor=0.5, patience=2, verbose=True
+    )
 
     # 7. Hybrid Multi-Label Training Loop Execution
     for epoch in range(config["epochs"]):
@@ -162,14 +186,12 @@ if __name__ == '__main__':
         running_train_loss = 0.0
         
         train_progress = tqdm(train_loader, desc=f"Epoch {epoch+1}/{config['epochs']} [Train]", leave=True)
-        # 🧠 Fixed: Unpack primary, context, and labels from data stream
         for images_primary, images_context, labels in train_progress:
             images_primary = images_primary.to(DEVICE)
             images_context = images_context.to(DEVICE)
             labels = labels.to(DEVICE)
             
             optimizer.zero_grad()
-            # 🧠 Pass both views into our fusion network
             outputs = model(images_primary, images_context)
             loss = criterion(outputs, labels)
             loss.backward()
@@ -193,7 +215,6 @@ if __name__ == '__main__':
                 images_context = images_context.to(DEVICE)
                 labels = labels.to(DEVICE)
                 
-                # 🧠 Pass both views into our fusion network
                 outputs = model(images_primary, images_context)
                 loss = criterion(outputs, labels)
                 running_val_loss += loss.item() * images_primary.size(0)
@@ -203,6 +224,9 @@ if __name__ == '__main__':
                 all_val_preds.append(probs.cpu().numpy())
                 
         epoch_val_loss = running_val_loss / len(val_loader.dataset)
+        
+        # Step the Plateau scheduler using the validation loss step
+        scheduler.step(epoch_val_loss)
         
         all_val_labels = np.vstack(all_val_labels)
         all_val_preds = np.vstack(all_val_preds)
@@ -215,11 +239,16 @@ if __name__ == '__main__':
         print(f"\n🎉 Epoch {epoch+1} Complete!")
         print(f"Train Loss: {epoch_train_loss:.4f} | Val Loss: {epoch_val_loss:.4f} | Macro AUC: {epoch_macro_auc:.4f}\n")
         
+        # Fetch current learning rates dynamically for log transparency
+        current_lrs = [param_group['lr'] for param_group in optimizer.param_groups]
+        
         wandb.log({
             "epoch": epoch + 1,
             "train_loss": epoch_train_loss,
             "val_loss": epoch_val_loss,
-            "val_macro_auc": epoch_macro_auc
+            "val_macro_auc": epoch_macro_auc,
+            "backbone_lr": current_lrs[0],
+            "classifier_lr": current_lrs[2]
         })
 
     wandb.finish()
