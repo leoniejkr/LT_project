@@ -97,8 +97,16 @@ class DualViewXRayNet(nn.Module):
 
 if __name__ == '__main__':
     # Initialize wandb experiment tracking
-    wandb.init(project="hybrid-xray-covid", name="dual-view-experiment", config=config)
-
+    os.environ["WANDB_RETRY_MAX_TIMEOUT"] = "7200"
+    
+    # Initialize wandb experiment tracking
+    # settings=wandb.Settings(start_method="fork") handles background process stability
+    wandb.init(
+        project="hybrid-xray-covid", 
+        name="dual-view-experiment", 
+        config=config,
+        settings=wandb.Settings(start_method="fork")
+    )
     # 4. STRATEGY 1: Stratified Patient Splitting (No Data Leaks)
     df = pd.read_csv("data_hybrid/combined_master.csv", low_memory=False)
     df['patient_id'] = df['patient_id'].astype(str)
@@ -270,6 +278,12 @@ if __name__ == '__main__':
             metrics_to_log["classifier_lr"] = current_lrs[2]
 
         print("\n")
-        wandb.log(metrics_to_log)
+        
+        # Defensive logging: Prevent network connection exceptions from killing your local training run
+        try:
+            wandb.log(metrics_to_log)
+        except Exception as e:
+            print(f"⚠️ [WandB Warning] Failed to log metrics due to network issue: {e}")
+            print("Training will continue locally; wandb will attempt background reconnection.")
 
     wandb.finish()
