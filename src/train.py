@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from sklearn.model_selection import GroupShuffleSplit
+from sklearn.metrics import roc_auc_score  
 from PIL import Image
 import torchvision.models as models
 import wandb
@@ -20,36 +21,83 @@ config = {
     "batch_size": 32,
     "epochs": 10,
     "learning_rate": 1e-4,
-    "architecture": "ResNet50",
-    "dataset": "NIH-MIDRC-Hybrid",
+    "architecture": "DualStream-ResNet50",
+    "dataset": "NIH-MIDRC-Hybrid-PatientContext",
     "resolution": 224
 }
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
 
-class HybridXRayDataset(Dataset):
-    def __init__(self, dataframe, transform=None):
-        self.df = dataframe
+# 2. NEW: Patient Context Multi-Image Dataset
+class PatientContextMultiViewDataset(Dataset):
+    def __init__(self, dataframe, class_list, transform=None):
+        self.df = dataframe.reset_index(drop=True)
+        self.class_list = class_list
         self.transform = transform
+        
+        # Fast Lookup: Group paths by patient_id so we can find pairs instantly
+        self.patient_image_groups = self.df.groupby('patient_id')['img_path'].apply(list).to_dict()
 
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
-        image = Image.open(row['img_path']).convert('RGB')
-        labels = torch.tensor(row[ALL_CLASSES].values.astype(np.float32))
+        pid = str(row['patient_id'])
+        primary_path = row['img_path']
+        
+        # Load primary target image
+        img_primary = Image.open(primary_path).convert('RGB')
+        
+        # Search patient history for alternative image context
+        all_patient_images = self.patient_image_groups.get(pid, [primary_path])
+        alternative_images = [path for path in all_patient_images if path != primary_path]
+        
+        if len(alternative_images) > 0:
+            context_path = alternative_images[0]
+            img_context = Image.open(context_path).convert('RGB')
+        else:
+            # Fallback: Create a black placeholder image matching the size
+            img_context = Image.new('RGB', img_primary.size, (0, 0, 0))
+            
+        labels = torch.tensor(row[self.class_list].values.astype('float32'), dtype=torch.float32)
+        
         if self.transform:
-            image = self.transform(image)
-        return image, labels
+            img_primary = self.transform(img_primary)
+            img_context = self.transform(img_context)
+            
+        return img_primary, img_context, labels
 
 
-# ALL EXECUTION CODE MUST BE INSIDE THIS GUARD:
+# 3. NEW: Dual-Input Model Architecture 
+class DualViewXRayNet(nn.Module):
+    def __init__(self, num_classes=15):
+        super(DualViewXRayNet, self).__init__()
+        # Initialize two separate ResNet50 backbones
+        self.frontal_backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+        self.context_backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+        
+        # Extract features layers up until global pooling step
+        self.frontal_features = nn.Sequential(*list(self.frontal_backbone.children())[:-1])
+        self.context_features = nn.Sequential(*list(self.context_backbone.children())[:-1])
+        
+        # Fusion Classifier: Combine both feature spaces (2048 dimensions each)
+        self.classifier = nn.Linear(2048 + 2048, num_classes)
+        
+    def forward(self, img_front, img_context):
+        feat_front = self.frontal_features(img_front).squeeze(-1).squeeze(-1)
+        feat_context = self.context_features(img_context).squeeze(-1).squeeze(-1)
+        
+        # Concatenate features horizontally
+        combined_features = torch.cat((feat_front, feat_context), dim=1)
+        return self.classifier(combined_features)
+
+
 if __name__ == '__main__':
     # Initialize wandb experiment tracking
-    wandb.init(project="hybrid-xray-covid", name="experiment-1",config=config)
+    wandb.init(project="hybrid-xray-covid", name="dual-view-experiment", config=config)
 
-    # 2. Grouped Split by Patient ID
+    # 4. Grouped Split by Patient ID
     df = pd.read_csv("data_hybrid/combined_master.csv", low_memory=False)
     df['patient_id'] = df['patient_id'].astype(str)
 
@@ -63,7 +111,7 @@ if __name__ == '__main__':
     df_train = df_train_val.iloc[train_idx].reset_index(drop=True)
     df_val = df_train_val.iloc[val_idx].reset_index(drop=True)
 
-    # 4. Transformations and DataLoaders
+    # 5. Transformations and Updated DataLoaders
     train_transforms = transforms.Compose([
         transforms.Resize((config["resolution"], config["resolution"])),
         transforms.RandomHorizontalFlip(),
@@ -78,23 +126,21 @@ if __name__ == '__main__':
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    # Fixed: Added num_workers=4, dropped unsupported pin_memory
     train_loader = DataLoader(
-        HybridXRayDataset(df_train, train_transforms), 
+        PatientContextMultiViewDataset(df_train, ALL_CLASSES, train_transforms), 
         batch_size=config["batch_size"], 
         shuffle=True,
         num_workers=4
     )
     val_loader = DataLoader(
-        HybridXRayDataset(df_val, val_transforms), 
+        PatientContextMultiViewDataset(df_val, ALL_CLASSES, val_transforms), 
         batch_size=config["batch_size"], 
         shuffle=False,
         num_workers=4
     )
 
-    # 5. Model Compilation
-    model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-    model.fc = nn.Linear(model.fc.in_features, len(ALL_CLASSES))
+    # 6. Model Compilation
+    model = DualViewXRayNet(num_classes=len(ALL_CLASSES))
     model = model.to(DEVICE)
 
     wandb.watch(model, log="all", log_freq=100)
@@ -109,31 +155,71 @@ if __name__ == '__main__':
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights_tensor)
     optimizer = torch.optim.Adam(model.parameters(), lr=config["learning_rate"])
 
-    # 6. Hybrid Multi-Label Training Loop Execution
+    # 7. Hybrid Multi-Label Training Loop Execution
     for epoch in range(config["epochs"]):
+        # ─── TRAINING PASS ──────────────────────────────────────────────────
         model.train()
-        running_loss = 0.0
+        running_train_loss = 0.0
         
-        progress_bar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{config['epochs']}", leave=True)
-        
-        for images, labels in progress_bar:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
+        train_progress = tqdm(train_loader, desc=f"Epoch {epoch+1}/{config['epochs']} [Train]", leave=True)
+        # 🧠 Fixed: Unpack primary, context, and labels from data stream
+        for images_primary, images_context, labels in train_progress:
+            images_primary = images_primary.to(DEVICE)
+            images_context = images_context.to(DEVICE)
+            labels = labels.to(DEVICE)
             
             optimizer.zero_grad()
-            outputs = model(images)
+            # 🧠 Pass both views into our fusion network
+            outputs = model(images_primary, images_context)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
             
-            running_loss += loss.item() * images.size(0)
-            progress_bar.set_postfix(batch_loss=f"{loss.item():.4f}")
+            running_train_loss += loss.item() * images_primary.size(0)
+            train_progress.set_postfix(batch_loss=f"{loss.item():.4f}")
             
-        epoch_loss = running_loss / len(train_loader.dataset)
-        print(f"\n🎉 Epoch {epoch+1} Complete. Average Training Loss: {epoch_loss:.4f}")
+        epoch_train_loss = running_train_loss / len(train_loader.dataset)
+        
+        # ─── VALIDATION PASS ────────────────────────────────────────────────
+        model.eval()
+        running_val_loss = 0.0
+        all_val_labels = []
+        all_val_preds = []
+        
+        val_progress = tqdm(val_loader, desc=f"Epoch {epoch+1}/{config['epochs']} [Val]", leave=True)
+        with torch.no_grad():
+            for images_primary, images_context, labels in val_progress:
+                images_primary = images_primary.to(DEVICE)
+                images_context = images_context.to(DEVICE)
+                labels = labels.to(DEVICE)
+                
+                # 🧠 Pass both views into our fusion network
+                outputs = model(images_primary, images_context)
+                loss = criterion(outputs, labels)
+                running_val_loss += loss.item() * images_primary.size(0)
+                
+                probs = torch.sigmoid(outputs)
+                all_val_labels.append(labels.cpu().numpy())
+                all_val_preds.append(probs.cpu().numpy())
+                
+        epoch_val_loss = running_val_loss / len(val_loader.dataset)
+        
+        all_val_labels = np.vstack(all_val_labels)
+        all_val_preds = np.vstack(all_val_preds)
+        
+        try:
+            epoch_macro_auc = roc_auc_score(all_val_labels, all_val_preds, average="macro")
+        except ValueError:
+            epoch_macro_auc = 0.5
+
+        print(f"\n🎉 Epoch {epoch+1} Complete!")
+        print(f"Train Loss: {epoch_train_loss:.4f} | Val Loss: {epoch_val_loss:.4f} | Macro AUC: {epoch_macro_auc:.4f}\n")
         
         wandb.log({
             "epoch": epoch + 1,
-            "train_loss": epoch_loss
+            "train_loss": epoch_train_loss,
+            "val_loss": epoch_val_loss,
+            "val_macro_auc": epoch_macro_auc
         })
 
     wandb.finish()

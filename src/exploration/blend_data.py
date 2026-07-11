@@ -28,9 +28,10 @@ print(f"Located {len(image_path_map)} total NIH images locally.")
 # Map paths dynamically
 df_nih_clean = pd.DataFrame()
 
-# 🧠 Fix: Instead of assuming /images/, pull the path directly from our lookup map!
+# Fix: Instead of assuming /images/, pull the path directly from our lookup map!
 df_nih_clean['img_path'] = df_nih['Image Index'].map(image_path_map)
 df_nih_clean['patient_id'] = df_nih['Patient ID'].astype(str)
+df_nih_clean['view_position'] = df_nih['View Position'].astype(str)
 
 # Drop any rows where the image file was missing from disk
 initial_len = len(df_nih_clean)
@@ -48,6 +49,7 @@ df_midrc_clean = pd.DataFrame()
 # absolute path and the sanitized .png extension! Let's use it directly.
 df_midrc_clean['img_path'] = df_midrc['img_path']
 df_midrc_clean['patient_id'] = df_midrc['patient_id'].astype(str)
+df_midrc_clean['view_position'] = "AP"
 
 # Set all standard diseases to 0 (untracked), set COVID to 1
 for cls in NIH_CLASSES:
