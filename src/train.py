@@ -176,7 +176,7 @@ if __name__ == '__main__':
     ], betas=(0.9, 0.999))
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=2, verbose=True
+        optimizer, mode='min', factor=0.5, patience=2
     )
 
     # 7. Hybrid Multi-Label Training Loop Execution
