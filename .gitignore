@@ -33,6 +33,7 @@ dicom_data
 
 data/preprocessed
 data_hybrid/midrc_images
+data_hybrid/midrc_images_before
 
 /images
 
