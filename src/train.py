@@ -197,7 +197,7 @@ if __name__ == '__main__':
             model.train()
             running_train_loss = 0.0
             
-            train_progress = tqdm(train_loader, desc=f"Epoch {epoch+1}/{config['epochs']} [Train]", leave=True)
+            train_progress = tqdm(train_loader, desc=f"Epoch {epoch}/{config['epochs']} [Train]", leave=True)
             for images_primary, images_context, labels in train_progress:
                 images_primary = images_primary.to(DEVICE)
                 images_context = images_context.to(DEVICE)
@@ -220,7 +220,7 @@ if __name__ == '__main__':
         all_val_labels = []
         all_val_preds = []
         
-        val_progress = tqdm(val_loader, desc=f"Epoch {epoch+1}/{config['epochs']} [Val]", leave=True)
+        val_progress = tqdm(val_loader, desc=f"Epoch {epoch}/{config['epochs']} [Val]", leave=True)
         with torch.no_grad():
             for images_primary, images_context, labels in val_progress:
                 images_primary = images_primary.to(DEVICE)
@@ -286,4 +286,7 @@ if __name__ == '__main__':
             print(f"⚠️ [WandB Warning] Failed to log metrics due to network issue: {e}")
             print("Training will continue locally; wandb will attempt background reconnection.")
 
+    torch.save(model.state_dict(), "dual_view_checkpoint.pth")
+    print("Model weights successfully saved locally to dual_view_checkpoint.pth!")
+    
     wandb.finish()
