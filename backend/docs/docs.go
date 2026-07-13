@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/analysis": {
             "post": {
-                "description": "Creates a new patient with metadata and DICOM files, then triggers LLM analysis. Returns patient data + analysis result.",
+                "description": "Creates a new patient with metadata and X-Ray files, then triggers LLM analysis. Returns patient data + analysis result.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -38,8 +38,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "file",
-                        "description": "DICOM image files (multiple allowed)",
-                        "name": "dicom_files",
+                        "description": "X-Ray image files (multiple allowed)",
+                        "name": "xray_files",
                         "in": "formData",
                         "required": true
                     }
@@ -55,7 +55,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Deletes all patients, analyses, and DICOM files. Used when starting a new analysis.",
+                "description": "Deletes all patients, analyses, and X-Ray files. Used when starting a new analysis.",
                 "produces": [
                     "application/json"
                 ],
