@@ -28,8 +28,6 @@
             id: "123",
             age: 62,
             gender: "Male",
-            admittedToIcu: true,
-            requiresVentilator: false,
             knownIllnesses: ["Covid", "Pneumonia"],
             symptoms: ["Cough", "Fever", "Dyspnea"],
         },
@@ -44,7 +42,7 @@
     let imageIds = $derived(
         $uploadedFileUrls.length > 0
             ? $uploadedFileUrls.map((url) => `wadouri:${url}`)
-            : ["wadouri:/image-000001.dcm"],
+            : ["wadouri:/image-000001.png"],
     );
 
     let activeImageIndex = $state(0);
@@ -77,7 +75,7 @@
                 Medical Analysis Dashboard
             </header>
             <h2 class="text-muted-foreground mt-1">
-                Detailed AI diagnostics based on patient metadata and DICOM
+                Detailed AI diagnostics based on patient metadata and X-Ray
                 imaging
             </h2>
         </div>
@@ -86,7 +84,7 @@
             class="flex items-center gap-2"
             onclick={startNewAnalysis}
         >
-            <RotateCcw size={16} /> Neue Analyse starten
+            <RotateCcw size={16} /> Start New Analysis
         </Button>
     </div>
 
@@ -101,12 +99,6 @@
             <Badge variant="secondary" class="h-8 text-md">
                 Gender: {patient.gender}
             </Badge>
-            <Badge variant="secondary" class="h-8 text-md"
-                >Admitted to ICU: {patient.admittedToIcu ? "Yes" : "No"}</Badge
-            >
-            <Badge variant="secondary" class="h-8 text-md">
-                Ventilator Required: {patient.requiresVentilator ? "Yes" : "No"}
-            </Badge>
         </Item.Root>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -116,14 +108,14 @@
                 >
                     <Item.Root>
                         <Item.Description class="flex items-center gap-1.5">
-                            <FileDigit size={14} /> DICOM Viewport
+                            <FileDigit size={14} /> PNG Medical Viewport
                         </Item.Description>
                         <Item.Description class="flex items-center">
                             <Badge variant="outline">
                                 {#if $uploadedFileUrls.length > 0}
-                                    {$uploadedFileUrls.length} DICOM File(s) Uploaded
+                                    {$uploadedFileUrls.length} File(s) Uploaded
                                 {:else}
-                                    image-000001.dcm (Mock)
+                                    image-000001.png (Mock)
                                 {/if}
                             </Badge>
                             {#if imageIds.length > 1}
@@ -254,7 +246,7 @@
                 </div>
                 <Item.Title class="text-lg">No Results Available</Item.Title>
                 <Item.Description class="max-w-md mt-2">
-                    Please upload a DICOM chest X-ray file and enter patient
+                    Please upload an X-Ray file and enter patient
                     metadata to generate an AI diagnostics report.
                 </Item.Description>
                 <Button

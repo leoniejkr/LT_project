@@ -23,7 +23,7 @@ func NewRepository(baseURL string) *Repository {
 func (s *Repository) Save(patientID uint, filename string, r io.Reader) (string, error) {
 	body, err := io.ReadAll(r)
 	if err != nil {
-		return "", fmt.Errorf("failed to read DICOM data: %w", err)
+		return "", fmt.Errorf("failed to read X-Ray data: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", s.baseURL+"/instances", strings.NewReader(string(body)))

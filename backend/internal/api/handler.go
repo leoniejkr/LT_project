@@ -24,15 +24,15 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("DELETE /analysis", h.DeleteAnalysis)
 }
 
-// GetAnalysis handles patient creation, DICOM storage, and LLM analysis in one request.
+// GetAnalysis handles patient creation, X-Ray storage, and LLM analysis in one request.
 //
 // @Summary      Create patient and run LLM analysis
-// @Description  Creates a new patient with metadata and DICOM files, then triggers LLM analysis. Returns patient data + analysis result.
+// @Description  Creates a new patient with metadata and X-Ray files, then triggers LLM analysis. Returns patient data + analysis result.
 // @Tags         analysis
 // @Accept       mpfd
 // @Produce      json
 // @Param        formData    formData string true  "Patient metadata as JSON string"
-// @Param        dicom_files formData file  true "DICOM image files (multiple allowed)"
+// @Param        xray_files formData file  true "X-Ray image files (multiple allowed)"
 // @Success      202 {object} map[string]any
 // @Router       /analysis [post]
 func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
@@ -92,10 +92,10 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// DeleteAnalysis removes all patient data, analyses, and DICOM files from the database and disk.
+// DeleteAnalysis removes all patient data, analyses, and X-Ray files from the database and disk.
 //
 // @Summary      Delete all analysis data
-// @Description  Deletes all patients, analyses, and DICOM files. Used when starting a new analysis.
+// @Description  Deletes all patients, analyses, and X-Ray files. Used when starting a new analysis.
 // @Tags         analysis
 // @Produce      json
 // @Success      200 {object} map[string]string

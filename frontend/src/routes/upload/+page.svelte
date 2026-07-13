@@ -40,8 +40,6 @@
 
 	// Patient Metadata
 	let patientAge = $state("");
-	let isICU = $state(false);
-	let requiresVentilator = $state(false);
 
 	// Known Illnesses
 	let illnesses = $state({
@@ -65,7 +63,7 @@
 
 	async function startAnalysis() {
 		if (!files || files.length === 0) {
-			dialogMessage = "Please upload at least one DICOM file.";
+			dialogMessage = "Please upload at least one X-Ray file.";
 			showDialog = true;
 			return;
 		}
@@ -90,8 +88,6 @@
 		const metadata = {
 			age: parseInt(patientAge),
 			gender: value,
-			admittedToIcu: isICU,
-			requiresVentilator: requiresVentilator,
 			knownIllnesses: Object.keys(illnesses).filter(
 				(k) => illnesses[k as keyof typeof illnesses],
 			),
@@ -128,8 +124,6 @@
 					id: "PAT-Mock-123",
 					age: parseInt(patientAge),
 					gender: value,
-					admittedToIcu: isICU,
-					requiresVentilator: requiresVentilator,
 					knownIllnesses: Object.keys(illnesses).filter(
 						(k) => illnesses[k as keyof typeof illnesses],
 					),
@@ -167,7 +161,7 @@
 			Case Input & Initialization
 		</header>
 		<h2 class="text-muted-foreground mt-1">
-			Upload DICOM payload and contextualize patient metadata for AI
+			Upload X-Ray images and contextualize patient metadata for AI
 			analysis
 		</h2>
 	</div>
@@ -186,9 +180,9 @@
 							<Empty.Media variant="icon">
 								<CloudUpload />
 							</Empty.Media>
-							<Empty.Title>Upload DICOM Files</Empty.Title>
+							<Empty.Title>Upload X-Ray Files</Empty.Title>
 							<Empty.Description>
-								Support for standart DICOM formats. Ensure
+								Support for standard X-Ray formats. Ensure
 								everything is included in the upload.
 							</Empty.Description>
 						</Empty.Header>
@@ -262,25 +256,11 @@
 										orientation="horizontal"
 										class="w-auto"
 									>
-										<Checkbox
-											id="icu"
-											bind:checked={isICU}
-										/>
-										<Field.Label for="icu">
-											Admitted to ICU
-										</Field.Label>
 									</Field.Field>
 									<Field.Field
 										orientation="horizontal"
 										class="w-auto"
 									>
-										<Checkbox
-											id="ventilator"
-											bind:checked={requiresVentilator}
-										/>
-										<Field.Label for="ventilator">
-											Requires Ventilator
-										</Field.Label>
 									</Field.Field>
 								</Field.Group>
 							</Field.Group>
