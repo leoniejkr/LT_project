@@ -82,7 +82,7 @@
 		const formData = new FormData();
 
 		for (const file of files) {
-			formData.append("dicom_files", file);
+			formData.append("image_files", file);
 		}
 
 		const metadata = {
@@ -171,7 +171,7 @@
 			<Item.Root variant="outline" class="flex flex-col h-full">
 				<Item.Content>
 					<Item.Title class="w-full justify-between">
-						Radiological Scans (.dcm)
+						Radiological Scans (.png)
 						<Badge variant="destructive">Required</Badge>
 					</Item.Title>
 					<Item.Media></Item.Media>
@@ -189,7 +189,7 @@
 						<Empty.Content>
 							<ImageUp />
 							<Input
-								id="dicom_images"
+								id="png_images"
 								type="file"
 								multiple
 								bind:files

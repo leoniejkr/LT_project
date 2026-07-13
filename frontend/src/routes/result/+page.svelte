@@ -13,7 +13,7 @@
     import { Stethoscope, FileDigit, Undo2, RotateCcw } from "lucide-svelte";
     import "../../app.css";
     import CornerstoneViewport from "./cornerstone-viewport.svelte";
-    import ChangeDicomBar from "./change-dicom-bar.svelte";
+    import ChangeImageBar from "./change-image-bar.svelte";
 
     const defaultResult = {
         status: "success",
@@ -41,8 +41,8 @@
 
     let imageIds = $derived(
         $uploadedFileUrls.length > 0
-            ? $uploadedFileUrls.map((url) => `wadouri:${url}`)
-            : ["wadouri:/image-000001.png"],
+            ? $uploadedFileUrls.map((url) => `png:${url}`)
+            : ["png:/image-000001.png"],
     );
 
     let activeImageIndex = $state(0);
@@ -137,7 +137,7 @@
                     </Item.Media>
                     {#if imageIds.length >= 1}
                         <Item.Footer class="bg-card border-t">
-                            <ChangeDicomBar
+                            <ChangeImageBar
                                 {imageIds}
                                 activeIndex={activeImageIndex}
                                 onselect={(i) => (activeImageIndex = i)}

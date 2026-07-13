@@ -37,11 +37,9 @@
 	},
 	"dependencies": {
 		"@cornerstonejs/core": "^4.22.13",
-		"@cornerstonejs/dicom-image-loader": "^4.22.13",
 		"@cornerstonejs/nifti-volume-loader": "^4.22.13",
 		"@cornerstonejs/tools": "^4.22.13",
 		"@tailwindcss/vite": "^4.2.4",
-		"dicom-parser": "^1.8.21",
 		"lucide-svelte": "^1.0.1",
 		"mode-watcher": "^1.1.0",
 		"tailwindcss": "^4.2.4"

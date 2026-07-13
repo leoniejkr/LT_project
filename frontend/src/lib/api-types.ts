@@ -5,14 +5,14 @@
 
 export interface paths {
   "/patients": {
-    /** Creates new patient with the provided metadata and dicom images */
+    /** Creates new patient with the provided metadata and image files */
     post: {
       parameters: {
         formData: {
           /** Patienten-Metadata as JSON-String */
           formData: string;
-          /** The .dcm picture data */
-          dicom_file: unknown;
+          /** The image picture data */
+          image_file: unknown;
         };
       };
       responses: {

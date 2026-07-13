@@ -54,7 +54,7 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var files []patient.FileInput
-	fileHeaders := r.MultipartForm.File["dicom_files"]
+	fileHeaders := r.MultipartForm.File["image_files"]
 	for _, fh := range fileHeaders {
 		f, err := fh.Open()
 		if err != nil {
