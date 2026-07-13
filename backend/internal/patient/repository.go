@@ -23,3 +23,7 @@ func (r *Repository) FindByID(id uint) (*Patient, error) {
 func (r *Repository) Update(p *Patient) error {
 	return r.db.Save(p).Error
 }
+
+func (r *Repository) DeletePatient(patientID uint) error {
+	return r.db.Where("id = ?", patientID).Delete(&Patient{}).Error
+}

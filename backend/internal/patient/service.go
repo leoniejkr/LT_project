@@ -61,3 +61,13 @@ func (s *Service) GetAnalysis(patientID uint, patientData any) (*analysis.Predic
 func (s *Service) GetPatient(id uint) (*Patient, error) {
 	return s.repo.FindByID(id)
 }
+
+func (s *Service) DeleteAllData() error {
+	if err := s.analysisService.DeletePatientAnalysis(0); err != nil {
+		return err
+	}
+	if err := s.repo.DeletePatient(0); err != nil {
+		return err
+	}
+	return s.dicomStore.DeletePatientDicom()
+}

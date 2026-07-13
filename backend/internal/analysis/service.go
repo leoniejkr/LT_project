@@ -37,4 +37,6 @@ func (s *Service) persistAnalysis(patientID uint, resp *PredictionResponse) erro
 	return s.repo.Create(a)
 }
 
-
+func (s *Service) DeletePatientAnalysis(patientID uint) error {
+	return s.repo.DeletePatientAnalysis(patientID)
+}

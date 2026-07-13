@@ -75,6 +75,12 @@
 			return;
 		}
 
+		try {
+			await fetch("/api/analysis", { method: "DELETE" });
+		} catch (e) {
+			console.error("Failed to delete previous data:", e);
+		}
+
 		const formData = new FormData();
 
 		for (const file of files) {

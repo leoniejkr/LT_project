@@ -15,9 +15,9 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/patients": {
+        "/analysis": {
             "post": {
-                "description": "Creates new patient with the provided metadata and dicom images",
+                "description": "Creates a new patient with metadata and DICOM files, then triggers LLM analysis. Returns patient data + analysis result.",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -25,21 +25,21 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "patients"
+                    "analysis"
                 ],
-                "summary": "Create a new patient",
+                "summary": "Create patient and run LLM analysis",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Patienten-Metadata as JSON-String",
+                        "description": "Patient metadata as JSON string",
                         "name": "formData",
                         "in": "formData",
                         "required": true
                     },
                     {
                         "type": "file",
-                        "description": "The .dcm picture data",
-                        "name": "dicom_file",
+                        "description": "DICOM image files (multiple allowed)",
+                        "name": "dicom_files",
                         "in": "formData",
                         "required": true
                     }
@@ -48,7 +48,29 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "type": "string"
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes all patients, analyses, and DICOM files. Used when starting a new analysis.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analysis"
+                ],
+                "summary": "Delete all analysis data",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }

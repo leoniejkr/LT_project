@@ -11,7 +11,6 @@ type Repository struct {
 	basePath string
 }
 
-// zunächst speicherung auf festplatte, später in orthanc
 func NewRepository(basePath string) (*Repository, error) {
 	if err := os.MkdirAll(basePath, 0755); err != nil {
 		return nil, err
@@ -49,4 +48,13 @@ func (s *Repository) SaveAll(patientID uint, files map[string]io.Reader) ([]stri
 		paths = append(paths, path)
 	}
 	return paths, nil
+}
+
+func (s *Repository) DeletePatientDir(patientID uint) error {
+	patientDir := filepath.Join(s.basePath, fmt.Sprintf("patient_%d", patientID))
+	return os.RemoveAll(patientDir)
+}
+
+func (s *Repository) DeletePatientDicom() error {
+	return os.RemoveAll(s.basePath)
 }

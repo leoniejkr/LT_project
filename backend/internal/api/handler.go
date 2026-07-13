@@ -21,6 +21,7 @@ func NewHandler(patientService *patient.Service, analysisService *analysis.Servi
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /analysis", h.GetAnalysis)
+	router.HandleFunc("DELETE /analysis", h.DeleteAnalysis)
 }
 
 // GetAnalysis handles patient creation, DICOM storage, and LLM analysis in one request.
@@ -31,7 +32,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 // @Accept       mpfd
 // @Produce      json
 // @Param        formData    formData string true  "Patient metadata as JSON string"
-// @Param        dicom_files formData file  false "DICOM image files (multiple allowed)"
+// @Param        dicom_files formData file  true "DICOM image files (multiple allowed)"
 // @Success      202 {object} map[string]any
 // @Router       /analysis [post]
 func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
@@ -88,5 +89,24 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 		"status":   "success",
 		"patient":  patient,
 		"analysis": analysisResp,
+	})
+}
+
+// DeleteAnalysis removes all patient data, analyses, and DICOM files from the database and disk.
+//
+// @Summary      Delete all analysis data
+// @Description  Deletes all patients, analyses, and DICOM files. Used when starting a new analysis.
+// @Tags         analysis
+// @Produce      json
+// @Success      200 {object} map[string]string
+// @Router       /analysis [delete]
+func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
+	if err := h.patientService.DeleteAllData(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "deleted",
 	})
 }

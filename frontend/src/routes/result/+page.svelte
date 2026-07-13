@@ -10,7 +10,7 @@
     import * as Item from "$lib/components/ui/item/index.js";
     import * as Accordion from "$lib/components/ui/accordion/index.js";
     import { goto } from "$app/navigation";
-    import { Stethoscope, FileDigit, Undo2 } from "lucide-svelte";
+    import { Stethoscope, FileDigit, Undo2, RotateCcw } from "lucide-svelte";
     import "../../app.css";
     import CornerstoneViewport from "./cornerstone-viewport.svelte";
     import ChangeDicomBar from "./change-dicom-bar.svelte";
@@ -54,6 +54,18 @@
             activeImageIndex = Math.max(0, imageIds.length - 1);
         }
     });
+
+    async function startNewAnalysis() {
+        try {
+            await fetch("/api/analysis", { method: "DELETE" });
+        } catch (e) {
+            console.error("Failed to delete previous data:", e);
+        }
+        analysisResult.set(null);
+        patientMetadata.set(null);
+        uploadedFileUrls.set([]);
+        goto("/upload");
+    }
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-5xl flex flex-col gap-6 px-6 pb-12">
@@ -69,6 +81,13 @@
                 imaging
             </h2>
         </div>
+        <Button
+            variant="default"
+            class="flex items-center gap-2"
+            onclick={startNewAnalysis}
+        >
+            <RotateCcw size={16} /> Neue Analyse starten
+        </Button>
     </div>
 
     {#if result}

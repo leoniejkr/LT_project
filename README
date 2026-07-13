@@ -18,17 +18,20 @@ website quatsch
 #### Erstellung der lokalen Python Umgebung
 python -m venv .../LT_project          
 
-#### Docker/Podman Umgebung auf Windows starten und für Projekt vorbereiten
+#### Docker Umgebung auf Windows starten und für Projekt vorbereiten
 - "Devcontainer Extention" für VSCode herunter laden
-- ``podman compose build`` (Auch bei jeder Änderung der requirements.txt, package.json oder go.mod/go.sum ausführen)
-- ``podman compose up``
+- ``docker compose build`` (Auch bei jeder Änderung der requirements.txt, package.json oder go.mod/go.sum ausführen)
+- ``docker compose up``
 
-#### Docker/Podman Volumes (und damit ganze "Daten") löschen
+#### Docker Volumes (und damit ganze "Daten") löschen
 Gut wenn man grundlegendere Änderungen im Code gemacht hat und diese in den Containern wiederspiegeln lassen möchte
-- ``podman compose down -v``
+- ``docker compose down -v``
 
 #### Frontend zum laufen bringen
 - nvm für windows installieren (optional)
 - ``nvm on``
 - ``nvm install latest``
 - ``nvm use [version die installiert wurde]``
+
+#### Swagger updaten
+- ``swag init --dir ./cmd/server,./internal/api --output ./docs``
