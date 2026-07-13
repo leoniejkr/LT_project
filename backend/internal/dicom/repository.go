@@ -1,60 +1,104 @@
 package dicom
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
+	"net/http"
+	"strings"
 )
 
 type Repository struct {
-	basePath string
+	baseURL    string
+	httpClient *http.Client
 }
 
-func NewRepository(basePath string) (*Repository, error) {
-	if err := os.MkdirAll(basePath, 0755); err != nil {
-		return nil, err
+func NewRepository(baseURL string) *Repository {
+	return &Repository{
+		baseURL:    strings.TrimRight(baseURL, "/"),
+		httpClient: &http.Client{},
 	}
-	return &Repository{basePath: basePath}, nil
 }
 
 func (s *Repository) Save(patientID uint, filename string, r io.Reader) (string, error) {
-	patientDir := filepath.Join(s.basePath, fmt.Sprintf("patient_%d", patientID))
-	if err := os.MkdirAll(patientDir, 0755); err != nil {
-		return "", err
-	}
-
-	dstPath := filepath.Join(patientDir, filename)
-	dst, err := os.Create(dstPath)
+	body, err := io.ReadAll(r)
 	if err != nil {
-		return "", err
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, r); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read DICOM data: %w", err)
 	}
 
-	return dstPath, nil
+	req, err := http.NewRequest("POST", s.baseURL+"/instances", strings.NewReader(string(body)))
+	if err != nil {
+		return "", fmt.Errorf("failed to create Orthanc request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/dicom")
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to upload to Orthanc: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("Orthanc returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var result struct {
+		ID string `json:"ID"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("failed to decode Orthanc response: %w", err)
+	}
+
+	return result.ID, nil
 }
 
 func (s *Repository) SaveAll(patientID uint, files map[string]io.Reader) ([]string, error) {
-	var paths []string
+	var ids []string
 	for filename, r := range files {
-		path, err := s.Save(patientID, filename, r)
+		id, err := s.Save(patientID, filename, r)
 		if err != nil {
 			return nil, fmt.Errorf("failed to save %s: %w", filename, err)
 		}
-		paths = append(paths, path)
+		ids = append(ids, id)
 	}
-	return paths, nil
+	return ids, nil
 }
 
-func (s *Repository) DeletePatientDir(patientID uint) error {
-	patientDir := filepath.Join(s.basePath, fmt.Sprintf("patient_%d", patientID))
-	return os.RemoveAll(patientDir)
-}
+func (s *Repository) DeleteDicom() error {
+	// Orthanc API Endpunkt
+	resp, err := s.httpClient.Get(s.baseURL + "/patients")
+	if err != nil {
+		return fmt.Errorf("failed to list Orthanc patients: %w", err)
+	}
+	defer resp.Body.Close()
 
-func (s *Repository) DeletePatientDicom() error {
-	return os.RemoveAll(s.basePath)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Orthanc returned status %d when listing patients", resp.StatusCode)
+	}
+
+	// Es wird immer eine Liste zurückgegeben, aber "per Definition" gibt es nie mehr als einen Eintrag
+	var patientIDs []string
+	if err := json.NewDecoder(resp.Body).Decode(&patientIDs); err != nil {
+		return fmt.Errorf("failed to decode Orthanc patient list: %w", err)
+	}
+
+	if len(patientIDs) == 0 {
+		return nil
+	}
+
+	req, err := http.NewRequest("DELETE", s.baseURL+"/patients/"+patientIDs[0], nil)
+	if err != nil {
+		return fmt.Errorf("failed to create delete request: %w", err)
+	}
+	delResp, err := s.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to delete Orthanc patient %s: %w", patientIDs[0], err)
+	}
+	delResp.Body.Close()
+	if delResp.StatusCode != http.StatusOK {
+		return fmt.Errorf("Orthanc returned status %d when deleting patient %s", delResp.StatusCode, patientIDs[0])
+	}
+
+	return nil
 }
