@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score  
 from PIL import Image
 import torchvision.models as models
+from models.multilabel_models import MultiLabelChestModel
 import wandb
 from tqdm import tqdm
 
@@ -19,7 +20,7 @@ ALL_CLASSES = ['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema', 'Effusio
 
 config = {
     "batch_size": 32,
-    "epochs": 10,
+    "epochs": 5,
     "backbone_lr": 1e-5,        # Conservative LR for pre-trained weights
     "classifier_lr": 1e-4,      # Aggressive LR for head convergence
     "architecture": "DualStream-ResNet50",
@@ -70,29 +71,27 @@ class PatientContextMultiViewDataset(Dataset):
             
         return img_primary, img_context, labels
 
+# 2. Simplified Single-View Dataset
+class SingleViewXRayDataset(Dataset):
+    def __init__(self, dataframe, class_list, transform=None):
+        self.df = dataframe.reset_index(drop=True)
+        self.class_list = class_list
+        self.transform = transform
 
-# 3. Dual-Input Model Architecture 
-class DualViewXRayNet(nn.Module):
-    def __init__(self, num_classes=15):
-        super(DualViewXRayNet, self).__init__()
-        # Initialize two separate ResNet50 backbones
-        self.frontal_backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-        self.context_backbone = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        row = self.df.iloc[idx]
         
-        # Extract features layers up until global pooling step
-        self.frontal_features = nn.Sequential(*list(self.frontal_backbone.children())[:-1])
-        self.context_features = nn.Sequential(*list(self.context_backbone.children())[:-1])
+        # Open only the target image
+        img = Image.open(row['img_path']).convert('RGB')
+        labels = torch.tensor(row[self.class_list].values.astype('float32'), dtype=torch.float32)
         
-        # Fusion Classifier: Combine both feature spaces (2048 dimensions each)
-        self.classifier = nn.Linear(2048 + 2048, num_classes)
-        
-    def forward(self, img_front, img_context):
-        feat_front = self.frontal_features(img_front).squeeze(-1).squeeze(-1)
-        feat_context = self.context_features(img_context).squeeze(-1).squeeze(-1)
-        
-        # Concatenate features horizontally
-        combined_features = torch.cat((feat_front, feat_context), dim=1)
-        return self.classifier(combined_features)
+        if self.transform:
+            img = self.transform(img)
+            
+        return img, labels
 
 
 if __name__ == '__main__':
@@ -103,7 +102,7 @@ if __name__ == '__main__':
     # settings=wandb.Settings(start_method="fork") handles background process stability
     wandb.init(
         project="hybrid-xray-covid", 
-        name="dual-view-experiment", 
+        name="single-view-densenet-experiment", 
         config=config,
         settings=wandb.Settings(start_method="fork")
     )
@@ -149,20 +148,20 @@ if __name__ == '__main__':
     ])
 
     train_loader = DataLoader(
-        PatientContextMultiViewDataset(df_train, ALL_CLASSES, train_transforms), 
+        SingleViewXRayDataset(df_train, ALL_CLASSES, train_transforms), 
         batch_size=config["batch_size"], 
         shuffle=True,
         num_workers=4
     )
     val_loader = DataLoader(
-        PatientContextMultiViewDataset(df_val, ALL_CLASSES, val_transforms), 
+        SingleViewXRayDataset(df_val, ALL_CLASSES, val_transforms), 
         batch_size=config["batch_size"], 
         shuffle=False,
         num_workers=4
     )
 
     # 6. Model Compilation
-    model = DualViewXRayNet(num_classes=len(ALL_CLASSES))
+    model = MultiLabelChestModel(num_classes=len(ALL_CLASSES))
     model = model.to(DEVICE)
 
     wandb.watch(model, log="all", log_freq=100)
@@ -176,16 +175,15 @@ if __name__ == '__main__':
 
     criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights_tensor)
 
-    # STRATEGY 3: Differential Learning Rates & Plateau Scheduling
-    optimizer = torch.optim.Adam([
-        {'params': model.frontal_features.parameters(), 'lr': config["backbone_lr"]},
-        {'params': model.context_features.parameters(), 'lr': config["backbone_lr"]},
-        {'params': model.classifier.parameters(),       'lr': config["classifier_lr"]}
-    ], betas=(0.9, 0.999))
+    # ─── FIXED STRATEGY 3 ───────────────────────────────────────────────
+    # Call configure_optimizers cleanly without invalid extra arguments
+    optimizer_config = model.configure_optimizers()
 
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='min', factor=0.5, patience=2
-    )
+    # Extract the raw PyTorch optimizer from the Lightning dictionary
+    optimizer = optimizer_config["optimizer"]
+
+    # Extract the pre-configured scheduler from the Lightning dictionary
+    scheduler = optimizer_config["lr_scheduler"]["scheduler"]
 
     # 7. Hybrid Multi-Label Training Loop Execution
     for epoch in range(0, config["epochs"]+1):
@@ -198,18 +196,17 @@ if __name__ == '__main__':
             running_train_loss = 0.0
             
             train_progress = tqdm(train_loader, desc=f"Epoch {epoch}/{config['epochs']} [Train]", leave=True)
-            for images_primary, images_context, labels in train_progress:
-                images_primary = images_primary.to(DEVICE)
-                images_context = images_context.to(DEVICE)
+            for images, labels in train_progress:
+                images = images.to(DEVICE)
                 labels = labels.to(DEVICE)
                 
                 optimizer.zero_grad()
-                outputs = model(images_primary, images_context)
+                outputs = model(images)
                 loss = criterion(outputs, labels)
                 loss.backward()
                 optimizer.step()
                 
-                running_train_loss += loss.item() * images_primary.size(0)
+                running_train_loss += loss.item() * images.size(0)
                 train_progress.set_postfix(batch_loss=f"{loss.item():.4f}")
                 
             epoch_train_loss = running_train_loss / len(train_loader.dataset)
@@ -222,14 +219,13 @@ if __name__ == '__main__':
         
         val_progress = tqdm(val_loader, desc=f"Epoch {epoch}/{config['epochs']} [Val]", leave=True)
         with torch.no_grad():
-            for images_primary, images_context, labels in val_progress:
-                images_primary = images_primary.to(DEVICE)
-                images_context = images_context.to(DEVICE)
+            for images, labels in val_progress:
+                images = images.to(DEVICE)
                 labels = labels.to(DEVICE)
                 
-                outputs = model(images_primary, images_context)
+                outputs = model(images)
                 loss = criterion(outputs, labels)
-                running_val_loss += loss.item() * images_primary.size(0)
+                running_val_loss += loss.item() * images.size(0)
                 
                 probs = torch.sigmoid(outputs)
                 all_val_labels.append(labels.cpu().numpy())
@@ -274,8 +270,10 @@ if __name__ == '__main__':
         # Extract current learning rates for log transparency
         if epoch > 0:
             current_lrs = [param_group['lr'] for param_group in optimizer.param_groups]
-            metrics_to_log["backbone_lr"] = current_lrs[0]
-            metrics_to_log["classifier_lr"] = current_lrs[2]
+            metrics_to_log["backbone_lr"] = current_lrs[0]      # Features learning rate
+            metrics_to_log["classifier_lr"] = current_lrs[1]    # Classification head learning rate (Changed from 2 to 1)
+            torch.save(model.state_dict(), "dual_view_checkpoint.pth")
+
 
         print("\n")
         
@@ -283,10 +281,10 @@ if __name__ == '__main__':
         try:
             wandb.log(metrics_to_log)
         except Exception as e:
-            print(f"⚠️ [WandB Warning] Failed to log metrics due to network issue: {e}")
+            print(f"[WandB Warning] Failed to log metrics due to network issue: {e}")
             print("Training will continue locally; wandb will attempt background reconnection.")
 
     torch.save(model.state_dict(), "dual_view_checkpoint.pth")
     print("Model weights successfully saved locally to dual_view_checkpoint.pth!")
-    
+
     wandb.finish()

@@ -47,4 +47,21 @@ class MultiLabelChestModel(pl.LightningModule):
         return loss
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.parameters(), lr=self.hparams.lr, weight_decay=1e-4)
+        # DenseNet features are inside model.backbone.features
+        # The head is inside model.backbone.classifier
+        optimizer = torch.optim.AdamW([
+            {'params': self.backbone.features.parameters(), 'lr': self.hparams.lr * 0.1}, # 1e-5
+            {'params': self.backbone.classifier.parameters(), 'lr': self.hparams.lr}       # 1e-4
+        ], weight_decay=1e-4)
+        
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=2
+        )
+        
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "val_loss" # Matches the log key in your validation_step
+            }
+        }
