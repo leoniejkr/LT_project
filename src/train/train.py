@@ -284,7 +284,7 @@ if __name__ == '__main__':
             print(f"[WandB Warning] Failed to log metrics due to network issue: {e}")
             print("Training will continue locally; wandb will attempt background reconnection.")
 
-    torch.save(model.state_dict(), "dual_view_checkpoint.pth")
-    print("Model weights successfully saved locally to dual_view_checkpoint.pth!")
+    torch.save(model.state_dict(), "checkpoint.pth")
+    print("Model weights successfully saved locally to checkpoint.pth!")
 
     wandb.finish()
