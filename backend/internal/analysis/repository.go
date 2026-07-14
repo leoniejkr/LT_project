@@ -21,5 +21,9 @@ func (r *Repository) FindByPatientID(patientID uint) (*Analysis, error) {
 }
 
 func (r *Repository) DeletePatientAnalysis(patientID uint) error {
-	return r.db.Where("patient_id = ?", patientID).Delete(&Analysis{}).Error
+	err := r.db.Where("patient_id = ?", patientID).Delete(&Analysis{}).Error
+	if err != nil {
+		return fmt.Errorf("failed to delete patient analysis: %w", err)
+	}
+	return nil
 }

@@ -66,8 +66,5 @@ func (s *Service) DeleteAllData() error {
 	if err := s.analysisService.DeletePatientAnalysis(0); err != nil {
 		return err
 	}
-	if err := s.repo.DeletePatient(0); err != nil {
-		return err
-	}
-	return s.dicomStore.DeleteDicom()
+	return s.repo.DeletePatient(0);
 }
