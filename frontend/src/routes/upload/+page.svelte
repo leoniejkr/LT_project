@@ -114,44 +114,9 @@
 			);
 			goto("/result");
 		} catch (error) {
-			console.error(
-				"Submission failed, setting mock metadata and mock result:",
-				error,
-			);
-			const mockResult = {
-				status: "success",
-				patient: {
-					id: 0,
-					age: parseInt(patientAge),
-					gender: value,
-					knownIllnesses: Object.keys(illnesses).filter(
-						(k) => illnesses[k as keyof typeof illnesses],
-					),
-					symptoms: Object.keys(symptoms).filter(
-						(k) => symptoms[k as keyof typeof symptoms],
-					),
-					dicomPaths: [],
-				},
-				analysis: {
-					status: "success",
-					model_version: "mock-llm-v1.0",
-					predictions: [
-						{
-							class: "Pneumonia",
-							confidence: 0.875,
-							reason: "Bilateral opacities observed in the lower lobes with air bronchogram signs, consistent with infectious pneumonia.",
-						},
-					],
-					image_results: [],
-					is_mock: true,
-				},
-			};
-			analysisResult.set(mockResult);
-			patientMetadata.set(metadata);
-			uploadedFileUrls.set(
-				Array.from(files ?? []).map((f) => URL.createObjectURL(f)),
-			);
-			goto("/result");
+			console.error("Analysis failed:", error);
+			dialogMessage = `Analysis failed: ${error instanceof Error ? error.message : "Unknown error"}. Check if all services are running.`;
+			showDialog = true;
 		}
 	}
 
