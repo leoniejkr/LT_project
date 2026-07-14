@@ -8,7 +8,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
 
   orthanc:
     image: orthancteam/orthanc
@@ -22,14 +22,27 @@ services:
       ORTHANC__REGISTERED_USERS: |
         {"user": "user"}
 
+  ollama:
+    image: ollama/ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
   modelling:
     build: ./modelling
     ports:
       - "5000:5000"
     volumes:
       - ./data:/app/data
+      - ./checkpoints:/app/checkpoints:ro
     environment:
-      - USE_MOCK=true
+      - USE_MOCK=false
+      - CHECKPOINT_PATH=/app/checkpoints/dual_view_checkpoint.pth
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=phi3:mini
+    depends_on:
+      - ollama
 
   backend:
     build:
@@ -70,3 +83,4 @@ services:
 volumes:
   postgres_data:
   orthanc_storage:
+  ollama_data:

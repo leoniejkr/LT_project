@@ -4,16 +4,18 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"os"
 )
 
 type PredictionResponse struct {
-	Status           string  `json:"status"`
-	Prediction       string  `json:"prediction"`
-	Confidence       float64 `json:"confidence"`
-	ConfidenceReason string  `json:"confidence_reason"`
-	ModelVersion     string  `json:"model_version"`
+	Status       string      `json:"status"`
+	ModelVersion string      `json:"model_version"`
+	Predictions  Predictions `json:"predictions"`
+	ImageResults ImageResults `json:"image_results"`
+	IsMock       bool        `json:"is_mock"`
 }
 
 type LLMClient struct {
@@ -32,17 +34,49 @@ func NewLLMClient() *LLMClient {
 	}
 }
 
-func (c *LLMClient) GetPrediction(patientData any) (*PredictionResponse, error) {
-	body, err := json.Marshal(patientData)
+func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageNames []string) (*PredictionResponse, error) {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	jsonBytes, err := json.Marshal(patientData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal patient data: %w", err)
 	}
 
-	resp, err := c.httpClient.Post(c.baseURL+"/predict", "application/json", bytes.NewReader(body))
+	if err := writer.WriteField("formData", string(jsonBytes)); err != nil {
+		return nil, fmt.Errorf("failed to write formData field: %w", err)
+	}
+
+	for i, buf := range imageBuffers {
+		part, err := writer.CreateFormFile("image_files", imageNames[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to create form file: %w", err)
+		}
+		if _, err := part.Write(buf); err != nil {
+			return nil, fmt.Errorf("failed to write image data: %w", err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", c.baseURL+"/predict", &body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call modelling service: %w", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("modelling service returned status %d: %s", resp.StatusCode, string(respBody))
+	}
 
 	var result PredictionResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {

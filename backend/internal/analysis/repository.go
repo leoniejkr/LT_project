@@ -1,6 +1,9 @@
 package analysis
 
-import "gorm.io/gorm"
+import (
+	"fmt"
+	"gorm.io/gorm"
+)
 
 type Repository struct {
 	db *gorm.DB

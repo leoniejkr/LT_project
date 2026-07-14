@@ -12,8 +12,8 @@ func NewService(repo *Repository, llmClient *LLMClient) *Service {
 	}
 }
 
-func (s *Service) GetAnalysis(patientID uint, patientData any) (*PredictionResponse, error) {
-	resp, err := s.llmClient.GetPrediction(patientData)
+func (s *Service) GetAnalysis(patientID uint, patientData any, imageBuffers [][]byte, imageNames []string) (*PredictionResponse, error) {
+	resp, err := s.llmClient.GetPrediction(patientData, imageBuffers, imageNames)
 	if err != nil {
 		return nil, err
 	}
@@ -26,12 +26,25 @@ func (s *Service) GetAnalysis(patientID uint, patientData any) (*PredictionRespo
 }
 
 func (s *Service) persistAnalysis(patientID uint, resp *PredictionResponse) error {
+	var prediction string
+	var confidence float64
+	var confidenceReason string
+
+	if len(resp.Predictions) > 0 {
+		prediction = resp.Predictions[0].Class
+		confidence = resp.Predictions[0].Confidence
+		confidenceReason = resp.Predictions[0].Reason
+	}
+
 	a := &Analysis{
 		PatientID:        patientID,
-		Prediction:       resp.Prediction,
-		Confidence:       resp.Confidence,
-		ConfidenceReason: resp.ConfidenceReason,
+		Prediction:       prediction,
+		Confidence:       confidence,
+		ConfidenceReason: confidenceReason,
 		Status:           resp.Status,
+		ModelVersion:     resp.ModelVersion,
+		Predictions:      resp.Predictions,
+		ImageResults:     resp.ImageResults,
 	}
 	return s.repo.Create(a)
 }

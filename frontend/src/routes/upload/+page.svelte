@@ -121,7 +121,7 @@
 			const mockResult = {
 				status: "success",
 				patient: {
-					id: "PAT-Mock-123",
+					id: 0,
 					age: parseInt(patientAge),
 					gender: value,
 					knownIllnesses: Object.keys(illnesses).filter(
@@ -130,13 +130,20 @@
 					symptoms: Object.keys(symptoms).filter(
 						(k) => symptoms[k as keyof typeof symptoms],
 					),
+					dicomPaths: [],
 				},
 				analysis: {
-					prediction: "Pneumonia detected",
-					confidence: 0.875,
-					confidence_reason:
-						"Bilateral opacities observed in the lower lobes with air bronchogram signs, consistent with infectious pneumonia.",
+					status: "success",
 					model_version: "mock-llm-v1.0",
+					predictions: [
+						{
+							class: "Pneumonia",
+							confidence: 0.875,
+							reason: "Bilateral opacities observed in the lower lobes with air bronchogram signs, consistent with infectious pneumonia.",
+						},
+					],
+					image_results: [],
+					is_mock: true,
 				},
 			};
 			analysisResult.set(mockResult);
@@ -403,4 +410,5 @@
 	</AlertDialog.Content>
 </AlertDialog.Root>
 
+// TODO: png UND .dcm ermöglichen. jetzt erst gerade nur .png nach refactoring möglich.
 <form method="POST"></form>

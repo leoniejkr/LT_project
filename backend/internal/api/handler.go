@@ -1,21 +1,20 @@
 package api
 
 import (
-	"backend/internal/analysis"
 	"backend/internal/patient"
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 )
 
 type Handler struct {
-	patientService  *patient.Service
-	analysisService *analysis.Service
+	patientService *patient.Service
 }
 
-func NewHandler(patientService *patient.Service, analysisService *analysis.Service) *Handler {
+func NewHandler(patientService *patient.Service) *Handler {
 	return &Handler{
-		patientService:  patientService,
-		analysisService: analysisService,
+		patientService: patientService,
 	}
 }
 
@@ -24,17 +23,6 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("DELETE /analysis", h.DeleteAnalysis)
 }
 
-// GetAnalysis handles patient creation, X-Ray storage, and LLM analysis in one request.
-//
-// @Summary      Create patient and run LLM analysis
-// @Description  Creates a new patient with metadata and X-Ray files, then triggers LLM analysis. Returns patient data + analysis result.
-// @Tags         analysis
-// @Accept       mpfd
-// @Produce      json
-// @Param        formData    formData string true  "Patient metadata as JSON string"
-// @Param        xray_files formData file  true "X-Ray image files (multiple allowed)"
-// @Success      202 {object} map[string]any
-// @Router       /analysis [post]
 func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(50 << 20); err != nil {
 		http.Error(w, "Unable to parse multipart form", http.StatusBadRequest)
@@ -54,6 +42,9 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var files []patient.FileInput
+	var imageBuffers [][]byte
+	var imageNames []string
+
 	fileHeaders := r.MultipartForm.File["image_files"]
 	for _, fh := range fileHeaders {
 		f, err := fh.Open()
@@ -62,21 +53,34 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer f.Close()
-		files = append(files, patient.FileInput{Reader: f, Name: fh.Filename})
+
+		buf, err := io.ReadAll(f)
+		if err != nil {
+			http.Error(w, "Failed to read file content", http.StatusInternalServerError)
+			return
+		}
+
+		files = append(files, patient.FileInput{
+			Reader: bytes.NewReader(buf),
+			Name:   fh.Filename,
+			Bytes:  buf,
+		})
+		imageBuffers = append(imageBuffers, buf)
+		imageNames = append(imageNames, fh.Filename)
 	}
 
-	patient, err := h.patientService.CreatePatient(&p, files)
+	createdPatient, err := h.patientService.CreatePatient(&p, files)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	analysisResp, err := h.analysisService.GetAnalysis(patient.ID, patient)
+	analysisResp, err := h.patientService.GetAnalysis(createdPatient.ID, createdPatient, imageBuffers, imageNames)
 	if err != nil {
 		w.WriteHeader(http.StatusAccepted)
 		json.NewEncoder(w).Encode(map[string]any{
 			"status":  "partial",
-			"patient": patient,
+			"patient": createdPatient,
 			"analysis": map[string]any{
 				"error": "Analysis failed: " + err.Error(),
 			},
@@ -87,19 +91,11 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]any{
 		"status":   "success",
-		"patient":  patient,
+		"patient":  createdPatient,
 		"analysis": analysisResp,
 	})
 }
 
-// DeleteAnalysis removes all patient data, analyses, and X-Ray files from the database and disk.
-//
-// @Summary      Delete all analysis data
-// @Description  Deletes all patients, analyses, and X-Ray files. Used when starting a new analysis.
-// @Tags         analysis
-// @Produce      json
-// @Success      200 {object} map[string]string
-// @Router       /analysis [delete]
 func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
 	if err := h.patientService.DeleteAllData(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

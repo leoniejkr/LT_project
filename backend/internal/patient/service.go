@@ -3,17 +3,14 @@ package patient
 import (
 	"backend/internal/analysis"
 	"backend/internal/dicom"
+	"bytes"
 	"io"
 )
 
 type FileInput struct {
 	Reader io.Reader
 	Name   string
-}
-
-type CreatePatientResult struct {
-	Patient  *Patient
-	Analysis *analysis.PredictionResponse
+	Bytes  []byte
 }
 
 type Service struct {
@@ -37,7 +34,7 @@ func (s *Service) CreatePatient(p *Patient, files []FileInput) (*Patient, error)
 
 	var orthancIDs []string
 	for _, f := range files {
-		id, err := s.dicomStore.Save(p.ID, f.Name, f.Reader)
+		id, err := s.dicomStore.Save(p.ID, f.Name, bytes.NewReader(f.Bytes))
 		if err != nil {
 			return nil, err
 		}
@@ -54,8 +51,8 @@ func (s *Service) CreatePatient(p *Patient, files []FileInput) (*Patient, error)
 	return p, nil
 }
 
-func (s *Service) GetAnalysis(patientID uint, patientData any) (*analysis.PredictionResponse, error) {
-	return s.analysisService.GetAnalysis(patientID, patientData)
+func (s *Service) GetAnalysis(patientID uint, patientData any, imageBuffers [][]byte, imageNames []string) (*analysis.PredictionResponse, error) {
+	return s.analysisService.GetAnalysis(patientID, patientData, imageBuffers, imageNames)
 }
 
 func (s *Service) GetPatient(id uint) (*Patient, error) {
@@ -66,5 +63,5 @@ func (s *Service) DeleteAllData() error {
 	if err := s.analysisService.DeletePatientAnalysis(0); err != nil {
 		return err
 	}
-	return s.repo.DeletePatient(0);
+	return s.repo.DeletePatient(0)
 }

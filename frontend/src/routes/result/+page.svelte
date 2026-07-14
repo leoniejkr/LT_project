@@ -14,22 +14,46 @@
     import "../../app.css";
     import CornerstoneViewport from "./cornerstone-viewport.svelte";
     import ChangeImageBar from "./change-image-bar.svelte";
+    import type { Prediction, ImageResult } from "$lib/types.js";
 
     const defaultResult = {
         status: "success",
         analysis: {
-            prediction: "Pneumonia",
-            confidence: 0.85,
-            confidence_reason:
-                "The model detected significant opacities in the lower lobes consistent with pneumonia but there are certain uncertaincies.",
             model_version: "v1.0",
+            predictions: [
+                {
+                    class: "Pneumonia",
+                    confidence: 0.92,
+                    reason: "Strong evidence of pneumonia detected with bilateral opacities in the lower lobes.",
+                },
+                {
+                    class: "Effusion",
+                    confidence: 0.88,
+                    reason: "Moderate evidence of pleural effusion with fluid accumulation visible.",
+                },
+            ],
+            image_results: [
+                {
+                    index: 0,
+                    filename: "example1.png",
+                    predictions: [
+                        {
+                            class: "Pneumonia",
+                            confidence: 0.92,
+                            heatmap: "",
+                        },
+                    ],
+                },
+            ],
+            is_mock: true,
         },
         patient: {
-            id: "123",
+            id: 123,
             age: 62,
             gender: "Male",
-            knownIllnesses: ["Covid", "Pneumonia"],
-            symptoms: ["Cough", "Fever", "Dyspnea"],
+            knownIllnesses: ["Covid19", "Pneumonia"],
+            symptoms: ["Cough", "Fever"],
+            dicomPaths: [],
         },
     };
 
@@ -38,6 +62,9 @@
     let patient = $derived(result.patient ?? {});
 
     let metadata = $derived($patientMetadata || patient);
+
+    let predictions: Prediction[] = $derived(analysis.predictions ?? []);
+    let imageResults: ImageResult[] = $derived(analysis.image_results ?? []);
 
     let imageIds = $derived(
         $uploadedFileUrls.length > 0
@@ -51,12 +78,31 @@
     );
 
     let activeImageIndex = $state(0);
+    let activeHeatmapIndex = $state(0);
 
     $effect(() => {
         if (activeImageIndex >= imageIds.length) {
             activeImageIndex = Math.max(0, imageIds.length - 1);
         }
     });
+
+    $effect(() => {
+        activeHeatmapIndex = activeImageIndex;
+    });
+
+    function getConfidenceColor(confidence: number): string {
+        if (confidence >= 0.95) return "text-red-600 bg-red-500/10 border-red-500/30";
+        if (confidence >= 0.90) return "text-orange-600 bg-orange-500/10 border-orange-500/30";
+        if (confidence >= 0.85) return "text-amber-600 bg-amber-500/10 border-amber-500/30";
+        return "text-muted-foreground bg-muted/50";
+    }
+
+    function getConfidenceBarColor(confidence: number): string {
+        if (confidence >= 0.95) return "bg-red-500";
+        if (confidence >= 0.90) return "bg-orange-500";
+        if (confidence >= 0.85) return "bg-amber-500";
+        return "bg-muted-foreground/30";
+    }
 
     async function startNewAnalysis() {
         try {
@@ -69,9 +115,13 @@
         uploadedFileUrls.set([]);
         goto("/upload");
     }
+
+    let activeImageResult = $derived(
+        imageResults.find((r) => r.index === activeHeatmapIndex) ?? null,
+    );
 </script>
 
-<div class="mt-6 mx-auto w-full max-w-5xl flex flex-col gap-6 px-6 pb-12">
+<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
     <div class="flex items-center justify-between border-b pb-4">
         <div>
             <header
@@ -105,6 +155,67 @@
                 Gender: {patient.gender}
             </Badge>
         </Item.Root>
+
+        {#if predictions.length > 0}
+            <div class="border rounded-xl p-4">
+                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    AI Diagnosis Ranking
+                    <Badge variant="secondary" class="text-xs">
+                        {predictions.length} detected
+                    </Badge>
+                </h3>
+                <div class="flex flex-col gap-3">
+                    {#each predictions as pred, idx}
+                        <div
+                            class="border rounded-lg p-3 {getConfidenceColor(
+                                pred.confidence,
+                            )}"
+                        >
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span
+                                        class="text-xs font-bold w-6 h-6 rounded-full bg-background flex items-center justify-center"
+                                    >
+                                        {idx + 1}
+                                    </span>
+                                    <span class="font-semibold"
+                                        >{pred.class}</span
+                                    >
+                                </div>
+                                <span class="font-bold text-sm">
+                                    {(pred.confidence * 100).toFixed(1)}%
+                                </span>
+                            </div>
+                            <div
+                                class="w-full h-2 bg-background rounded-full overflow-hidden mb-2"
+                            >
+                                <div
+                                    class="h-full rounded-full {getConfidenceBarColor(
+                                        pred.confidence,
+                                    )}"
+                                    style="width: {pred.confidence * 100}%"
+                                ></div>
+                            </div>
+                            {#if pred.reason}
+                                <p class="text-xs opacity-80">{pred.reason}</p>
+                            {/if}
+                        </div>
+                    {/each}
+                </div>
+                {#if analysis.model_version}
+                    <p class="text-xs text-muted-foreground mt-3">
+                        Model: {analysis.model_version}
+                    </p>
+                {/if}
+            </div>
+        {:else}
+            <div
+                class="border rounded-xl p-6 text-center text-muted-foreground"
+            >
+                <Stethoscope size={24} class="mx-auto mb-2 opacity-50" />
+                <p>No significant findings detected above 85% confidence.</p>
+            </div>
+        {/if}
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 flex flex-col">
@@ -158,7 +269,6 @@
             </div>
 
             <div class="flex flex-col gap-4">
-                <!-- TODO: else block einbauen (ein text), wenn es keine illnesses etc gibt -->
                 <Accordion.Root type="multiple">
                     <Accordion.Item value="illnesses">
                         <Accordion.Trigger>Known Illnesses</Accordion.Trigger>
@@ -188,57 +298,58 @@
                         </Accordion.Content>
                     </Accordion.Item>
                 </Accordion.Root>
-
-                <Item.Root variant="outline">
-                    <Item.Title class="flex items-center gap-2">
-                        AI Diagnosis
-                    </Item.Title>
-                    <Separator />
-                    <Item.Content class="flex-1 flex flex-col justify-between">
-                        <div
-                            class="text-xs text-muted-foreground uppercase tracking-wider font-semibold"
-                        >
-                            Prediction
-                        </div>
-                        <div
-                            class="text-lg font-semibold flex items-center gap-2"
-                        >
-                            {analysis.prediction}
-                        </div>
-                    </Item.Content>
-                    <Item.Footer class="text-muted-foreground">
-                        Model: {analysis.model_version}
-                    </Item.Footer>
-                </Item.Root>
-
-                <Item.Root
-                    variant="outline"
-                    class="border-wary/50 bg-wary/[0.03]"
-                >
-                    <Item.Title class="text-wary pb-2">
-                        AI Diagnostics Assessment
-                    </Item.Title>
-                    <Item.Content class="font-semibold text-lg">
-                        {(typeof analysis.confidence === "number"
-                            ? analysis.confidence * 100
-                            : 0
-                        ).toFixed(1)}% Confidence
-                    </Item.Content>
-                </Item.Root>
-
-                <Item.Root
-                    variant="outline"
-                    class="border-primary/50 bg-primary/[0.03]"
-                >
-                    <Item.Title class="text-primary font-semibold">
-                        Assessement Reason
-                    </Item.Title>
-                    <Item.Description class="line-clamp-none">
-                        {analysis.confidence_reason}
-                    </Item.Description>
-                </Item.Root>
             </div>
         </div>
+
+        {#if imageResults.length > 0}
+            <div class="border rounded-xl p-4">
+                <h3 class="text-lg font-semibold mb-4">
+                    Per-Image Analysis
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {#each imageResults as imgResult}
+                        <div class="border rounded-lg overflow-hidden">
+                            <div class="bg-muted px-3 py-2 text-sm font-medium">
+                                {imgResult.filename}
+                            </div>
+                            {#if imgResult.predictions.length > 0}
+                                <div class="p-3 flex flex-col gap-2">
+                                    {#each imgResult.predictions as pred}
+                                        <div class="flex flex-col gap-1">
+                                            <div
+                                                class="flex items-center justify-between text-sm"
+                                            >
+                                                <span class="font-medium"
+                                                    >{pred.class}</span
+                                                >
+                                                <span class="text-xs font-bold">
+                                                    {(
+                                                        pred.confidence * 100
+                                                    ).toFixed(1)}%
+                                                </span>
+                                            </div>
+                                            {#if pred.heatmap}
+                                                <img
+                                                    src="data:image/png;base64,{pred.heatmap}"
+                                                    alt="Grad-CAM: {pred.class}"
+                                                    class="w-full rounded border"
+                                                />
+                                            {/if}
+                                        </div>
+                                    {/each}
+                                </div>
+                            {:else}
+                                <div
+                                    class="p-3 text-sm text-muted-foreground text-center"
+                                >
+                                    No significant findings
+                                </div>
+                            {/if}
+                        </div>
+                    {/each}
+                </div>
+            </div>
+        {/if}
     {:else}
         <Item.Root variant="outline" class="bg:primary">
             <Item.Content

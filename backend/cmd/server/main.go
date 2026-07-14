@@ -37,7 +37,7 @@ func main() {
 	llmClient := analysis.NewLLMClient()
 	analysisService := analysis.NewService(analysisRepo, llmClient)
 	patientService := patient.NewService(patientRepo, dicomRepo, analysisService)
-	apiHandler := api.NewHandler(patientService, analysisService)
+	apiHandler := api.NewHandler(patientService)
 	apiHandler.RegisterRoutes(router)
 
 	router.Handle("/swagger/", httpSwagger.WrapHandler)
