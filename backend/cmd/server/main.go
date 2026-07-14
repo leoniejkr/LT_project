@@ -31,7 +31,7 @@ func main() {
 
 	router := http.NewServeMux()
 
-	dicomRepo, err := dicom.NewRepository("./uploads/dicoms")
+	dicomRepo := dicom.NewRepository(os.Getenv("ORTHANC_URL"))
 	patientRepo := patient.NewRepository(db)
 	analysisRepo := analysis.NewRepository(db)
 	llmClient := analysis.NewLLMClient()

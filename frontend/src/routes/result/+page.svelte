@@ -10,10 +10,10 @@
     import * as Item from "$lib/components/ui/item/index.js";
     import * as Accordion from "$lib/components/ui/accordion/index.js";
     import { goto } from "$app/navigation";
-    import { Stethoscope, FileDigit, Undo2 } from "lucide-svelte";
+    import { Stethoscope, FileDigit, Undo2, RotateCcw } from "lucide-svelte";
     import "../../app.css";
     import CornerstoneViewport from "./cornerstone-viewport.svelte";
-    import ChangeDicomBar from "./change-dicom-bar.svelte";
+    import ChangeImageBar from "./change-image-bar.svelte";
 
     const defaultResult = {
         status: "success",
@@ -28,8 +28,6 @@
             id: "123",
             age: 62,
             gender: "Male",
-            admittedToIcu: true,
-            requiresVentilator: false,
             knownIllnesses: ["Covid", "Pneumonia"],
             symptoms: ["Cough", "Fever", "Dyspnea"],
         },
@@ -43,8 +41,13 @@
 
     let imageIds = $derived(
         $uploadedFileUrls.length > 0
-            ? $uploadedFileUrls.map((url) => `wadouri:${url}`)
-            : ["wadouri:/image-000001.dcm"],
+            ? $uploadedFileUrls.map((url) => `png:${url}`)
+            : [
+                  "png:/example1.png",
+                  "png:/example2.png",
+                  "png:/example3.png",
+                  "png:/example4.png",
+              ],
     );
 
     let activeImageIndex = $state(0);
@@ -54,6 +57,18 @@
             activeImageIndex = Math.max(0, imageIds.length - 1);
         }
     });
+
+    async function startNewAnalysis() {
+        try {
+            await fetch("/api/analysis", { method: "DELETE" });
+        } catch (e) {
+            console.error("Failed to delete previous data:", e);
+        }
+        analysisResult.set(null);
+        patientMetadata.set(null);
+        uploadedFileUrls.set([]);
+        goto("/upload");
+    }
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-5xl flex flex-col gap-6 px-6 pb-12">
@@ -65,21 +80,30 @@
                 Medical Analysis Dashboard
             </header>
             <h2 class="text-muted-foreground mt-1">
-                Detailed AI diagnostics based on patient metadata and DICOM
+                Detailed AI diagnostics based on patient metadata and X-Ray
                 imaging
             </h2>
         </div>
+        <Button
+            variant="default"
+            class="flex items-center gap-2"
+            onclick={startNewAnalysis}
+        >
+            <RotateCcw size={16} /> Start New Analysis
+        </Button>
     </div>
 
     {#if result}
-        <Item.Root variant="outline">
-            <div>Patient ID:{patient.id}</div>
-            <div>Age:{patient.age}</div>
-            <div>Gender:{patient.gender}</div>
-            <div>Admitted to ICU:{patient.admittedToIcu ? "Yes" : "No"}</div>
-            <div>
-                Ventilator Required: {patient.requiresVentilator ? "Yes" : "No"}
-            </div>
+        <Item.Root variant="outline" class="flex">
+            <Badge variant="secondary" class="h-8 text-md"
+                >Patient ID: {patient.id}</Badge
+            >
+            <Badge variant="secondary" class="h-8 text-md">
+                Age: {patient.age}
+            </Badge>
+            <Badge variant="secondary" class="h-8 text-md">
+                Gender: {patient.gender}
+            </Badge>
         </Item.Root>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -89,14 +113,14 @@
                 >
                     <Item.Root>
                         <Item.Description class="flex items-center gap-1.5">
-                            <FileDigit size={14} /> DICOM Viewport
+                            <FileDigit size={14} /> PNG Medical Viewport
                         </Item.Description>
                         <Item.Description class="flex items-center">
                             <Badge variant="outline">
                                 {#if $uploadedFileUrls.length > 0}
-                                    {$uploadedFileUrls.length} DICOM File(s) Uploaded
+                                    {$uploadedFileUrls.length} File(s) Uploaded
                                 {:else}
-                                    image-000001.dcm (Mock)
+                                    Example Images (Mock)
                                 {/if}
                             </Badge>
                             {#if imageIds.length > 1}
@@ -118,7 +142,7 @@
                     </Item.Media>
                     {#if imageIds.length >= 1}
                         <Item.Footer class="bg-card border-t">
-                            <ChangeDicomBar
+                            <ChangeImageBar
                                 {imageIds}
                                 activeIndex={activeImageIndex}
                                 onselect={(i) => (activeImageIndex = i)}
@@ -227,7 +251,7 @@
                 </div>
                 <Item.Title class="text-lg">No Results Available</Item.Title>
                 <Item.Description class="max-w-md mt-2">
-                    Please upload a DICOM chest X-ray file and enter patient
+                    Please upload an X-Ray file and enter patient
                     metadata to generate an AI diagnostics report.
                 </Item.Description>
                 <Button

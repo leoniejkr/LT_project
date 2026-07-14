@@ -79,12 +79,10 @@ func (p DicomPaths) Value() (driver.Value, error) {
 }
 
 type Patient struct {
-	ID                 uint      `gorm:"primaryKey" json:"id"`
-	Age                uint      `gorm:"not null" json:"age"`
-	Gender             Gender    `gorm:"not null" json:"gender"`
-	AdmittedToIcu      bool      `gorm:"not null" json:"admittedToIcu"`
-	RequiresVentilator bool      `gorm:"not null" json:"requiresVentilator"`
-	KnownIllnesses     Illnesses `gorm:"type:jsonb" json:"knownIllnesses"`
-	Symptoms           Symptoms  `gorm:"type:jsonb" json:"symptoms"`
-	DicomPaths         DicomPaths `gorm:"type:jsonb" json:"dicomPaths"`
+	ID             uint       `gorm:"primaryKey" json:"id"`
+	Age            uint       `gorm:"not null" json:"age"`
+	Gender         Gender     `gorm:"not null" json:"gender"`
+	KnownIllnesses Illnesses  `gorm:"type:jsonb" json:"knownIllnesses"`
+	Symptoms       Symptoms   `gorm:"type:jsonb" json:"symptoms"`
+	XRayPaths      DicomPaths `gorm:"type:jsonb" json:"dicomPaths"`
 }

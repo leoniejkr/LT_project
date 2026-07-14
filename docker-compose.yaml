@@ -45,9 +45,12 @@ services:
         condition: service_started
       modelling:
         condition: service_started
+      orthanc:
+        condition: service_started
     environment:
       DATABASE_URL: host=db user=trustai_user password=trustai_password dbname=trustai_db port=5432 sslmode=disable TimeZone=Europe/Berlin
       MODELLING_URL: http://modelling:5000
+      ORTHANC_URL: http://orthanc:8042
       PORT: 8080
 
   frontend:

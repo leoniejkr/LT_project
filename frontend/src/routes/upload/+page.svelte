@@ -8,6 +8,7 @@
 	import { Input } from "$lib/components/ui/input/index.js";
 	import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
+	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 	import {
 		UserSearch,
 		CloudUpload,
@@ -16,7 +17,11 @@
 		ImageUp,
 	} from "lucide-svelte";
 	import { goto } from "$app/navigation";
-	import { analysisResult, patientMetadata, uploadedFileUrls } from "$lib/stores.js";
+	import {
+		analysisResult,
+		patientMetadata,
+		uploadedFileUrls,
+	} from "$lib/stores.js";
 	import "../../app.css";
 
 	let { data }: { data: any } = $props();
@@ -35,8 +40,6 @@
 
 	// Patient Metadata
 	let patientAge = $state("");
-	let isICU = $state(false);
-	let requiresVentilator = $state(false);
 
 	// Known Illnesses
 	let illnesses = $state({
@@ -55,27 +58,36 @@
 		fatigue: false,
 	});
 
+	let showDialog = $state(false);
+	let dialogMessage = $state("");
+
 	async function startAnalysis() {
 		if (!files || files.length === 0) {
-			alert("Please upload at least one DICOM file.");
+			dialogMessage = "Please upload at least one X-Ray file.";
+			showDialog = true;
 			return;
 		}
 		if (!patientAge || !value) {
-			alert("Please fill in age and gender.");
+			dialogMessage = "Please fill in age and gender.";
+			showDialog = true;
 			return;
+		}
+
+		try {
+			await fetch("/api/analysis", { method: "DELETE" });
+		} catch (e) {
+			console.error("Failed to delete previous data:", e);
 		}
 
 		const formData = new FormData();
 
 		for (const file of files) {
-			formData.append("dicom_files", file);
+			formData.append("image_files", file);
 		}
 
 		const metadata = {
 			age: parseInt(patientAge),
 			gender: value,
-			admittedToIcu: isICU,
-			requiresVentilator: requiresVentilator,
 			knownIllnesses: Object.keys(illnesses).filter(
 				(k) => illnesses[k as keyof typeof illnesses],
 			),
@@ -97,18 +109,21 @@
 			console.log("Analysis Result:", result);
 			analysisResult.set(result);
 			patientMetadata.set(result.patient ?? metadata);
-			uploadedFileUrls.set(Array.from(files ?? []).map(f => URL.createObjectURL(f)));
+			uploadedFileUrls.set(
+				Array.from(files ?? []).map((f) => URL.createObjectURL(f)),
+			);
 			goto("/result");
 		} catch (error) {
-			console.error("Submission failed, setting mock metadata and mock result:", error);
+			console.error(
+				"Submission failed, setting mock metadata and mock result:",
+				error,
+			);
 			const mockResult = {
 				status: "success",
 				patient: {
 					id: "PAT-Mock-123",
 					age: parseInt(patientAge),
 					gender: value,
-					admittedToIcu: isICU,
-					requiresVentilator: requiresVentilator,
 					knownIllnesses: Object.keys(illnesses).filter(
 						(k) => illnesses[k as keyof typeof illnesses],
 					),
@@ -119,13 +134,16 @@
 				analysis: {
 					prediction: "Pneumonia detected",
 					confidence: 0.875,
-					confidence_reason: "Bilateral opacities observed in the lower lobes with air bronchogram signs, consistent with infectious pneumonia.",
+					confidence_reason:
+						"Bilateral opacities observed in the lower lobes with air bronchogram signs, consistent with infectious pneumonia.",
 					model_version: "mock-llm-v1.0",
 				},
 			};
 			analysisResult.set(mockResult);
 			patientMetadata.set(metadata);
-			uploadedFileUrls.set(Array.from(files ?? []).map(f => URL.createObjectURL(f)));
+			uploadedFileUrls.set(
+				Array.from(files ?? []).map((f) => URL.createObjectURL(f)),
+			);
 			goto("/result");
 		}
 	}
@@ -133,7 +151,7 @@
 	// TODO: reusable components besonders bei der checklist der known illnesses
 	// das kann man gut mit shadcn machen, aber das würde ich jetzt noch nciht machen,
 	// sondern erst, wenn die funktionalität an sich steht und wir das später nocvh schöner machen wollen
-	
+
 	// TODO: required auch required machen
 </script>
 
@@ -143,7 +161,7 @@
 			Case Input & Initialization
 		</header>
 		<h2 class="text-muted-foreground mt-1">
-			Upload DICOM payload and contextualize patient metadata for AI
+			Upload X-Ray images and contextualize patient metadata for AI
 			analysis
 		</h2>
 	</div>
@@ -153,7 +171,7 @@
 			<Item.Root variant="outline" class="flex flex-col h-full">
 				<Item.Content>
 					<Item.Title class="w-full justify-between">
-						Radiological Scans (.dcm)
+						Radiological Scans (.png)
 						<Badge variant="destructive">Required</Badge>
 					</Item.Title>
 					<Item.Media></Item.Media>
@@ -162,16 +180,16 @@
 							<Empty.Media variant="icon">
 								<CloudUpload />
 							</Empty.Media>
-							<Empty.Title>Upload DICOM Files</Empty.Title>
+							<Empty.Title>Upload X-Ray Files</Empty.Title>
 							<Empty.Description>
-								Support for standart DICOM formats. Ensure
+								Support for standard X-Ray formats. Ensure
 								everything is included in the upload.
 							</Empty.Description>
 						</Empty.Header>
 						<Empty.Content>
 							<ImageUp />
 							<Input
-								id="dicom_images"
+								id="png_images"
 								type="file"
 								multiple
 								bind:files
@@ -201,7 +219,7 @@
 									<Field.Field>
 										<Field.Label>Patient Age</Field.Label>
 										<Input
-											id="mysteriös"
+											id="age"
 											placeholder="Patient Age"
 											bind:value={patientAge}
 											required
@@ -238,25 +256,11 @@
 										orientation="horizontal"
 										class="w-auto"
 									>
-										<Checkbox
-											id="icu"
-											bind:checked={isICU}
-										/>
-										<Field.Label for="icu">
-											Admitted to ICU
-										</Field.Label>
 									</Field.Field>
 									<Field.Field
 										orientation="horizontal"
 										class="w-auto"
 									>
-										<Checkbox
-											id="ventilator"
-											bind:checked={requiresVentilator}
-										/>
-										<Field.Label for="ventilator">
-											Requires Ventilator
-										</Field.Label>
 									</Field.Field>
 								</Field.Group>
 							</Field.Group>
@@ -378,5 +382,25 @@
 		</Button>
 	</div>
 </div>
+
+<AlertDialog.Root bind:open={showDialog}>
+	<AlertDialog.Content size="sm">
+		<AlertDialog.Header>
+			<AlertDialog.Title>Analysis not Started</AlertDialog.Title>
+			<AlertDialog.Description>{dialogMessage}</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<div class="col-span-2 flex justify-center">
+				<AlertDialog.Action
+					size="lg"
+					class="w-1/2"
+					onclick={() => (showDialog = false)}
+				>
+					OK
+				</AlertDialog.Action>
+			</div>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 <form method="POST"></form>

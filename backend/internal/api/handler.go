@@ -21,17 +21,18 @@ func NewHandler(patientService *patient.Service, analysisService *analysis.Servi
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /analysis", h.GetAnalysis)
+	router.HandleFunc("DELETE /analysis", h.DeleteAnalysis)
 }
 
-// GetAnalysis handles patient creation, DICOM storage, and LLM analysis in one request.
+// GetAnalysis handles patient creation, X-Ray storage, and LLM analysis in one request.
 //
 // @Summary      Create patient and run LLM analysis
-// @Description  Creates a new patient with metadata and DICOM files, then triggers LLM analysis. Returns patient data + analysis result.
+// @Description  Creates a new patient with metadata and X-Ray files, then triggers LLM analysis. Returns patient data + analysis result.
 // @Tags         analysis
 // @Accept       mpfd
 // @Produce      json
 // @Param        formData    formData string true  "Patient metadata as JSON string"
-// @Param        dicom_files formData file  false "DICOM image files (multiple allowed)"
+// @Param        xray_files formData file  true "X-Ray image files (multiple allowed)"
 // @Success      202 {object} map[string]any
 // @Router       /analysis [post]
 func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +54,7 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var files []patient.FileInput
-	fileHeaders := r.MultipartForm.File["dicom_files"]
+	fileHeaders := r.MultipartForm.File["image_files"]
 	for _, fh := range fileHeaders {
 		f, err := fh.Open()
 		if err != nil {
@@ -88,5 +89,24 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 		"status":   "success",
 		"patient":  patient,
 		"analysis": analysisResp,
+	})
+}
+
+// DeleteAnalysis removes all patient data, analyses, and X-Ray files from the database and disk.
+//
+// @Summary      Delete all analysis data
+// @Description  Deletes all patients, analyses, and X-Ray files. Used when starting a new analysis.
+// @Tags         analysis
+// @Produce      json
+// @Success      200 {object} map[string]string
+// @Router       /analysis [delete]
+func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
+	if err := h.patientService.DeleteAllData(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "deleted",
 	})
 }

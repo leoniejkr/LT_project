@@ -6,20 +6,36 @@ info:
   title: TrustAI API
   version: "1.0"
 paths:
-  /patients:
+  /analysis:
+    delete:
+      description: Deletes all patients, analyses, and X-Ray files. Used when starting
+        a new analysis.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete all analysis data
+      tags:
+      - analysis
     post:
       consumes:
       - multipart/form-data
-      description: Creates new patient with the provided metadata and dicom images
+      description: Creates a new patient with metadata and X-Ray files, then triggers
+        LLM analysis. Returns patient data + analysis result.
       parameters:
-      - description: Patienten-Metadata as JSON-String
+      - description: Patient metadata as JSON string
         in: formData
         name: formData
         required: true
         type: string
-      - description: The .dcm picture data
+      - description: X-Ray image files (multiple allowed)
         in: formData
-        name: dicom_file
+        name: xray_files
         required: true
         type: file
       produces:
@@ -28,8 +44,9 @@ paths:
         "202":
           description: Accepted
           schema:
-            type: string
-      summary: Create a new patient
+            additionalProperties: true
+            type: object
+      summary: Create patient and run LLM analysis
       tags:
-      - patients
+      - analysis
 swagger: "2.0"

@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { browser } from '$app/environment';
-    import { generateThumbnail } from '$lib/cornerstone/thumbnail';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import { Badge } from '$lib/components/ui/badge/index.js';
+    import { browser } from "$app/environment";
+    import { generateThumbnail } from "$lib/cornerstone/thumbnail";
+    import { Button } from "$lib/components/ui/button/index.js";
+    import { Badge } from "$lib/components/ui/badge/index.js";
 
     interface Props {
         imageIds: string[];
@@ -47,8 +47,8 @@
             variant="outline"
             class="relative flex-shrink-0 w-[88px] h-[88px] rounded-lg overflow-hidden p-0
                 {index === activeIndex
-                    ? 'border-primary ring-2 ring-primary/30'
-                    : 'hover:border-muted-foreground/50'}"
+                ? 'border-primary ring-2 ring-primary/30'
+                : 'hover:border-muted-foreground/50'}"
             onclick={() => onselect(index)}
         >
             {#if thumbnails.get(imageId)}
@@ -59,13 +59,13 @@
                 />
                 <Badge
                     variant="secondary"
-                    class="absolute bottom-1 right-1 text-[10px] h-4 min-w-4 px-1"
+                    class="absolute bottom-1 right-1 text-xs h-4 min-w-4 px-1"
                 >
                     {index + 1}
                 </Badge>
             {:else}
-                <span class="text-xs text-muted-foreground font-mono">
-                    {loading ? '...' : index + 1}
+                <span class="text-xs text-muted-foreground">
+                    {loading ? "..." : index + 1}
                 </span>
             {/if}
         </Button>

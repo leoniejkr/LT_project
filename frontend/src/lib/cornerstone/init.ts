@@ -1,7 +1,7 @@
 import * as cornerstone from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
-import cornerstoneDICOMImageLoader from '@cornerstonejs/dicom-image-loader';
 import { browser } from '$app/environment';
+import { registerPNGLoader, registerMetaDataProvider } from './image-loader';
 
 const {
     WindowLevelTool,
@@ -22,17 +22,14 @@ export async function initCornerstone() {
     cornerstone.init();
     cornerstoneTools.init();
 
+    registerMetaDataProvider();
+
     cornerstoneTools.addTool(WindowLevelTool);
     cornerstoneTools.addTool(PanTool);
     cornerstoneTools.addTool(ZoomTool);
     cornerstoneTools.addTool(StackScrollTool);
 
-    cornerstoneDICOMImageLoader.init({
-        maxWebWorkers: Math.max(navigator.hardwareConcurrency - 1, 1),
-        beforeSend: (xhr, imageId, defaultHeaders, params) => {
-            return { 'Cache-Control': 'no-cache' };
-        },
-    });
+    registerPNGLoader();
 
     initialized = true;
     console.log('CornerstoneJS initialized with basic tools');

@@ -35,17 +35,17 @@ func (s *Service) CreatePatient(p *Patient, files []FileInput) (*Patient, error)
 		return nil, err
 	}
 
-	var savedPaths []string
+	var orthancIDs []string
 	for _, f := range files {
-		path, err := s.dicomStore.Save(p.ID, f.Name, f.Reader)
+		id, err := s.dicomStore.Save(p.ID, f.Name, f.Reader)
 		if err != nil {
 			return nil, err
 		}
-		savedPaths = append(savedPaths, path)
+		orthancIDs = append(orthancIDs, id)
 	}
 
-	if len(savedPaths) > 0 {
-		p.DicomPaths = savedPaths
+	if len(orthancIDs) > 0 {
+		p.DicomPaths = orthancIDs
 		if err := s.repo.Update(p); err != nil {
 			return nil, err
 		}
@@ -60,4 +60,11 @@ func (s *Service) GetAnalysis(patientID uint, patientData any) (*analysis.Predic
 
 func (s *Service) GetPatient(id uint) (*Patient, error) {
 	return s.repo.FindByID(id)
+}
+
+func (s *Service) DeleteAllData() error {
+	if err := s.analysisService.DeletePatientAnalysis(0); err != nil {
+		return err
+	}
+	return s.repo.DeletePatient(0);
 }

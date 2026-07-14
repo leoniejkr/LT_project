@@ -31,10 +31,11 @@ func (s *Service) persistAnalysis(patientID uint, resp *PredictionResponse) erro
 		Prediction:       resp.Prediction,
 		Confidence:       resp.Confidence,
 		ConfidenceReason: resp.ConfidenceReason,
-		ModelVersion:     resp.ModelVersion,
 		Status:           resp.Status,
 	}
 	return s.repo.Create(a)
 }
 
-
+func (s *Service) DeletePatientAnalysis(patientID uint) error {
+	return s.repo.DeletePatientAnalysis(patientID)
+}
