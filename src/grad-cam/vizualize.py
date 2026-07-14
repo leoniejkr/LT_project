@@ -37,6 +37,8 @@ target_layers = [model.backbone.features]
 
 # 4. Target Sample Path
 PRIMARY_IMG_PATH = "data_hybrid/midrc_images/dg.MD1R_0aa45189-9516-4798-88ed-b630af993b70.png" 
+PRIMARY_IMG_PATH = "/Users/leoniejunkherr/.cache/kagglehub/datasets/nih-chest-xrays/data/versions/3/images_001/images/00000092_001.png" 
+
 
 preprocess = transforms.Compose([
     transforms.Resize((224, 224)),
