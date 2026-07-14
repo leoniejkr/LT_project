@@ -26,7 +26,7 @@
     class="border-b px-6 h-14 flex items-center w-full bg-popover sticky top-0 z-50"
 >
     <div class="flex items-center gap-4">
-        <img src={Logo} alt="Logo" class="h-10 w-10" />
+        <img src={Logo} alt="Logo" class="h-12 w-12" />
         {#each LINKS as link}
             <Button
                 variant="link"
