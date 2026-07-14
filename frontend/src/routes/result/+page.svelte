@@ -42,7 +42,12 @@
     let imageIds = $derived(
         $uploadedFileUrls.length > 0
             ? $uploadedFileUrls.map((url) => `png:${url}`)
-            : ["png:/image-000001.png"],
+            : [
+                  "png:/example1.png",
+                  "png:/example2.png",
+                  "png:/example3.png",
+                  "png:/example4.png",
+              ],
     );
 
     let activeImageIndex = $state(0);
@@ -115,7 +120,7 @@
                                 {#if $uploadedFileUrls.length > 0}
                                     {$uploadedFileUrls.length} File(s) Uploaded
                                 {:else}
-                                    image-000001.png (Mock)
+                                    Example Images (Mock)
                                 {/if}
                             </Badge>
                             {#if imageIds.length > 1}

@@ -1,7 +1,7 @@
 import * as cornerstone from '@cornerstonejs/core';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 import { browser } from '$app/environment';
-import { registerPNGLoader } from './image-loader';
+import { registerPNGLoader, registerMetaDataProvider } from './image-loader';
 
 const {
     WindowLevelTool,
@@ -21,6 +21,8 @@ export async function initCornerstone() {
 
     cornerstone.init();
     cornerstoneTools.init();
+
+    registerMetaDataProvider();
 
     cornerstoneTools.addTool(WindowLevelTool);
     cornerstoneTools.addTool(PanTool);

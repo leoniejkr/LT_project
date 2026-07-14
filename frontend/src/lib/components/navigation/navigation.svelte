@@ -7,6 +7,7 @@
     import { goto } from "$app/navigation";
     import { page } from "$app/state";
     import SettingsButton from "./settings-button.svelte";
+    import Logo from "$lib/assets/Logo.svg";
 
     const LINKS = [
         { name: "Home", href: "/" },
@@ -25,6 +26,7 @@
     class="border-b px-6 h-14 flex items-center w-full bg-popover sticky top-0 z-50"
 >
     <div class="flex items-center gap-4">
+        <img src={Logo} alt="Logo" class="h-10 w-10" />
         {#each LINKS as link}
             <Button
                 variant="link"
