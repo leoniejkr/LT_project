@@ -7,7 +7,7 @@ import (
 
 	"backend/internal/analysis"
 	"backend/internal/api"
-	"backend/internal/dicom"
+	"backend/internal/orthanc"
 	"backend/internal/patient"
 	"backend/internal/platform"
 
@@ -31,12 +31,17 @@ func main() {
 
 	router := http.NewServeMux()
 
-	dicomRepo := dicom.NewRepository(os.Getenv("ORTHANC_URL"))
+	orthancURL := os.Getenv("ORTHANC_URL")
+	if orthancURL == "" {
+		orthancURL = "http://localhost:8042"
+	}
+
+	orthancStore := orthanc.NewRepository(orthancURL, "user", "user")
 	patientRepo := patient.NewRepository(db)
 	analysisRepo := analysis.NewRepository(db)
 	llmClient := analysis.NewLLMClient()
 	analysisService := analysis.NewService(analysisRepo, llmClient)
-	patientService := patient.NewService(patientRepo, dicomRepo, analysisService)
+	patientService := patient.NewService(patientRepo, analysisService, orthancStore)
 	apiHandler := api.NewHandler(patientService)
 	apiHandler.RegisterRoutes(router)
 

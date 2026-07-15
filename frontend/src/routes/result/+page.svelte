@@ -55,7 +55,7 @@
             gender: "Male",
             knownIllnesses: ["Covid19", "Pneumonia"],
             symptoms: ["Cough", "Fever"],
-            dicomPaths: [],
+            orthancIDs: [],
         },
     };
 

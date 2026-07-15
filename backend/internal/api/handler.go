@@ -2,10 +2,10 @@ package api
 
 import (
 	"backend/internal/patient"
-	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type Handler struct {
@@ -47,6 +47,11 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 
 	fileHeaders := r.MultipartForm.File["image_files"]
 	for _, fh := range fileHeaders {
+		if !strings.HasSuffix(strings.ToLower(fh.Filename), ".png") {
+			http.Error(w, "Only PNG files are allowed: "+fh.Filename, http.StatusBadRequest)
+			return
+		}
+
 		f, err := fh.Open()
 		if err != nil {
 			http.Error(w, "Failed to read uploaded file", http.StatusInternalServerError)
@@ -61,9 +66,8 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 		}
 
 		files = append(files, patient.FileInput{
-			Reader: bytes.NewReader(buf),
-			Name:   fh.Filename,
-			Bytes:  buf,
+			Name:  fh.Filename,
+			Bytes: buf,
 		})
 		imageBuffers = append(imageBuffers, buf)
 		imageNames = append(imageNames, fh.Filename)

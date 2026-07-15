@@ -2,28 +2,26 @@ package patient
 
 import (
 	"backend/internal/analysis"
-	"backend/internal/dicom"
-	"bytes"
-	"io"
+	"backend/internal/orthanc"
+	"fmt"
 )
 
 type FileInput struct {
-	Reader io.Reader
-	Name   string
-	Bytes  []byte
+	Name  string
+	Bytes []byte
 }
 
 type Service struct {
 	repo            *Repository
-	dicomStore      *dicom.Repository
 	analysisService *analysis.Service
+	orthancStore    *orthanc.Repository
 }
 
-func NewService(repo *Repository, dicomStore *dicom.Repository, analysisService *analysis.Service) *Service {
+func NewService(repo *Repository, analysisService *analysis.Service, orthancStore *orthanc.Repository) *Service {
 	return &Service{
 		repo:            repo,
-		dicomStore:      dicomStore,
 		analysisService: analysisService,
+		orthancStore:    orthancStore,
 	}
 }
 
@@ -32,17 +30,20 @@ func (s *Service) CreatePatient(p *Patient, files []FileInput) (*Patient, error)
 		return nil, err
 	}
 
+	patientName := fmt.Sprintf("Patient_%d", p.ID)
+	patientID := fmt.Sprintf("%d", p.ID)
+
 	var orthancIDs []string
 	for _, f := range files {
-		id, err := s.dicomStore.Save(p.ID, f.Name, bytes.NewReader(f.Bytes))
+		instanceID, err := s.orthancStore.StoreXRays(patientName, patientID, f.Bytes)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to store in orthanc: %w", err)
 		}
-		orthancIDs = append(orthancIDs, id)
+		orthancIDs = append(orthancIDs, instanceID)
 	}
 
 	if len(orthancIDs) > 0 {
-		p.DicomPaths = orthancIDs
+		p.OrthancIDs = orthancIDs
 		if err := s.repo.Update(p); err != nil {
 			return nil, err
 		}
@@ -63,5 +64,5 @@ func (s *Service) DeleteAllData() error {
 	if err := s.analysisService.DeletePatientAnalysis(0); err != nil {
 		return err
 	}
-	return s.repo.DeletePatient(0)
+	return s.repo.DeleteAll()
 }

@@ -30,7 +30,7 @@ export interface PatientData {
     gender: string;
     knownIllnesses: string[];
     symptoms: string[];
-    dicomPaths: string[];
+    orthancIDs: string[];
 }
 
 export interface AnalysisResult {
