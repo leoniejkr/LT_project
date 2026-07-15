@@ -1,16 +1,15 @@
 /venv
 credentials.json
 
-Frontend
-/node_modules
+node_modules
+.svelte-kit
+/build
 
 Output
 /.output
 /.vercel
 /.netlify
 /.wrangler
-/.svelte-kit
-/build
 
 OS
 .DS_Store
@@ -26,11 +25,6 @@ ViteB
 /vite.config.js.timestamp-*
 /vite.config.ts.timestamp-*
 
-
-
-dicom_previews
-dicom_data
-
 data/preprocessed
 data_hybrid/midrc_images
 data_hybrid/midrc_images_before
@@ -38,7 +32,7 @@ data_hybrid/midrc_images_before
 /images
 
 *.ckpt
-*.pyc
 *.log
+*.pyc
 *.wandb
 /wandb

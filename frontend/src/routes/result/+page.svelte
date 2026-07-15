@@ -9,6 +9,8 @@
     import { Separator } from "$lib/components/ui/separator/index.js";
     import * as Item from "$lib/components/ui/item/index.js";
     import * as Accordion from "$lib/components/ui/accordion/index.js";
+    import { Progress } from "$lib/components/ui/progress/index.js";
+    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
     import { goto } from "$app/navigation";
     import { Stethoscope, FileDigit, Undo2, RotateCcw } from "lucide-svelte";
     import "../../app.css";
@@ -98,10 +100,10 @@
     }
 
     function getConfidenceBarColor(confidence: number): string {
-        if (confidence >= 0.95) return "bg-red-500";
-        if (confidence >= 0.90) return "bg-orange-500";
-        if (confidence >= 0.85) return "bg-amber-500";
-        return "bg-muted-foreground/30";
+        if (confidence >= 0.95) return "[&>[data-slot=progress-indicator]]:bg-red-500";
+        if (confidence >= 0.90) return "[&>[data-slot=progress-indicator]]:bg-orange-500";
+        if (confidence >= 0.85) return "[&>[data-slot=progress-indicator]]:bg-amber-500";
+        return "[&>[data-slot=progress-indicator]]:bg-muted-foreground/30";
     }
 
     async function startNewAnalysis() {
@@ -157,7 +159,7 @@
         </Item.Root>
 
         {#if predictions.length > 0}
-            <div class="border rounded-xl p-4">
+            <Item.Root variant="outline" class="flex-col items-stretch p-4">
                 <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
                     AI Diagnosis Ranking
                     <Badge variant="secondary" class="text-xs">
@@ -166,40 +168,48 @@
                 </h3>
                 <div class="flex flex-col gap-3">
                     {#each predictions as pred, idx}
-                        <div
-                            class="border rounded-lg p-3 {getConfidenceColor(
-                                pred.confidence,
-                            )}"
-                        >
-                            <div class="flex items-center justify-between mb-2">
-                                <div class="flex items-center gap-2">
-                                    <span
-                                        class="text-xs font-bold w-6 h-6 rounded-full bg-background flex items-center justify-center"
+                        <Tooltip.Root>
+                            <Tooltip.Trigger>
+                                {#snippet child({ props })}
+                                    <Item.Root
+                                        {...props}
+                                        variant="outline"
+                                        class="flex-col items-stretch p-3 {getConfidenceColor(
+                                            pred.confidence,
+                                        )}"
                                     >
-                                        {idx + 1}
-                                    </span>
-                                    <span class="font-semibold"
-                                        >{pred.class}</span
-                                    >
-                                </div>
-                                <span class="font-bold text-sm">
-                                    {(pred.confidence * 100).toFixed(1)}%
-                                </span>
-                            </div>
-                            <div
-                                class="w-full h-2 bg-background rounded-full overflow-hidden mb-2"
-                            >
-                                <div
-                                    class="h-full rounded-full {getConfidenceBarColor(
-                                        pred.confidence,
-                                    )}"
-                                    style="width: {pred.confidence * 100}%"
-                                ></div>
-                            </div>
+                                        <Item.Header class="mb-2">
+                                            <div class="flex items-center gap-2">
+                                                <span
+                                                    class="text-xs font-bold w-6 h-6 rounded-full bg-background flex items-center justify-center"
+                                                >
+                                                    {idx + 1}
+                                                </span>
+                                                <span class="font-semibold"
+                                                    >{pred.class}</span
+                                                >
+                                            </div>
+                                            <span class="font-bold text-sm">
+                                                {(pred.confidence * 100).toFixed(1)}%
+                                            </span>
+                                        </Item.Header>
+                                        <Progress
+                                            value={pred.confidence * 100}
+                                            max={100}
+                                            class="h-2 mb-2 bg-background {getConfidenceBarColor(pred.confidence)}"
+                                        />
+                                        {#if pred.reason}
+                                            <p class="text-xs opacity-80">{pred.reason}</p>
+                                        {/if}
+                                    </Item.Root>
+                                {/snippet}
+                            </Tooltip.Trigger>
                             {#if pred.reason}
-                                <p class="text-xs opacity-80">{pred.reason}</p>
+                                <Tooltip.Content>
+                                    <p>{pred.reason}</p>
+                                </Tooltip.Content>
                             {/if}
-                        </div>
+                        </Tooltip.Root>
                     {/each}
                 </div>
                 {#if analysis.model_version}
@@ -207,21 +217,17 @@
                         Model: {analysis.model_version}
                     </p>
                 {/if}
-            </div>
+            </Item.Root>
         {:else}
-            <div
-                class="border rounded-xl p-6 text-center text-muted-foreground"
-            >
+            <Item.Root variant="outline" class="flex-col items-center justify-center p-6 text-muted-foreground">
                 <Stethoscope size={24} class="mx-auto mb-2 opacity-50" />
                 <p>No significant findings detected above 85% confidence.</p>
-            </div>
+            </Item.Root>
         {/if}
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 flex flex-col">
-                <div
-                    class="border rounded-xl flex flex-col relative overflow-hidden"
-                >
+                <div class="border rounded-xl flex flex-col relative overflow-hidden">
                     <Item.Root>
                         <Item.Description class="flex items-center gap-1.5">
                             <FileDigit size={14} /> PNG Medical Viewport
@@ -302,16 +308,16 @@
         </div>
 
         {#if imageResults.length > 0}
-            <div class="border rounded-xl p-4">
+            <Item.Root variant="outline" class="flex-col items-stretch p-4">
                 <h3 class="text-lg font-semibold mb-4">
                     Per-Image Analysis
                 </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {#each imageResults as imgResult}
-                        <div class="border rounded-lg overflow-hidden">
-                            <div class="bg-muted px-3 py-2 text-sm font-medium">
+                        <Item.Root variant="outline" class="flex-col items-stretch overflow-hidden p-0">
+                            <Item.Header class="bg-muted px-3 py-2 text-sm font-medium rounded-none">
                                 {imgResult.filename}
-                            </div>
+                            </Item.Header>
                             {#if imgResult.predictions.length > 0}
                                 <div class="p-3 flex flex-col gap-2">
                                     {#each imgResult.predictions as pred}
@@ -339,16 +345,14 @@
                                     {/each}
                                 </div>
                             {:else}
-                                <div
-                                    class="p-3 text-sm text-muted-foreground text-center"
-                                >
+                                <Item.Description class="p-3 text-center">
                                     No significant findings
-                                </div>
+                                </Item.Description>
                             {/if}
-                        </div>
+                        </Item.Root>
                     {/each}
                 </div>
-            </div>
+            </Item.Root>
         {/if}
     {:else}
         <Item.Root variant="outline" class="bg:primary">
