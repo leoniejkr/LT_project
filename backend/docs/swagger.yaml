@@ -5,48 +5,5 @@ info:
   description: API for upload of patient data and LLM analysis results
   title: TrustAI API
   version: "1.0"
-paths:
-  /analysis:
-    delete:
-      description: Deletes all patients, analyses, and X-Ray files. Used when starting
-        a new analysis.
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Delete all analysis data
-      tags:
-      - analysis
-    post:
-      consumes:
-      - multipart/form-data
-      description: Creates a new patient with metadata and X-Ray files, then triggers
-        LLM analysis. Returns patient data + analysis result.
-      parameters:
-      - description: Patient metadata as JSON string
-        in: formData
-        name: formData
-        required: true
-        type: string
-      - description: X-Ray image files (multiple allowed)
-        in: formData
-        name: xray_files
-        required: true
-        type: file
-      produces:
-      - application/json
-      responses:
-        "202":
-          description: Accepted
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Create patient and run LLM analysis
-      tags:
-      - analysis
+paths: {}
 swagger: "2.0"

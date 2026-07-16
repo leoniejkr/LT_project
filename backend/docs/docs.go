@@ -14,69 +14,7 @@ const docTemplate = `{
     },
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
-    "paths": {
-        "/analysis": {
-            "post": {
-                "description": "Creates a new patient with metadata and X-Ray files, then triggers LLM analysis. Returns patient data + analysis result.",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "analysis"
-                ],
-                "summary": "Create patient and run LLM analysis",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Patient metadata as JSON string",
-                        "name": "formData",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "file",
-                        "description": "X-Ray image files (multiple allowed)",
-                        "name": "xray_files",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "202": {
-                        "description": "Accepted",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Deletes all patients, analyses, and X-Ray files. Used when starting a new analysis.",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "analysis"
-                ],
-                "summary": "Delete all analysis data",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    "paths": {}
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
