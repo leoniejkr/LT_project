@@ -4,6 +4,7 @@ import logging
 import torch
 import torch.nn as nn
 import torchvision.models as models
+from torchvision.models import DenseNet121_Weights
 import pytorch_lightning as pl
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ class MultiLabelChestModel(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
-        self.backbone = models.densenet121(weights=DEFAULT)
+        self.backbone = models.densenet121(weights=DenseNet121_Weights.IMAGENET1K_V1)
         num_ftrs = self.backbone.classifier.in_features
         self.backbone.classifier = nn.Linear(num_ftrs, num_classes)
 
