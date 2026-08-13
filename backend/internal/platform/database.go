@@ -18,7 +18,7 @@ func InitDB() (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
 
-	for i := 0; i < 30; i++ {
+	for i := range 30 {
 		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{})
 		if err == nil {
 			return db, nil

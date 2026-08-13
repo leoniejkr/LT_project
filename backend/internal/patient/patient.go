@@ -28,7 +28,7 @@ const (
 )
 
 // wird benötigt für speicherung von go slices in postgres
-func (i *Illnesses) Scan(value interface{}) error {
+func (i *Illnesses) Scan(value any) error {
 	bytes, ok := value.([]byte)
 	if !ok {
 		return errors.New("type assertion to []byte failed")
@@ -52,7 +52,7 @@ const (
 
 type Symptoms []Symptom
 
-func (s *Symptoms) Scan(value interface{}) error {
+func (s *Symptoms) Scan(value any) error {
 	bytes, ok := value.([]byte)
 	if !ok {
 		return errors.New("type assertion to []byte failed")
@@ -66,7 +66,7 @@ func (s Symptoms) Value() (driver.Value, error) {
 
 type ImagePaths []string
 
-func (p *ImagePaths) Scan(value interface{}) error {
+func (p *ImagePaths) Scan(value any) error {
 	bytes, ok := value.([]byte)
 	if !ok {
 		return errors.New("type assertion to []byte failed")

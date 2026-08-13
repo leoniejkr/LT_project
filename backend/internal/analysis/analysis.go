@@ -14,7 +14,7 @@ type Prediction struct {
 
 type Predictions []Prediction
 
-func (p *Predictions) Scan(value interface{}) error {
+func (p *Predictions) Scan(value any) error {
 	bytes, ok := value.([]byte)
 	if !ok {
 		return errors.New("type assertion to []byte failed")
@@ -34,7 +34,7 @@ type ImagePrediction struct {
 
 type ImagePredictions []ImagePrediction
 
-func (ip *ImagePredictions) Scan(value interface{}) error {
+func (ip *ImagePredictions) Scan(value any) error {
 	bytes, ok := value.([]byte)
 	if !ok {
 		return errors.New("type assertion to []byte failed")
@@ -54,7 +54,7 @@ type ImageResult struct {
 
 type ImageResults []ImageResult
 
-func (ir *ImageResults) Scan(value interface{}) error {
+func (ir *ImageResults) Scan(value any) error {
 	bytes, ok := value.([]byte)
 	if !ok {
 		return errors.New("type assertion to []byte failed")
