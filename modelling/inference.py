@@ -6,8 +6,6 @@ from torchvision import transforms
 
 from model import get_model, ALL_CLASSES
 
-CONFIDENCE_THRESHOLD = 0.85
-
 preprocess = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
@@ -33,12 +31,10 @@ def run_inference(image_bytes: bytes) -> dict:
 
     predictions = []
     for idx, class_name in enumerate(ALL_CLASSES):
-        conf = float(probabilities[idx])
-        if conf >= CONFIDENCE_THRESHOLD:
-            predictions.append({
-                "class": class_name,
-                "confidence": round(conf, 4),
-            })
+        predictions.append({
+            "class": class_name,
+            "confidence": round(float(probabilities[idx]), 4),
+        })
 
     predictions.sort(key=lambda p: p["confidence"], reverse=True)
 

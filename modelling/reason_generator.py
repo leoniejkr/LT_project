@@ -33,7 +33,7 @@ def generate_reasons(predictions: list[dict], patient: dict) -> list[dict]:
 
 {patient_info}
 
-The AI model detected the following conditions with high confidence (>85%):
+The AI model detected the following conditions:
 {predictions_text}
 
 For EACH condition listed above, provide a brief 1-2 sentence clinical assessment explaining what the finding means and why it is significant. Be concise and professional.

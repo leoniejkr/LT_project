@@ -6,7 +6,7 @@ import time
 from flask import Flask, jsonify, request
 
 from model import ALL_CLASSES
-from inference import run_inference, CONFIDENCE_THRESHOLD
+from inference import run_inference
 from gradcam import generate_heatmaps
 from reason_generator import generate_reasons
 
@@ -84,18 +84,17 @@ else:
         for cls, confs in all_class_scores.items():
             if confs:
                 avg_conf = sum(confs) / len(confs)
-                if avg_conf >= CONFIDENCE_THRESHOLD:
-                    aggregated.append({
-                        "class": cls,
-                        "confidence": round(avg_conf, 4),
-                    })
+                aggregated.append({
+                    "class": cls,
+                    "confidence": round(avg_conf, 4),
+                })
 
         aggregated.sort(key=lambda p: p["confidence"], reverse=True)
 
         aggregated_with_reasons = generate_reasons(aggregated, patient)
 
         logger.info(
-            "Prediction complete: %d images, %d diagnoses above threshold (%.2fs)",
+            "Prediction complete: %d images, %d diagnoses (%.2fs)",
             len(image_files), len(aggregated_with_reasons), time.time() - start,
         )
 
