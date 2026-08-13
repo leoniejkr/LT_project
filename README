@@ -76,8 +76,8 @@ To start training, execute:
 
 
 
-## Docker Umgebung auf Windows starten und für Projekt vorbereiten
-- Docker Desktop herunterladen und starten 
+## Docker Umgebung auf Windows/Mac starten und für Projekt vorbereiten
+- Docker Desktop herunterladen und starten oder docker package herunterladen
 - "Devcontainer Extention" für VSCode herunter laden (optional)
 - ``docker compose build`` (Auch bei jeder Änderung der requirements.txt, package.json oder go.mod/go.sum ausführen)
 - ``docker compose up``
