@@ -11,6 +11,7 @@
     import * as Accordion from "$lib/components/ui/accordion/index.js";
     import { Progress } from "$lib/components/ui/progress/index.js";
     import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+    import { Chat } from "$lib/components/ui/chat/index.js";
     import { goto } from "$app/navigation";
     import { Stethoscope, FileDigit, Undo2, RotateCcw } from "lucide-svelte";
     import "../../app.css";
@@ -382,6 +383,7 @@
                     {/each}
                 </div>
             </Item.Root>
+            <Chat />
         {/if}
     {:else}
         <Item.Root variant="outline" class="bg:primary">

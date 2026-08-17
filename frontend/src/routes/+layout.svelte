@@ -4,6 +4,7 @@
 	import Navigation from '$lib/components/navigation/navigation.svelte';
 	import { ModeWatcher} from 'mode-watcher';
 	import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+	import { Chat } from "$lib/components/ui/chat/index.js";
 
 	let { children } = $props();
 </script>
@@ -21,4 +22,6 @@
 	{#if children}
 		{@render children()}
 	{/if}
+
+	<Chat />
 </Tooltip.Provider>
