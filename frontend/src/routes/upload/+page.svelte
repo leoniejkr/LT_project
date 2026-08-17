@@ -170,7 +170,7 @@
 					</Empty.Root>
 					<Item.Separator />
 					<Item.Description>
-						{imageNumber} files staged for upload TODO: variabel!
+						{imageNumber}
 					</Item.Description>
 				</Item.Content>
 			</Item.Root>
@@ -227,13 +227,11 @@
 									<Field.Field
 										orientation="horizontal"
 										class="w-auto"
-									>
-									</Field.Field>
+									></Field.Field>
 									<Field.Field
 										orientation="horizontal"
 										class="w-auto"
-									>
-									</Field.Field>
+									></Field.Field>
 								</Field.Group>
 							</Field.Group>
 							<Field.Group
@@ -375,5 +373,4 @@
 	</AlertDialog.Content>
 </AlertDialog.Root>
 
-// TODO: png UND .dcm ermöglichen. jetzt erst gerade nur .png nach refactoring möglich.
 <form method="POST"></form>

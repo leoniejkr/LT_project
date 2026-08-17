@@ -91,17 +91,17 @@
 	}
 </script>
 
-<div class={cn("fixed bottom-6 right-6 z-50 font-sans", className)}>
+<div class={cn("fixed bottom-6 right-6 z-50 flex flex-col items-end", className)}>
 	{#if open}
 		<div
-			class="bg-card border-border mb-3 flex w-80 flex-col overflow-hidden rounded-2xl border shadow-lg sm:w-96"
+			class="bg-card border-border mb-3 flex w-80 flex-col overflow-hidden border shadow-lg sm:w-96"
 		>
 			<Item.Root
 				variant="muted"
 				class="bg-primary text-primary-foreground rounded-b-none px-4 py-3"
 			>
 				<Item.Media variant="icon">
-					<Bot class="text-primary-foreground size-5" />
+					<Bot class="text-primary-foreground size-lg" />
 				</Item.Media>
 				<Item.Content>
 					<Item.Title class="text-primary-foreground"
@@ -139,7 +139,6 @@
 							<Item.Root
 								size="sm"
 								class={cn(
-									"rounded-2xl",
 									msg.role === "user"
 										? "bg-primary/10 justify-end"
 										: "bg-muted/50",
@@ -173,10 +172,7 @@
 						{/each}
 						{#if loading}
 							<Item.Separator />
-							<Item.Root
-								size="sm"
-								class="bg-muted/50 rounded-2xl"
-							>
+							<Item.Root size="sm" class="bg-muted/50">
 								<Item.Media variant="icon">
 									<Bot class="text-muted-foreground size-4" />
 								</Item.Media>
