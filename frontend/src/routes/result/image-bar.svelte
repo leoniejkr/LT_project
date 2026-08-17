@@ -1,6 +1,6 @@
 <script lang="ts">
     import { browser } from "$app/environment";
-    import { generateThumbnail } from "$lib/cornerstone/thumbnail";
+    import { generateThumbnail } from "$lib/components/cornerstone/thumbnail";
     import { Button } from "$lib/components/ui/button/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
 

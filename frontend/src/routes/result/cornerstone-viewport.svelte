@@ -1,9 +1,12 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import { browser } from '$app/environment';
-    import { initCornerstone, createToolGroup } from '$lib/cornerstone/init';
-    import * as cornerstone from '@cornerstonejs/core';
-    import { Enums } from '@cornerstonejs/core';
+    import { onMount } from "svelte";
+    import { browser } from "$app/environment";
+    import {
+        initCornerstone,
+        createToolGroup,
+    } from "$lib/components/cornerstone/init";
+    import * as cornerstone from "@cornerstonejs/core";
+    import { Enums } from "@cornerstonejs/core";
 
     interface Props {
         viewportId?: string;
@@ -14,9 +17,9 @@
     }
 
     let {
-        viewportId = 'my-viewport',
-        renderingEngineId = 'my-rendering-engine',
-        toolGroupId = 'my-tool-group',
+        viewportId = "my-viewport",
+        renderingEngineId = "my-rendering-engine",
+        toolGroupId = "my-tool-group",
         imageIds = [],
         activeImageIndex = $bindable(0),
     }: Props = $props();
@@ -34,11 +37,14 @@
             try {
                 await initCornerstone();
             } catch (e) {
-                console.error('[CornerstoneViewport] initCornerstone failed:', e);
+                console.error(
+                    "[CornerstoneViewport] initCornerstone failed:",
+                    e,
+                );
                 return;
             }
             if (!element) {
-                console.error('[CornerstoneViewport] element not bound');
+                console.error("[CornerstoneViewport] element not bound");
                 return;
             }
 
@@ -77,26 +83,26 @@
             const imageChangeHandler = (e: Event) => {
                 const ce = e as CustomEvent;
                 const index = ce.detail?.imageIdIndex as number | undefined;
-                if (typeof index === 'number') {
+                if (typeof index === "number") {
                     activeImageIndex = index;
                 }
             };
 
             el.addEventListener(
-                'CORNERSTONE_STACK_NEW_IMAGE',
+                "CORNERSTONE_STACK_NEW_IMAGE",
                 imageChangeHandler,
             );
 
             return () => {
                 el.removeEventListener(
-                    'CORNERSTONE_STACK_NEW_IMAGE',
+                    "CORNERSTONE_STACK_NEW_IMAGE",
                     imageChangeHandler,
                 );
             };
         };
 
         setup().catch((e) =>
-            console.error('[CornerstoneViewport] setup error:', e),
+            console.error("[CornerstoneViewport] setup error:", e),
         );
 
         return () => {
@@ -107,7 +113,7 @@
         };
     });
 
-    let prevImageIdsKey = '';
+    let prevImageIdsKey = "";
 
     $effect(() => {
         if (!browser || !viewportReady || !renderingEngine) return;
@@ -118,7 +124,7 @@
         ) as cornerstone.Types.IStackViewport;
         if (!viewport) return;
 
-        const idsKey = imageIds.join(',');
+        const idsKey = imageIds.join(",");
         const isNewStack = idsKey !== prevImageIdsKey;
         prevImageIdsKey = idsKey;
 

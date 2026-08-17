@@ -329,7 +329,9 @@
 
         {#if imageResults.length > 0}
             <Item.Root variant="outline" class="flex-col items-stretch p-4">
-                <h3 class="text-lg font-semibold mb-4">Per-Image Analysis</h3>
+                <h3 class="text-lg font-semibold mb-4">
+                    Per-Image Heatmap Analysis
+                </h3>
                 <div
                     class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                 >
@@ -338,14 +340,9 @@
                             variant="outline"
                             class="flex-col items-stretch overflow-hidden p-0"
                         >
-                            <Item.Header
-                                class="bg-muted px-3 py-2 text-sm font-medium rounded-none"
-                            >
-                                {imgResult.filename}
-                            </Item.Header>
                             {#if imgResult.predictions.length > 0}
                                 <div class="p-3 flex flex-col gap-2">
-                                    {#each imgResult.predictions as pred}
+                                    {#each imgResult.predictions as pred, index}
                                         <div class="flex flex-col gap-1">
                                             <div
                                                 class="flex items-center justify-between text-sm"
@@ -362,9 +359,16 @@
                                             {#if pred.heatmap}
                                                 <img
                                                     src="data:image/png;base64,{pred.heatmap}"
-                                                    alt="Grad-CAM: {pred.class}"
+                                                    alt="Grad-CAM: {pred.class} {index +
+                                                        1}"
                                                     class="w-full rounded border"
                                                 />
+                                                <Badge
+                                                    variant="secondary"
+                                                    class="absolute bottom-1 right-1 text-xs h-4 min-w-4 px-1"
+                                                >
+                                                    {index + 1}
+                                                </Badge>
                                             {/if}
                                         </div>
                                     {/each}
