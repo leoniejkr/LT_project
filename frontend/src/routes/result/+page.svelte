@@ -11,11 +11,14 @@
     import * as Accordion from "$lib/components/ui/accordion/index.js";
     import { Progress } from "$lib/components/ui/progress/index.js";
     import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+    import { Chat } from "$lib/components/ui/chat/index.js";
+
     import { goto } from "$app/navigation";
     import { Stethoscope, FileDigit, Undo2, RotateCcw } from "lucide-svelte";
     import "../../app.css";
     import CornerstoneViewport from "./cornerstone-viewport.svelte";
     import ImageBar from "./image-bar.svelte";
+    import HeatmapBar from "./heatmap-bar.svelte";
     import type { Prediction, ImageResult } from "$lib/types.js";
 
     const defaultResult = {
@@ -326,59 +329,8 @@
                 </Accordion.Root>
             </div>
         </div>
-
-        {#if imageResults.length > 0}
-            <Item.Root variant="outline" class="flex-col items-stretch p-4">
-                <h3 class="text-lg font-semibold mb-4">Per-Image Analysis</h3>
-                <div
-                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                >
-                    {#each imageResults as imgResult}
-                        <Item.Root
-                            variant="outline"
-                            class="flex-col items-stretch overflow-hidden p-0"
-                        >
-                            <Item.Header
-                                class="bg-muted px-3 py-2 text-sm font-medium rounded-none"
-                            >
-                                {imgResult.filename}
-                            </Item.Header>
-                            {#if imgResult.predictions.length > 0}
-                                <div class="p-3 flex flex-col gap-2">
-                                    {#each imgResult.predictions as pred}
-                                        <div class="flex flex-col gap-1">
-                                            <div
-                                                class="flex items-center justify-between text-sm"
-                                            >
-                                                <span class="font-medium"
-                                                    >{pred.class}</span
-                                                >
-                                                <span class="text-xs font-bold">
-                                                    {(
-                                                        pred.confidence * 100
-                                                    ).toFixed(1)}%
-                                                </span>
-                                            </div>
-                                            {#if pred.heatmap}
-                                                <img
-                                                    src="data:image/png;base64,{pred.heatmap}"
-                                                    alt="Grad-CAM: {pred.class}"
-                                                    class="w-full rounded border"
-                                                />
-                                            {/if}
-                                        </div>
-                                    {/each}
-                                </div>
-                            {:else}
-                                <Item.Description class="p-3 text-center">
-                                    No significant findings
-                                </Item.Description>
-                            {/if}
-                        </Item.Root>
-                    {/each}
-                </div>
-            </Item.Root>
-        {/if}
+        <HeatmapBar {imageResults} />
+        <Chat />
     {:else}
         <Item.Root variant="outline" class="bg:primary">
             <Item.Content
