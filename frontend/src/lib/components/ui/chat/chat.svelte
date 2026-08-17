@@ -219,12 +219,12 @@
 		size="icon-lg"
 		variant="default"
 		onclick={toggle}
-		class="shadow-primary/30 rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95"
+		class="size-14 shadow-primary/30 rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95"
 	>
 		{#if open}
 			<X class="size-5" />
 		{:else}
-			<Bot class="size-5" />
+			<Bot class="size-7" />
 		{/if}
 	</Button>
 </div>
