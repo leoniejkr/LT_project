@@ -185,3 +185,7 @@ def main():
         
     log.info(f"✓ GENERATED GEN3 DOWNLOAD MANIFEST: {json_manifest_path}")
     log.info(f"Contains {len(manifest_objects)} targeted cloud object paths.")
+
+
+if __name__ == "__main__":
+    main()
