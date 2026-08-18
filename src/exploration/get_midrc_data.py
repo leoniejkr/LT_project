@@ -97,13 +97,43 @@ def main():
     df_cases  = pd.read_csv(io.StringIO(cases_raw), sep="\t")
     log.info(f"Found {len(df_cases)} overall patient cases.")
 
+    log.info("Querying 'imaging_study' nodes from MIDRC cloud...")
+    study_raw = sub.export_node(PROGRAM, PROJECT, "imaging_study", "tsv")
+    df_study  = pd.read_csv(io.StringIO(study_raw), sep="\t", low_memory=False)
+    log.info(f"Found {len(df_study)} imaging studies.")
+
     log.info("Querying 'cr_series_file' nodes from MIDRC cloud...")
     cr_raw    = sub.export_node(PROGRAM, PROJECT, "cr_series_file", "tsv")
     df_cr     = pd.read_csv(io.StringIO(cr_raw), sep="\t", low_memory=False)
     log.info(f"Found {len(df_cr)} Computed Radiography series objects available.")
 
-    # Filter for front-facing chest scans only (PA / AP views)
-    FRONT_FACING_VIEWS = {"PA", "AP", "PA and AP", "AP and PA"}
+    # ── Filter: body part must be CHEST ──────────────────────────────────────
+    CHEST_KEYWORDS = {"CHEST", "CHEST (PORT)", "CHEST PA", "CHEST AP",
+                      "CHEST PA AND LAT", "CHEST AP AND LAT", "THORAX"}
+    if "body_part_examined" in df_study.columns and "imaging_studies" in df_cr.columns:
+        df_cr["_study_id"] = df_cr["imaging_studies"].apply(clean_id)
+        df_study["_study_id"] = df_study["submitter_id"].apply(clean_id)
+        chest_studies = set(
+            df_study[
+                df_study["body_part_examined"]
+                .fillna("")
+                .str.upper()
+                .str.strip()
+                .isin(CHEST_KEYWORDS)
+            ]["_study_id"]
+        )
+        before = len(df_cr)
+        df_cr = df_cr[df_cr["_study_id"].isin(chest_studies)].copy().reset_index(drop=True)
+        df_cr.drop(columns=["_study_id"], inplace=True, errors="ignore")
+        log.info(
+            f"Filtered to {len(df_cr)} chest scans "
+            f"(removed {before - len(df_cr)} non-chest body parts)."
+        )
+    else:
+        log.warning("⚠ 'body_part_examined' or 'imaging_studies' not found – skipping body-part filter.")
+
+    # ── Filter: front-facing views only (PA / AP) ───────────────────────────
+    FRONT_FACING_VIEWS = {"PA", "AP", "PA AND AP", "AP AND PA"}
     if "view_position" in df_cr.columns:
         before = len(df_cr)
         df_cr = df_cr[
