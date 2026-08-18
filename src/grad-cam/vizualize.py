@@ -1,4 +1,10 @@
 import os
+import sys
+from pathlib import Path
+
+# Ensure project root is on sys.path so 'src.*' imports resolve
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 import torch
 import numpy as np
 import cv2
@@ -23,7 +29,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.b
 model = MultiLabelChestModel(num_classes=15)
 
 # Update to wherever your new single-view checkpoint is saved
-CHECKPOINT_PATH = "dual_view_checkpoint.pth" 
+CHECKPOINT_PATH = "checkpoints/dual_view_checkpoint.pth" 
 checkpoint = torch.load(CHECKPOINT_PATH, map_location=DEVICE)
 # If checkpoint is a dict containing 'state_dict', extract it:
 state_dict = checkpoint.get("state_dict", checkpoint)
@@ -36,8 +42,8 @@ model.eval()
 target_layers = [model.backbone.features]
 
 # 4. Target Sample Path
-PRIMARY_IMG_PATH = "data_hybrid/midrc_images/dg.MD1R_0aa45189-9516-4798-88ed-b630af993b70.png" 
-PRIMARY_IMG_PATH = "/Users/leoniejunkherr/.cache/kagglehub/datasets/nih-chest-xrays/data/versions/3/images_001/images/00000092_001.png" 
+PRIMARY_IMG_PATH = "data_hybrid/midrc_images/dg.MD1R_0a5a69ee-291b-4d7a-83ac-7703356d5669.png" 
+#PRIMARY_IMG_PATH = "/Users/leoniejunkherr/.cache/kagglehub/datasets/nih-chest-xrays/data/versions/3/images_001/images/00000092_001.png" 
 
 
 preprocess = transforms.Compose([
