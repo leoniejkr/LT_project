@@ -102,6 +102,24 @@ def main():
     df_cr     = pd.read_csv(io.StringIO(cr_raw), sep="\t", low_memory=False)
     log.info(f"Found {len(df_cr)} Computed Radiography series objects available.")
 
+    # Filter for front-facing chest scans only (PA / AP views)
+    FRONT_FACING_VIEWS = {"PA", "AP", "PA and AP", "AP and PA"}
+    if "view_position" in df_cr.columns:
+        before = len(df_cr)
+        df_cr = df_cr[
+            df_cr["view_position"]
+            .fillna("")
+            .str.upper()
+            .str.strip()
+            .isin(FRONT_FACING_VIEWS)
+        ].copy().reset_index(drop=True)
+        log.info(
+            f"Filtered to {len(df_cr)} front-facing (PA/AP) scans "
+            f"(removed {before - len(df_cr)} lateral/other views)."
+        )
+    else:
+        log.warning("⚠ 'view_position' column not found in cr_series_file – skipping view filter.")
+
     # Apply thorough structural string cleaning to links
     df_cases["case_id_clean"] = df_cases["submitter_id"].apply(clean_id)
     df_cr["case_ids_clean"] = df_cr["case_ids"].apply(clean_id)

@@ -49,7 +49,7 @@ df_midrc_clean = pd.DataFrame()
 # absolute path and the sanitized .png extension! Let's use it directly.
 df_midrc_clean['img_path'] = df_midrc['img_path']
 df_midrc_clean['patient_id'] = df_midrc['patient_id'].astype(str)
-df_midrc_clean['view_position'] = "AP"
+df_midrc_clean['view_position'] = df_midrc.get('view_position', 'AP')
 
 # Set all standard diseases to 0 (untracked), set COVID to 1
 for cls in NIH_CLASSES:
