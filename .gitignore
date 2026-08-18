@@ -36,3 +36,4 @@ data_hybrid/midrc_images_before
 *.pyc
 *.wandb
 /wandb
+/checkpoints
