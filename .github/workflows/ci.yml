@@ -95,10 +95,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [docker-build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Deploy placeholder
-        run: echo "TODO: Add deployment steps here"
