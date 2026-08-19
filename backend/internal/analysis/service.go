@@ -1,5 +1,7 @@
 package analysis
 
+import "log"
+
 type Service struct {
 	repo      *Repository
 	llmClient *LLMClient
@@ -19,7 +21,7 @@ func (s *Service) GetAnalysis(patientID uint, patientData any, imageBuffers [][]
 	}
 
 	if err := s.persistAnalysis(patientID, resp); err != nil {
-		return nil, err
+		log.Printf("WARNING: Analysis succeeded but persistence failed: %v", err)
 	}
 
 	return resp, nil
