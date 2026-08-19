@@ -22,7 +22,7 @@
       icon: Stethoscope,
       title: "3. Review results",
       description:
-        "Inspect the model prediction, explanation and supporting image insights, Chat with the AI to understand the findings and get additional information.",
+        "Inspect the model prediction, explanation and supporting image insights. Chat with the AI to understand the findings and get additional information.",
     },
   ];
 </script>
