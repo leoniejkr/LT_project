@@ -22,7 +22,7 @@
       icon: Stethoscope,
       title: "3. Review results",
       description:
-        "Inspect the model prediction, explanation and supporting image insights. (Chat with LLM)",
+        "Inspect the model prediction, explanation and supporting image insights, Chat with the AI to understand the findings and get additional information.",
     },
   ];
 </script>
@@ -36,9 +36,10 @@
           Medical image analysis and Risk Assessment AI
         </h1>
         <p class="mt-4 max-w-xl text-base text-muted-foreground md:text-lg">
-          This app helps clinicians review chest X-rays and compare model-based
-          findings with patient context. - Transparency, reasoning, explanations
-          - Risk Assessment
+          This project was made to help clinicians with reviewing chest X-rays
+          for disease detection and compare model-based findings with patient
+          context. The interactive Chatbot assists in understanding the model's
+          reasoning and provides additional information about the findings.
         </p>
         <div class="mt-6 flex flex-wrap gap-3">
           <Button href="/upload" size="lg" class="gap-2">
@@ -108,7 +109,7 @@
           <li>3. Start analysis and review prediction and image insights.</li>
           <li>
             4. Use the result view to understand the diagnosis, examine the
-            images manually and use the chat for further information/help.
+            images manually and use the chat for further information and help.
           </li>
         </ol>
         <div class="mt-5">
