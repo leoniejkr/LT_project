@@ -63,35 +63,39 @@ jobs:
       - run: python -m py_compile reason_generator.py
       - run: python -m py_compile mock_service.py
 
-  docker-build:
-    needs: [frontend, backend, modelling]
+  docker-frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: docker/setup-buildx-action@v3
-
-      - name: Build frontend image
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
           context: frontend
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
 
-      - name: Build backend image
-        uses: docker/build-push-action@v6
+  docker-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: backend
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
 
-      - name: Build modelling image
-        uses: docker/build-push-action@v6
+  docker-modelling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
         with:
           context: modelling
           push: false
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=modelling
+          cache-to: type=gha,scope=modelling,mode=max
 
