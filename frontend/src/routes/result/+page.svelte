@@ -8,7 +8,7 @@
     import { Badge } from "$lib/components/ui/badge/index.js";
     import { Separator } from "$lib/components/ui/separator/index.js";
     import * as Item from "$lib/components/ui/item/index.js";
-    import * as Accordion from "$lib/components/ui/accordion/index.js";
+
     import { Progress } from "$lib/components/ui/progress/index.js";
     import * as Tooltip from "$lib/components/ui/tooltip/index.js";
     import * as Slider from "$lib/components/ui/slider/index.js";
@@ -122,7 +122,7 @@
             return "text-orange-600 bg-orange-500/10 border-orange-500/30";
         if (confidence >= 0.85)
             return "text-amber-600 bg-amber-500/10 border-amber-500/30";
-        return "text-muted-foreground bg-muted/50";
+        return "text-primary bg-primary/10 border-primary/30";
     }
 
     function getConfidenceBarColor(confidence: number): string {
@@ -132,7 +132,7 @@
             return "[&>[data-slot=progress-indicator]]:bg-orange-500";
         if (confidence >= 0.85)
             return "[&>[data-slot=progress-indicator]]:bg-amber-500";
-        return "[&>[data-slot=progress-indicator]]:bg-muted-foreground/30";
+        return "[&>[data-slot=progress-indicator]]:bg-primary";
     }
 
     async function startNewAnalysis() {
@@ -335,35 +335,37 @@
             </div>
 
             <div class="flex flex-col gap-4">
-                <Accordion.Root type="multiple">
-                    <Accordion.Item value="illnesses">
-                        <Accordion.Trigger>Known Illnesses</Accordion.Trigger>
-                        <Accordion.Content class="gap-2">
-                            {#each patient.knownIllnesses ?? metadata.knownIllnesses ?? [] as illness}
-                                <Badge
-                                    variant="outline"
-                                    class="bg-amber-500/10 text-amber-600 border-amber-500/30"
-                                >
-                                    {illness}
-                                </Badge>
-                            {/each}
-                        </Accordion.Content>
-                    </Accordion.Item>
+                <Item.Root variant="outline">
+                    <Item.Header>
+                        <Item.Title>Known Illnesses</Item.Title>
+                    </Item.Header>
+                    <Item.Content class="flex flex-wrap gap-2">
+                        {#each patient.knownIllnesses ?? metadata.knownIllnesses ?? [] as illness}
+                            <Badge
+                                variant="outline"
+                                class="bg-amber-500/10 text-amber-600 border-amber-500/30"
+                            >
+                                {illness}
+                            </Badge>
+                        {/each}
+                    </Item.Content>
+                </Item.Root>
 
-                    <Accordion.Item value="symptoms">
-                        <Accordion.Trigger>Known Symptoms</Accordion.Trigger>
-                        <Accordion.Content class="gap-2">
-                            {#each patient.symptoms ?? metadata.symptoms ?? [] as symptom}
-                                <Badge
-                                    variant="outline"
-                                    class="bg-teal-500/10 text-teal-600 border-teal-500/30"
-                                >
-                                    {symptom}
-                                </Badge>
-                            {/each}
-                        </Accordion.Content>
-                    </Accordion.Item>
-                </Accordion.Root>
+                <Item.Root variant="outline">
+                    <Item.Header>
+                        <Item.Title>Known Symptoms</Item.Title>
+                    </Item.Header>
+                    <Item.Content class="flex flex-wrap gap-2">
+                        {#each patient.symptoms ?? metadata.symptoms ?? [] as symptom}
+                            <Badge
+                                variant="outline"
+                                class="bg-teal-500/10 text-teal-600 border-teal-500/30"
+                            >
+                                {symptom}
+                            </Badge>
+                        {/each}
+                    </Item.Content>
+                </Item.Root>
             </div>
         </div>
         <HeatmapBar imageResults={filteredImageResults} />
