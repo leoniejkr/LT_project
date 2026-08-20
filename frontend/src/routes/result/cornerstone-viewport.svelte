@@ -88,12 +88,22 @@
                 }
             };
 
+            const preventContextMenu = (e: Event) => e.preventDefault();
+            const preventMiddleClick = (e: MouseEvent) => {
+                if (e.button === 1) e.preventDefault();
+            };
+
+            el.addEventListener("contextmenu", preventContextMenu);
+            el.addEventListener("mousedown", preventMiddleClick);
+
             el.addEventListener(
                 "CORNERSTONE_STACK_NEW_IMAGE",
                 imageChangeHandler,
             );
 
             return () => {
+                el.removeEventListener("contextmenu", preventContextMenu);
+                el.removeEventListener("mousedown", preventMiddleClick);
                 el.removeEventListener(
                     "CORNERSTONE_STACK_NEW_IMAGE",
                     imageChangeHandler,
