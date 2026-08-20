@@ -189,15 +189,15 @@
 
         {#if predictions.length > 0}
             <Item.Root variant="outline" class="flex-col items-stretch p-4">
-                <div class="flex items-center justify-between mb-2">
-                    <h3 class="text-lg font-semibold flex items-center gap-2">
+                <Item.Header class="mb-2">
+                    <Item.Title class="text-lg">
                         AI Diagnosis Ranking
                         <Badge variant="secondary" class="text-xs">
                             {filteredPredictions.length} detected
                         </Badge>
-                    </h3>
-                </div>
-                <div class="flex items-center gap-3 mb-4">
+                    </Item.Title>
+                </Item.Header>
+                <Item.Content class="flex items-center gap-3 mb-4">
                     <Label class="whitespace-nowrap">
                         Confidence threshold
                     </Label>
@@ -212,8 +212,8 @@
                     <Label class="min-w-8 text-right">
                         {threshold}%
                     </Label>
-                </div>
-                <div class="flex flex-col gap-3">
+                </Item.Content>
+                <Item.Content class="flex flex-col gap-3">
                     {#each filteredPredictions as pred, idx}
                         <Tooltip.Root>
                             <Tooltip.Trigger>
@@ -226,18 +226,14 @@
                                         )}"
                                     >
                                         <Item.Header class="mb-2">
-                                            <div
-                                                class="flex items-center gap-2"
-                                            >
+                                            <Item.Title>
                                                 <span
-                                                    class="text-xs font-bold w-6 h-6 rounded-full bg-background flex items-center justify-center"
+                                                    class="text-xs font-bold w-6 h-6 rounded-full bg-background inline-flex items-center justify-center"
                                                 >
                                                     {idx + 1}
                                                 </span>
-                                                <span class="font-semibold"
-                                                    >{pred.class}</span
-                                                >
-                                            </div>
+                                                {pred.class}
+                                            </Item.Title>
                                             <span class="font-bold text-sm">
                                                 {(
                                                     pred.confidence * 100
@@ -252,9 +248,9 @@
                                             )}"
                                         />
                                         {#if pred.reason}
-                                            <p class="text-xs opacity-80">
+                                            <Item.Description class="text-xs opacity-80">
                                                 {pred.reason}
-                                            </p>
+                                            </Item.Description>
                                         {/if}
                                     </Item.Root>
                                 {/snippet}
@@ -266,7 +262,7 @@
                             {/if}
                         </Tooltip.Root>
                     {/each}
-                </div>
+                </Item.Content>
                 {#if analysis.model_version}
                     <p class="text-xs text-muted-foreground mt-3">
                         Model: {analysis.model_version}
