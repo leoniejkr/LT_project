@@ -11,6 +11,8 @@
     import * as Accordion from "$lib/components/ui/accordion/index.js";
     import { Progress } from "$lib/components/ui/progress/index.js";
     import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+    import * as Slider from "$lib/components/ui/slider/index.js";
+    import { Label } from "$lib/components/ui/label/index.js";
     import { Chat } from "$lib/components/ui/chat/index.js";
 
     import { goto } from "$app/navigation";
@@ -83,6 +85,23 @@
               ],
     );
 
+    let threshold = $state(0);
+
+    let filteredPredictions: Prediction[] = $derived(
+        predictions.filter((p) => p.confidence * 100 >= threshold),
+    );
+
+    let filteredImageResults: ImageResult[] = $derived(
+        imageResults
+            .map((r) => ({
+                ...r,
+                predictions: r.predictions.filter(
+                    (p) => p.confidence * 100 >= threshold,
+                ),
+            }))
+            .filter((r) => r.predictions.length > 0),
+    );
+
     let activeImageIndex = $state(0);
     let activeHeatmapIndex = $state(0);
 
@@ -129,7 +148,7 @@
     }
 
     let activeImageResult = $derived(
-        imageResults.find((r) => r.index === activeHeatmapIndex) ?? null,
+        filteredImageResults.find((r) => r.index === activeHeatmapIndex) ?? null,
     );
 </script>
 
@@ -170,14 +189,32 @@
 
         {#if predictions.length > 0}
             <Item.Root variant="outline" class="flex-col items-stretch p-4">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    AI Diagnosis Ranking
-                    <Badge variant="secondary" class="text-xs">
-                        {predictions.length} detected
-                    </Badge>
-                </h3>
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-lg font-semibold flex items-center gap-2">
+                        AI Diagnosis Ranking
+                        <Badge variant="secondary" class="text-xs">
+                            {filteredPredictions.length} detected
+                        </Badge>
+                    </h3>
+                </div>
+                <div class="flex items-center gap-3 mb-4">
+                    <Label class="whitespace-nowrap">
+                        Confidence threshold
+                    </Label>
+                    <Slider.Root
+                        type="single"
+                        bind:value={threshold}
+                        min={0}
+                        max={100}
+                        step={1}
+                        class="flex-1"
+                    />
+                    <Label class="min-w-8 text-right">
+                        {threshold}%
+                    </Label>
+                </div>
                 <div class="flex flex-col gap-3">
-                    {#each predictions as pred, idx}
+                    {#each filteredPredictions as pred, idx}
                         <Tooltip.Root>
                             <Tooltip.Trigger>
                                 {#snippet child({ props })}
@@ -329,7 +366,7 @@
                 </Accordion.Root>
             </div>
         </div>
-        <HeatmapBar {imageResults} />
+        <HeatmapBar imageResults={filteredImageResults} />
         <Chat />
     {:else}
         <Item.Root variant="outline" class="bg:primary">
