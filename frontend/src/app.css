@@ -163,4 +163,65 @@
         background-color: #000;
         position: relative;
     }
+
+    .confidence-critical {
+        color: oklch(0.577 0.245 27.325);
+        background-color: oklch(0.577 0.245 27.325 / 10%);
+        border-color: oklch(0.577 0.245 27.325 / 30%);
+    }
+    .confidence-critical-bar {
+        background-color: oklch(0.577 0.245 27.325);
+    }
+
+    .confidence-high {
+        color: oklch(0.67 0.19 50);
+        background-color: oklch(0.67 0.19 50 / 10%);
+        border-color: oklch(0.67 0.19 50 / 30%);
+    }
+    .confidence-high-bar {
+        background-color: oklch(0.67 0.19 50);
+    }
+
+    .confidence-medium {
+        color: oklch(0.65 0.18 75);
+        background-color: oklch(0.65 0.18 75 / 10%);
+        border-color: oklch(0.65 0.18 75 / 30%);
+    }
+    .confidence-medium-bar {
+        background-color: oklch(0.65 0.18 75);
+    }
+
+    .confidence-low {
+        color: var(--primary);
+        background-color: var(--secondary);
+        border-color: oklch(from var(--primary) l c h / 30%);
+    }
+    .confidence-low-bar {
+        background-color: var(--chart-2);
+    }
+
+    .illness-badge {
+        color: oklch(0.65 0.18 75);
+        background-color: oklch(0.65 0.18 75 / 10%);
+        border-color: oklch(0.65 0.18 75 / 30%);
+    }
+
+    .symptom-badge {
+        color: oklch(0.6 0.14 175);
+        background-color: oklch(0.6 0.14 175 / 10%);
+        border-color: oklch(0.6 0.14 175 / 30%);
+    }
+
+    .confidence-critical-bar[data-slot="progress"] > [data-slot="progress-indicator"] {
+        background-color: oklch(0.577 0.245 27.325) !important;
+    }
+    .confidence-high-bar[data-slot="progress"] > [data-slot="progress-indicator"] {
+        background-color: oklch(0.67 0.19 50) !important;
+    }
+    .confidence-medium-bar[data-slot="progress"] > [data-slot="progress-indicator"] {
+        background-color: oklch(0.65 0.18 75) !important;
+    }
+    .confidence-low-bar[data-slot="progress"] > [data-slot="progress-indicator"] {
+        background-color: var(--chart-2) !important;
+    }
 }

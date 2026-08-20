@@ -116,23 +116,17 @@
     });
 
     function getConfidenceColor(confidence: number): string {
-        if (confidence >= 0.95)
-            return "text-red-600 bg-red-500/10 border-red-500/30";
-        if (confidence >= 0.9)
-            return "text-orange-600 bg-orange-500/10 border-orange-500/30";
-        if (confidence >= 0.85)
-            return "text-amber-600 bg-amber-500/10 border-amber-500/30";
-        return "text-primary bg-primary/10 border-primary/30";
+        if (confidence >= 0.95) return "confidence-critical";
+        if (confidence >= 0.9) return "confidence-high";
+        if (confidence >= 0.85) return "confidence-medium";
+        return "confidence-low";
     }
 
     function getConfidenceBarColor(confidence: number): string {
-        if (confidence >= 0.95)
-            return "[&>[data-slot=progress-indicator]]:bg-red-500";
-        if (confidence >= 0.9)
-            return "[&>[data-slot=progress-indicator]]:bg-orange-500";
-        if (confidence >= 0.85)
-            return "[&>[data-slot=progress-indicator]]:bg-amber-500";
-        return "[&>[data-slot=progress-indicator]]:bg-primary";
+        if (confidence >= 0.95) return "confidence-critical-bar";
+        if (confidence >= 0.9) return "confidence-high-bar";
+        if (confidence >= 0.85) return "confidence-medium-bar";
+        return "confidence-low-bar";
     }
 
     async function startNewAnalysis() {
@@ -207,7 +201,7 @@
                         min={0}
                         max={100}
                         step={1}
-                        class="flex-1"
+                        class="flex-1 slider-thick"
                     />
                     <Label class="min-w-8 text-right">
                         {threshold}%
@@ -243,7 +237,7 @@
                                         <Progress
                                             value={pred.confidence * 100}
                                             max={100}
-                                            class="h-2 mb-2 bg-background {getConfidenceBarColor(
+                                            class="h-2 mb-2 bg-muted {getConfidenceBarColor(
                                                 pred.confidence,
                                             )}"
                                         />
@@ -339,7 +333,7 @@
                         {#each patient.knownIllnesses ?? metadata.knownIllnesses ?? [] as illness}
                             <Badge
                                 variant="outline"
-                                class="bg-amber-500/10 text-amber-600 border-amber-500/30"
+                                class="illness-badge"
                             >
                                 {illness}
                             </Badge>
@@ -355,7 +349,7 @@
                         {#each patient.symptoms ?? metadata.symptoms ?? [] as symptom}
                             <Badge
                                 variant="outline"
-                                class="bg-teal-500/10 text-teal-600 border-teal-500/30"
+                                class="symptom-badge"
                             >
                                 {symptom}
                             </Badge>
