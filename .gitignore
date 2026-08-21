@@ -28,6 +28,7 @@ ViteB
 data/preprocessed
 data_hybrid/midrc_images
 data_hybrid/midrc_images_before
+/checkpoints
 
 /images
 

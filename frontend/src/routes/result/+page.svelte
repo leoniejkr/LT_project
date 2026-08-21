@@ -8,9 +8,11 @@
     import { Badge } from "$lib/components/ui/badge/index.js";
     import { Separator } from "$lib/components/ui/separator/index.js";
     import * as Item from "$lib/components/ui/item/index.js";
-    import * as Accordion from "$lib/components/ui/accordion/index.js";
+
     import { Progress } from "$lib/components/ui/progress/index.js";
     import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+    import * as Slider from "$lib/components/ui/slider/index.js";
+    import { Label } from "$lib/components/ui/label/index.js";
     import { Chat } from "$lib/components/ui/chat/index.js";
 
     import { goto } from "$app/navigation";
@@ -83,6 +85,23 @@
               ],
     );
 
+    let threshold = $state(0);
+
+    let filteredPredictions: Prediction[] = $derived(
+        predictions.filter((p) => p.confidence * 100 >= threshold),
+    );
+
+    let filteredImageResults: ImageResult[] = $derived(
+        imageResults
+            .map((r) => ({
+                ...r,
+                predictions: r.predictions.filter(
+                    (p) => p.confidence * 100 >= threshold,
+                ),
+            }))
+            .filter((r) => r.predictions.length > 0),
+    );
+
     let activeImageIndex = $state(0);
     let activeHeatmapIndex = $state(0);
 
@@ -97,23 +116,17 @@
     });
 
     function getConfidenceColor(confidence: number): string {
-        if (confidence >= 0.95)
-            return "text-red-600 bg-red-500/10 border-red-500/30";
-        if (confidence >= 0.9)
-            return "text-orange-600 bg-orange-500/10 border-orange-500/30";
-        if (confidence >= 0.85)
-            return "text-amber-600 bg-amber-500/10 border-amber-500/30";
-        return "text-muted-foreground bg-muted/50";
+        if (confidence >= 0.95) return "confidence-critical";
+        if (confidence >= 0.9) return "confidence-high";
+        if (confidence >= 0.85) return "confidence-medium";
+        return "confidence-low";
     }
 
     function getConfidenceBarColor(confidence: number): string {
-        if (confidence >= 0.95)
-            return "[&>[data-slot=progress-indicator]]:bg-red-500";
-        if (confidence >= 0.9)
-            return "[&>[data-slot=progress-indicator]]:bg-orange-500";
-        if (confidence >= 0.85)
-            return "[&>[data-slot=progress-indicator]]:bg-amber-500";
-        return "[&>[data-slot=progress-indicator]]:bg-muted-foreground/30";
+        if (confidence >= 0.95) return "confidence-critical-bar";
+        if (confidence >= 0.9) return "confidence-high-bar";
+        if (confidence >= 0.85) return "confidence-medium-bar";
+        return "confidence-low-bar";
     }
 
     async function startNewAnalysis() {
@@ -129,7 +142,7 @@
     }
 
     let activeImageResult = $derived(
-        imageResults.find((r) => r.index === activeHeatmapIndex) ?? null,
+        filteredImageResults.find((r) => r.index === activeHeatmapIndex) ?? null,
     );
 </script>
 
@@ -170,14 +183,32 @@
 
         {#if predictions.length > 0}
             <Item.Root variant="outline" class="flex-col items-stretch p-4">
-                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                    AI Diagnosis Ranking
-                    <Badge variant="secondary" class="text-xs">
-                        {predictions.length} detected
-                    </Badge>
-                </h3>
-                <div class="flex flex-col gap-3">
-                    {#each predictions as pred, idx}
+                <Item.Header class="mb-2">
+                    <Item.Title class="text-lg">
+                        AI Diagnosis Ranking
+                        <Badge variant="secondary" class="text-xs">
+                            {filteredPredictions.length} detected
+                        </Badge>
+                    </Item.Title>
+                </Item.Header>
+                <Item.Content class="flex items-center gap-3 mb-4">
+                    <Label class="whitespace-nowrap">
+                        Confidence threshold
+                    </Label>
+                    <Slider.Root
+                        type="single"
+                        bind:value={threshold}
+                        min={0}
+                        max={100}
+                        step={1}
+                        class="flex-1 slider-thick"
+                    />
+                    <Label class="min-w-8 text-right">
+                        {threshold}%
+                    </Label>
+                </Item.Content>
+                <Item.Content class="flex flex-col gap-3">
+                    {#each filteredPredictions as pred, idx}
                         <Tooltip.Root>
                             <Tooltip.Trigger>
                                 {#snippet child({ props })}
@@ -189,18 +220,14 @@
                                         )}"
                                     >
                                         <Item.Header class="mb-2">
-                                            <div
-                                                class="flex items-center gap-2"
-                                            >
+                                            <Item.Title>
                                                 <span
-                                                    class="text-xs font-bold w-6 h-6 rounded-full bg-background flex items-center justify-center"
+                                                    class="text-xs font-bold w-6 h-6 rounded-full bg-background inline-flex items-center justify-center"
                                                 >
                                                     {idx + 1}
                                                 </span>
-                                                <span class="font-semibold"
-                                                    >{pred.class}</span
-                                                >
-                                            </div>
+                                                {pred.class}
+                                            </Item.Title>
                                             <span class="font-bold text-sm">
                                                 {(
                                                     pred.confidence * 100
@@ -210,14 +237,14 @@
                                         <Progress
                                             value={pred.confidence * 100}
                                             max={100}
-                                            class="h-2 mb-2 bg-background {getConfidenceBarColor(
+                                            class="h-2 mb-2 bg-muted {getConfidenceBarColor(
                                                 pred.confidence,
                                             )}"
                                         />
                                         {#if pred.reason}
-                                            <p class="text-xs opacity-80">
+                                            <Item.Description class="text-xs opacity-80">
                                                 {pred.reason}
-                                            </p>
+                                            </Item.Description>
                                         {/if}
                                     </Item.Root>
                                 {/snippet}
@@ -229,7 +256,7 @@
                             {/if}
                         </Tooltip.Root>
                     {/each}
-                </div>
+                </Item.Content>
                 {#if analysis.model_version}
                     <p class="text-xs text-muted-foreground mt-3">
                         Model: {analysis.model_version}
@@ -298,38 +325,40 @@
             </div>
 
             <div class="flex flex-col gap-4">
-                <Accordion.Root type="multiple">
-                    <Accordion.Item value="illnesses">
-                        <Accordion.Trigger>Known Illnesses</Accordion.Trigger>
-                        <Accordion.Content class="gap-2">
-                            {#each patient.knownIllnesses ?? metadata.knownIllnesses ?? [] as illness}
-                                <Badge
-                                    variant="outline"
-                                    class="bg-amber-500/10 text-amber-600 border-amber-500/30"
-                                >
-                                    {illness}
-                                </Badge>
-                            {/each}
-                        </Accordion.Content>
-                    </Accordion.Item>
+                <Item.Root variant="outline">
+                    <Item.Header>
+                        <Item.Title>Known Illnesses</Item.Title>
+                    </Item.Header>
+                    <Item.Content class="flex flex-wrap gap-2">
+                        {#each patient.knownIllnesses ?? metadata.knownIllnesses ?? [] as illness}
+                            <Badge
+                                variant="outline"
+                                class="illness-badge"
+                            >
+                                {illness}
+                            </Badge>
+                        {/each}
+                    </Item.Content>
+                </Item.Root>
 
-                    <Accordion.Item value="symptoms">
-                        <Accordion.Trigger>Known Symptoms</Accordion.Trigger>
-                        <Accordion.Content class="gap-2">
-                            {#each patient.symptoms ?? metadata.symptoms ?? [] as symptom}
-                                <Badge
-                                    variant="outline"
-                                    class="bg-teal-500/10 text-teal-600 border-teal-500/30"
-                                >
-                                    {symptom}
-                                </Badge>
-                            {/each}
-                        </Accordion.Content>
-                    </Accordion.Item>
-                </Accordion.Root>
+                <Item.Root variant="outline">
+                    <Item.Header>
+                        <Item.Title>Known Symptoms</Item.Title>
+                    </Item.Header>
+                    <Item.Content class="flex flex-wrap gap-2">
+                        {#each patient.symptoms ?? metadata.symptoms ?? [] as symptom}
+                            <Badge
+                                variant="outline"
+                                class="symptom-badge"
+                            >
+                                {symptom}
+                            </Badge>
+                        {/each}
+                    </Item.Content>
+                </Item.Root>
             </div>
         </div>
-        <HeatmapBar {imageResults} />
+        <HeatmapBar imageResults={filteredImageResults} />
         <Chat />
     {:else}
         <Item.Root variant="outline" class="bg:primary">

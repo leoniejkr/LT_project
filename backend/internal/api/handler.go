@@ -81,9 +81,9 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 
 	analysisResp, err := h.patientService.GetAnalysis(createdPatient.ID, createdPatient, imageBuffers, imageNames)
 	if err != nil {
-		w.WriteHeader(http.StatusAccepted)
+		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
-			"status":  "partial",
+			"status":  "error",
 			"patient": createdPatient,
 			"analysis": map[string]any{
 				"error": "Analysis failed: " + err.Error(),
@@ -92,7 +92,7 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusAccepted)
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{
 		"status":   "success",
 		"patient":  createdPatient,

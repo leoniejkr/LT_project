@@ -107,6 +107,13 @@
 			});
 			const result = await response.json();
 			console.log("Analysis Result:", result);
+
+			if (!response.ok || result.status === "error") {
+				dialogMessage = result.analysis?.error || `Analysis failed with status ${response.status}.`;
+				showDialog = true;
+				return;
+			}
+
 			analysisResult.set(result);
 			patientMetadata.set(result.patient ?? metadata);
 			uploadedFileUrls.set(
