@@ -9,10 +9,11 @@
 	import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
 	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+	import * as Accordion from "$lib/components/ui/accordion/index.js";
 	import {
 		UserSearch,
 		CloudUpload,
-		ClipboardCheck,
+		ChevronDown,
 		Cpu,
 		ImageUp,
 		LoaderCircle,
@@ -62,6 +63,31 @@
 	const selectedSymptoms = $state<Record<string, boolean>>(
 		Object.fromEntries(allSymptomTags.map((tag) => [tag.id, false])),
 	);
+
+	// Panel / subtopic folding
+	let openTopics = $state<Record<string, boolean>>(
+		Object.fromEntries(SYMPTOM_TOPICS.map((t) => [t.topic, true])),
+	);
+	let openGroupsByTopic = $state<Record<string, string[]>>(
+		Object.fromEntries(
+			SYMPTOM_TOPICS.map((t) => [
+				t.topic,
+				t.groups.map((g) => groupKey(t.topic, g.name)),
+			]),
+		),
+	);
+
+	function groupKey(topic: string, groupName?: string): string {
+		return `${topic}::${groupName ?? ""}`;
+	}
+
+	function toggleTopic(topic: string) {
+		openTopics[topic] = !openTopics[topic];
+	}
+
+	function selectedCountOf(tags: SymptomTag[]): number {
+		return tags.filter((tag) => selectedSymptoms[tag.id]).length;
+	}
 
 	function selectedSymptomLabels(): string[] {
 		return allSymptomTags
@@ -347,58 +373,97 @@
 		</div>
 	</div>
 
-	<div class="w-full">
-		<Item.Root variant="outline">
-			<Item.Content>
-				<Item.Title class="flex items-center gap-2 mb-4">
-					<ClipboardCheck size={18} /> Symptom Checklist
-				</Item.Title>
-				<div
-					class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6"
-				>
-					{#each SYMPTOM_TOPICS as topic (topic.topic)}
-						<div class="flex flex-col gap-3">
-							<Field.Legend class="text-sm font-semibold">
-								{topic.topic}
-							</Field.Legend>
-							{#each topic.groups as group (group.name ?? "")}
-								{#if group.name}
-									<p class="text-xs font-medium text-muted-foreground -mb-2">
-										{group.name}
-									</p>
-								{/if}
-								<div class="flex flex-col gap-2.5">
-									{#each group.symptoms as tag (tag.id)}
-										<Field.Field
-											orientation="horizontal"
-											class="w-auto items-start"
+	<div class="w-full flex flex-col gap-4">
+		{#each SYMPTOM_TOPICS as topic (topic.topic)}
+			{@const topicCount = selectedCountOf(
+				topic.groups.flatMap((g) => g.symptoms),
+			)}
+			<Item.Root variant="outline">
+				<Item.Content class="w-full">
+					<button
+						type="button"
+						class="flex w-full items-center justify-between gap-4 text-left"
+						onclick={() => toggleTopic(topic.topic)}
+						aria-expanded={openTopics[topic.topic]}
+					>
+						<span class="flex items-center gap-2 font-medium">
+							{topic.topic}
+						</span>
+						<span class="flex items-center gap-3">
+							{#if topicCount > 0}
+								<Badge variant="secondary" class="text-xs">
+									{topicCount} selected
+								</Badge>
+							{/if}
+							<ChevronDown
+								size={16}
+								class="text-muted-foreground transition-transform {openTopics[
+									topic.topic
+								]
+									? ''
+									: '-rotate-90'}"
+							/>
+						</span>
+					</button>
+
+					{#if openTopics[topic.topic]}
+						<Accordion.Root
+							type="multiple"
+							bind:value={openGroupsByTopic[topic.topic]}
+							class="mt-3"
+						>
+							{#each topic.groups as group, groupIndex (group.name)}
+								{@const key = groupKey(topic.topic, group.name)}
+								{@const groupCount = selectedCountOf(group.symptoms)}
+								<Accordion.Item
+									value={key}
+									class={groupIndex > 0 ? "border-t" : ""}
+								>
+									<Accordion.Trigger
+										class="py-2.5 hover:no-underline text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+									>
+										<span class="flex items-center gap-2">
+											{group.name}
+											{#if groupCount > 0}
+												<Badge
+													variant="secondary"
+													class="h-4 px-1.5 text-[10px] normal-case"
+												>
+													{groupCount}
+												</Badge>
+											{/if}
+										</span>
+									</Accordion.Trigger>
+									<Accordion.Content>
+										<div
+											class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 pb-1"
 										>
-											<Checkbox
-												id={`symptom-${tag.id}`}
-												bind:checked={selectedSymptoms[tag.id]}
-											/>
-											<Field.Label
-												for={`symptom-${tag.id}`}
-												class="flex flex-col gap-0.5 font-normal leading-tight"
-											>
-												<span>{tag.label}</span>
-												{#if tag.description}
-													<span
-														class="text-xs text-muted-foreground"
+											{#each group.symptoms as tag (tag.id)}
+												<Field.Field
+													orientation="horizontal"
+													class="w-auto items-start"
+												>
+													<Checkbox
+														id={`symptom-${tag.id}`}
+														bind:checked={selectedSymptoms[tag.id]}
+													/>
+													<Field.Label
+														for={`symptom-${tag.id}`}
+														class="font-normal leading-tight"
 													>
-														{tag.description}
-													</span>
-												{/if}
-											</Field.Label>
-										</Field.Field>
-									{/each}
-								</div>
+														{tag.label}
+													</Field.Label>
+												</Field.Field>
+											{/each}
+										</div>
+									</Accordion.Content>
+								</Accordion.Item>
 							{/each}
-						</div>
-					{/each}
-				</div>
-			</Item.Content>
-		</Item.Root>
+						</Accordion.Root>
+					{/if}
+				</Item.Content>
+			</Item.Root>
+		{/each}
 	</div>
 	<Separator orientation="horizontal" class="self-stretch mt-1" />
 	<div class="flex justify-end w-full pb-5">

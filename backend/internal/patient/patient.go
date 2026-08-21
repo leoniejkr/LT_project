@@ -47,62 +47,62 @@ type Symptom string
 // defined in frontend/src/lib/symptoms.ts.
 const (
 	// Breathing & Respiratory Symptoms
-	SymptomApnea               Symptom = "Pauses in breathing"
+	SymptomApnea               Symptom = "Pauses in breathing (apnea)"
 	SymptomGrunting            Symptom = "Grunting"
 	SymptomShallowBreathing    Symptom = "Shallow breathing"
-	SymptomShortnessOfBreath   Symptom = "Shortness of breath"
+	SymptomShortnessOfBreath   Symptom = "Shortness of breath (dyspnea)"
 	SymptomCatchingBreath      Symptom = "Difficulty catching breath"
 	SymptomDeepBreath          Symptom = "Inability to take a deep breath"
 	SymptomAirHunger           Symptom = "Constant feeling of not getting enough air"
 	SymptomSuffocation         Symptom = "Feeling like suffocating / gasping for air"
 	SymptomNocturnalDyspnea    Symptom = "Breathlessness that awakens you from sleep"
-	SymptomOrthopnea           Symptom = "Orthopnea"
-	SymptomTachypnea           Symptom = "Rapid breathing"
-	SymptomRetractions         Symptom = "Increased work of breathing"
+	SymptomOrthopnea           Symptom = "Orthopnea (difficulty breathing unless sitting upright)"
+	SymptomTachypnea           Symptom = "Rapid breathing (tachypnea)"
+	SymptomRetractions         Symptom = "Increased work of breathing (retractions)"
 	SymptomWheezing            Symptom = "Wheezing"
 	SymptomStridor             Symptom = "Stridor"
-	SymptomCrepitus            Symptom = "Crepitus"
-	SymptomRalesRhonchi        Symptom = "Rattling noises"
-	SymptomBronchialBreathing  Symptom = "Bronchial breathing"
+	SymptomCrepitus            Symptom = "Crepitus (crackling under the skin)"
+	SymptomRalesRhonchi        Symptom = "Rattling noises (rales/rhonchi)"
+	SymptomBronchialBreathing  Symptom = "Bronchial breathing (increased peripheral breath sounds)"
 	SymptomNoisyBreathing      Symptom = "Noisy / funny-sounding breathing"
-	SymptomDryCough            Symptom = "Dry cough"
+	SymptomDryCough            Symptom = "Dry cough (persistent / chronic)"
 	SymptomMorningCough        Symptom = "Cough worse in the morning"
-	SymptomProductiveCough     Symptom = "Cough with discolored mucus"
+	SymptomProductiveCough     Symptom = "Cough with yellow, green, thick, or bloody mucus"
 	SymptomFrothyMucus         Symptom = "Coughing up frothy mucus"
-	SymptomHemoptysis          Symptom = "Coughing up blood"
+	SymptomHemoptysis          Symptom = "Coughing up blood (hemoptysis)"
 	SymptomSoreThroat          Symptom = "Sore throat"
 	SymptomNasalCongestion     Symptom = "Nasal congestion"
 	SymptomRunnyNose           Symptom = "Runny nose"
 	SymptomHoarseness          Symptom = "Hoarseness"
-	SymptomDysphagia           Symptom = "Difficulty swallowing"
-	SymptomAnosmiaDysgeusia    Symptom = "Loss of / altered smell or taste"
-	SymptomRecurrentInfections Symptom = "Recurring respiratory infections"
+	SymptomDysphagia           Symptom = "Difficulty swallowing (dysphagia)"
+	SymptomAnosmiaDysgeusia    Symptom = "Loss of / altered smell or taste (anosmia/dysgeusia)"
+	SymptomRecurrentInfections Symptom = "Recurring respiratory infections (bronchitis, pneumonia)"
 
 	// Chest, Heart & Circulation Symptoms
 	SymptomChestPain      Symptom = "Chest pain, pressure, tightness, or heaviness"
 	SymptomUnilateralPain Symptom = "Pain on one side of the chest"
 	SymptomBackPain       Symptom = "Back pain associated with breathing"
-	SymptomTachycardia    Symptom = "Rapid heart rate"
+	SymptomTachycardia    Symptom = "Rapid heart rate (tachycardia)"
 	SymptomPalpitations   Symptom = "Heart palpitations / fluttering"
-	SymptomLoudHeartbeat  Symptom = "Loud heartbeat sound"
-	SymptomCyanosis       Symptom = "Bluish, gray, or white skin, lips, or nails"
-	SymptomEdema          Symptom = "Swelling in legs, feet, belly, or skin"
+	SymptomLoudHeartbeat  Symptom = "Loud heartbeat sound (pulmonary hypertension)"
+	SymptomCyanosis       Symptom = "Bluish, gray, or white skin, lips, or nails (cyanosis)"
+	SymptomEdema          Symptom = "Swelling in legs, feet, belly, or skin (edema)"
 
 	// Neurological, Mental & Sleep Symptoms
 	SymptomAnxiety      Symptom = "Anxiety"
 	SymptomConfusion    Symptom = "Confusion / altered mental state"
 	SymptomDepression   Symptom = "Depression"
-	SymptomInsomnia     Symptom = "Difficulty sleeping"
+	SymptomInsomnia     Symptom = "Difficulty sleeping (insomnia)"
 	SymptomDizziness    Symptom = "Dizziness"
-	SymptomSyncope      Symptom = "Fainting"
+	SymptomSyncope      Symptom = "Fainting (syncope)"
 	SymptomHeadaches    Symptom = "Headaches"
 	SymptomUnableToWake Symptom = "Inability to wake up or stay awake"
-	SymptomBrainFog     Symptom = "Trouble thinking or focusing"
+	SymptomBrainFog     Symptom = `Trouble thinking or focusing ("brain fog")`
 
 	// Whole-Body (Systemic) Symptoms
 	SymptomFatigue        Symptom = "Fatigue"
-	SymptomFever          Symptom = "Fever"
-	SymptomHypothermia    Symptom = "Low body temperature"
+	SymptomFever          Symptom = "Fever (up to 105°F / 40°C)"
+	SymptomHypothermia    Symptom = "Low body temperature (hypothermia)"
 	SymptomChills         Symptom = "Chills / sweating"
 	SymptomMuscleAches    Symptom = "Muscle pain / body aches"
 	SymptomWeightLoss     Symptom = "Unexplained weight loss"
@@ -112,7 +112,7 @@ const (
 	// Infant-Specific Signs
 	SymptomIrritability Symptom = "Irritability"
 	SymptomLethargy     Symptom = "Listlessness / lethargy"
-	SymptomHypotonia    Symptom = "Low muscle tone"
+	SymptomHypotonia    Symptom = `Low muscle tone ("floppy")`
 	SymptomPoorFeeding  Symptom = "Refusal to feed or drink"
 
 	// Gastrointestinal & Abdominal Symptoms
@@ -121,7 +121,7 @@ const (
 	SymptomAppetiteLoss   Symptom = "Loss of appetite"
 	SymptomNauseaVomiting Symptom = "Nausea and vomiting"
 	SymptomDiarrhea       Symptom = "Diarrhea"
-	SymptomHerniaBulge    Symptom = "Visible lump or bulge"
+	SymptomHerniaBulge    Symptom = "Visible lump or bulge (hernia signs)"
 )
 
 type Symptoms []Symptom
