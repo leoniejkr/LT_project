@@ -91,6 +91,71 @@
         predictions.filter((p) => p.confidence * 100 >= threshold),
     );
 
+    // --- categorization of model outputs --------------------------------
+    // Overlapping concepts are checked first so they never land in the
+    // other two panels.
+    const OVERLAPPING_KEYS = ["fibrosis", "cardiomegaly"];
+    const VISUAL_FINDING_KEYS = [
+        "mass",
+        "nodule",
+        "pleural thickening",
+        "atelectasis",
+        "pneumothorax",
+        "effusion",
+        "consolidation",
+        "infiltration",
+        "edema",
+    ];
+    const SICKNESS_KEYS = ["covid", "pneumonia", "hernia", "emphysema"];
+
+    interface CategorizedPrediction {
+        pred: Prediction;
+        rank: number;
+    }
+
+    function matchesAny(label: string, keys: string[]): boolean {
+        return keys.some((key) => label === key || label.includes(key));
+    }
+
+    let categorizedPredictions = $derived.by(() => {
+        const visual: CategorizedPrediction[] = [];
+        const sickness: CategorizedPrediction[] = [];
+        const overlapping: CategorizedPrediction[] = [];
+
+        filteredPredictions.forEach((pred, rank) => {
+            const label = pred.class
+                .toLowerCase()
+                .replace(/[_-]+/g, " ")
+                .trim();
+            const entry: CategorizedPrediction = { pred, rank };
+            if (matchesAny(label, OVERLAPPING_KEYS)) overlapping.push(entry);
+            else if (matchesAny(label, VISUAL_FINDING_KEYS))
+                visual.push(entry);
+            else if (matchesAny(label, SICKNESS_KEYS)) sickness.push(entry);
+            else visual.push(entry); // unknown labels: treat as visual finding
+        });
+
+        return { visual, sickness, overlapping };
+    });
+
+    let categoryPanels = $derived([
+        {
+            title: "Visual Findings",
+            subtitle: "Things we can see on the scan",
+            items: categorizedPredictions.visual,
+        },
+        {
+            title: "Sicknesses & Clinical Diagnoses",
+            subtitle: "Diseases and conditions",
+            items: categorizedPredictions.sickness,
+        },
+        {
+            title: "Overlapping Concepts",
+            subtitle: "Both a visual feature and a condition",
+            items: categorizedPredictions.overlapping,
+        },
+    ]);
+
     let filteredImageResults: ImageResult[] = $derived(
         imageResults
             .map((r) => ({
@@ -168,6 +233,58 @@
         </Button>
     </div>
 
+    {#snippet findingCard(entry: CategorizedPrediction)}
+        <Tooltip.Root>
+            <Tooltip.Trigger>
+                {#snippet child({ props })}
+                    <Item.Root
+                        {...props}
+                        variant="outline"
+                        class="flex-col items-stretch p-3 {getConfidenceColor(
+                            entry.pred.confidence,
+                        )}"
+                    >
+                        <Item.Header
+                            class="mb-2 basis-auto flex-row min-w-0 shrink-0"
+                        >
+                            <Item.Title class="min-w-0 truncate">
+                                <span
+                                    class="text-xs font-bold w-6 h-6 rounded-full bg-background inline-flex items-center justify-center"
+                                >
+                                    {entry.rank + 1}
+                                </span>
+                                {entry.pred.class}
+                            </Item.Title>
+                            <span class="font-bold text-sm shrink-0">
+                                {(entry.pred.confidence * 100).toFixed(1)}%
+                            </span>
+                        </Item.Header>
+                        <!-- confidence bar: stays inside the card, full width -->
+                        <Progress
+                            value={entry.pred.confidence * 100}
+                            max={100}
+                            class="h-2 mb-2 w-full max-w-full shrink-0 bg-muted {getConfidenceBarColor(
+                                entry.pred.confidence,
+                            )}"
+                        />
+                        {#if entry.pred.reason}
+                            <Item.Description
+                                class="text-xs opacity-80 min-w-0 break-words"
+                            >
+                                {entry.pred.reason}
+                            </Item.Description>
+                        {/if}
+                    </Item.Root>
+                {/snippet}
+            </Tooltip.Trigger>
+            {#if entry.pred.reason}
+                <Tooltip.Content>
+                    <p>{entry.pred.reason}</p>
+                </Tooltip.Content>
+            {/if}
+        </Tooltip.Root>
+    {/snippet}
+
     {#if result}
         <Item.Root variant="outline" class="flex">
             <Badge variant="secondary" class="h-8 text-md"
@@ -207,70 +324,53 @@
                         {threshold}%
                     </Label>
                 </Item.Content>
-                <!-- constrained inner panel: lists all findings, scrolls up/down -->
-                <Item.Content class="min-w-0">
-                    <div
-                        class="findings-scroll flex flex-col gap-3 h-[340px] overflow-y-auto min-w-0 rounded-xl border p-2 pr-3"
-                    >
-                        {#each filteredPredictions as pred, idx}
-                        <Tooltip.Root>
-                            <Tooltip.Trigger>
-                                {#snippet child({ props })}
-                                    <Item.Root
-                                        {...props}
-                                        variant="outline"
-                                        class="flex-col items-stretch p-3 {getConfidenceColor(
-                                            pred.confidence,
-                                        )}"
+
+                <!-- three distinct category panels under the AI diagnosis section -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 min-w-0">
+                    {#each categoryPanels as panel}
+                        <div
+                            class="flex flex-col rounded-xl border overflow-hidden min-w-0"
+                        >
+                            <div
+                                class="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 shrink-0"
+                            >
+                                <div class="min-w-0">
+                                    <h4
+                                        class="text-sm font-semibold truncate"
                                     >
-                                        <Item.Header
-                                            class="mb-2 basis-auto flex-row min-w-0 shrink-0"
-                                        >
-                                            <Item.Title
-                                                class="min-w-0 truncate"
-                                            >
-                                                <span
-                                                    class="text-xs font-bold w-6 h-6 rounded-full bg-background inline-flex items-center justify-center"
-                                                >
-                                                    {idx + 1}
-                                                </span>
-                                                {pred.class}
-                                            </Item.Title>
-                                            <span
-                                                class="font-bold text-sm shrink-0"
-                                            >
-                                                {(
-                                                    pred.confidence * 100
-                                                ).toFixed(1)}%
-                                            </span>
-                                        </Item.Header>
-                                        <!-- confidence bar: stays inside the card, full width -->
-                                        <Progress
-                                            value={pred.confidence * 100}
-                                            max={100}
-                                            class="h-2 mb-2 w-full max-w-full shrink-0 bg-muted {getConfidenceBarColor(
-                                                pred.confidence,
-                                            )}"
-                                        />
-                                        {#if pred.reason}
-                                            <Item.Description
-                                                class="text-xs opacity-80 min-w-0 break-words"
-                                            >
-                                                {pred.reason}
-                                            </Item.Description>
-                                        {/if}
-                                    </Item.Root>
-                                {/snippet}
-                            </Tooltip.Trigger>
-                            {#if pred.reason}
-                                <Tooltip.Content>
-                                    <p>{pred.reason}</p>
-                                </Tooltip.Content>
-                            {/if}
-                        </Tooltip.Root>
+                                        {panel.title}
+                                    </h4>
+                                    <p
+                                        class="text-xs text-muted-foreground truncate"
+                                    >
+                                        {panel.subtitle}
+                                    </p>
+                                </div>
+                                <Badge
+                                    variant="outline"
+                                    class="ml-auto shrink-0 text-xs"
+                                >
+                                    {panel.items.length}
+                                </Badge>
+                            </div>
+                            <div
+                                class="findings-scroll flex flex-col gap-3 h-[340px] overflow-y-auto min-w-0 p-2 pr-3"
+                            >
+                                {#if panel.items.length > 0}
+                                    {#each panel.items as entry (entry.rank)}
+                                        {@render findingCard(entry)}
+                                    {/each}
+                                {:else}
+                                    <p
+                                        class="text-xs text-muted-foreground italic px-2 py-3"
+                                    >
+                                        No findings in this category
+                                    </p>
+                                {/if}
+                            </div>
+                        </div>
                     {/each}
-                    </div>
-                </Item.Content>
+                </div>
                 {#if analysis.model_version}
                     <p class="text-xs text-muted-foreground mt-3">
                         Model: {analysis.model_version}
