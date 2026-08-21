@@ -96,6 +96,18 @@ good if fundamental changes haven been made in the code and they should be visib
 - ``nvm use [installed version]``
 - In the Frontend File: ``npm run dev``
 
+## Start the Chatbot
+1. boot up Docker so the ollama service is running:
+    - ``docker compose up -d``
+2. pull the LLM model into the ollama container (only needed once, ~2.2 GB):
+    - ``docker compose exec ollama ollama pull phi3:mini``
+3. open the web app and click the bot button in the bottom right corner to start chatting
+
+Notes:
+- the model is stored in the ``ollama_data`` volume, so it survives restarts; re-pull only after ``docker compose down -v``
+- the backend connects to ollama via ``OLLAMA_URL``/``OLLAMA_MODEL`` (configured in docker-compose.yaml)
+- quick test without the UI: ``curl -X POST http://localhost:8080/chat -H "Content-Type: application/json" -d '{"message": "hello", "history": []}'``
+
 ## Update Swagger
 - ``swag init --dir ./cmd/server,./internal/api --output ./docs``
 
