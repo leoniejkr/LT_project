@@ -79,15 +79,15 @@ func TestUpdate(t *testing.T) {
 	p := &Patient{Age: 30, Gender: GenderMale}
 	repo.Create(p)
 
-	p.KnownIllnesses = Illnesses{IllnessPneumonia}
+	p.History = Histories{History("Recent surgery (anesthesia / open-heart)")}
 	p.OrthancIDs = ImagePaths{"id-1", "id-2"}
 	if err := repo.Update(p); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	found, _ := repo.FindByID(p.ID)
-	if len(found.KnownIllnesses) != 1 {
-		t.Errorf("illnesses len = %d, want 1", len(found.KnownIllnesses))
+	if len(found.History) != 1 {
+		t.Errorf("history len = %d, want 1", len(found.History))
 	}
 	if len(found.OrthancIDs) != 2 {
 		t.Errorf("orthanc ids len = %d, want 2", len(found.OrthancIDs))

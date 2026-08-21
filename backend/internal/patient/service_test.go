@@ -168,7 +168,7 @@ func TestGetPatient(t *testing.T) {
 	defer llmSrv.Close()
 	defer orthancSrv.Close()
 
-	p := &Patient{Age: 70, Gender: GenderDiverse, KnownIllnesses: Illnesses{IllnessEmphysema}}
+	p := &Patient{Age: 70, Gender: GenderDiverse, History: Histories{History("Asthma, COPD, or Emphysema")}}
 	svc.CreatePatient(p, nil)
 
 	found, err := svc.GetPatient(p.ID)
