@@ -19,6 +19,7 @@
 		ImageUp,
 		LoaderCircle,
 		X,
+		ClipboardList,
 	} from "lucide-svelte";
 	import { goto } from "$app/navigation";
 	import {
@@ -31,7 +32,13 @@
 		SYMPTOM_TOPICS,
 		ALL_SYMPTOM_TAGS,
 		type SymptomTag,
+		type SymptomTopic,
 	} from "$lib/symptoms";
+	import {
+		HISTORY_TOPICS,
+		ALL_HISTORY_TAGS,
+		type HistoryTag,
+	} from "$lib/history";
 
 	let { data }: { data: any } = $props();
 	let files = $state<FileList | undefined>();
@@ -50,28 +57,27 @@
 	// Patient Metadata
 	let patientAge = $state("");
 
-	// Known Illnesses
-	let illnesses = $state({
-		covid: false,
-		pneumonia: false,
-		emphysema: false,
-		effusion: false,
-		fibrosis: false,
-	});
-
 	// Symptoms (tag id -> checked)
 	const allSymptomTags: SymptomTag[] = ALL_SYMPTOM_TAGS;
 	const selectedSymptoms = $state<Record<string, boolean>>(
 		Object.fromEntries(allSymptomTags.map((tag) => [tag.id, false])),
 	);
 
-	// Panel / subtopic folding
+	// Medical history / risk factors (tag id -> checked)
+	const allHistoryTags: HistoryTag[] = ALL_HISTORY_TAGS;
+	const selectedHistory = $state<Record<string, boolean>>(
+		Object.fromEntries(allHistoryTags.map((tag) => [tag.id, false])),
+	);
+
+	// Panel / subtopic folding (topic names are unique across both catalogs)
 	let openTopics = $state<Record<string, boolean>>(
-		Object.fromEntries(SYMPTOM_TOPICS.map((t) => [t.topic, true])),
+		Object.fromEntries(
+			[...SYMPTOM_TOPICS, ...HISTORY_TOPICS].map((t) => [t.topic, true]),
+		),
 	);
 	let openGroupsByTopic = $state<Record<string, string[]>>(
 		Object.fromEntries(
-			SYMPTOM_TOPICS.map((t) => [
+			[...SYMPTOM_TOPICS, ...HISTORY_TOPICS].map((t) => [
 				t.topic,
 				t.groups.map((g) => groupKey(t.topic, g.name)),
 			]),
@@ -86,14 +92,18 @@
 		openTopics[topic] = !openTopics[topic];
 	}
 
-	function selectedCountOf(tags: SymptomTag[]): number {
-		return tags.filter((tag) => selectedSymptoms[tag.id]).length;
+	function selectedCountOf(
+		tags: { id: string }[],
+		selection: Record<string, boolean>,
+	): number {
+		return tags.filter((tag) => selection[tag.id]).length;
 	}
 
-	function selectedSymptomLabels(): string[] {
-		return allSymptomTags
-			.filter((tag) => selectedSymptoms[tag.id])
-			.map((tag) => tag.label);
+	function selectedLabels(
+		tags: { id: string; label: string }[],
+		selection: Record<string, boolean>,
+	): string[] {
+		return tags.filter((tag) => selection[tag.id]).map((tag) => tag.label);
 	}
 
 	let showDialog = $state(false);
@@ -138,10 +148,8 @@
 		const metadata = {
 			age: parseInt(patientAge),
 			gender: value,
-			knownIllnesses: Object.keys(illnesses).filter(
-				(k) => illnesses[k as keyof typeof illnesses],
-			),
-			symptoms: selectedSymptomLabels(),
+			symptoms: selectedLabels(allSymptomTags, selectedSymptoms),
+			history: selectedLabels(allHistoryTags, selectedHistory),
 		};
 
 		formData.append("formData", JSON.stringify(metadata));
@@ -184,7 +192,7 @@
 		}
 	}
 
-	// TODO: reusable components besonders bei der checklist der known illnesses
+	// TODO: reusable components besonders bei den checklist panels (symptoms & history)
 	// das kann man gut mit shadcn machen, aber das würde ich jetzt noch nciht machen,
 	// sondern erst, wenn die funktionalität an sich steht und wir das später nocvh schöner machen wollen
 
@@ -298,81 +306,108 @@
 									></Field.Field>
 								</Field.Group>
 							</Field.Group>
-							<Field.Group
-								class="flex-row flex-wrap gap-y-1 mt-4"
-							>
-								<Field.Legend
-									class="w-full text-sm font-semibold"
-								>
-									Known Illnesses
-								</Field.Legend>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="covid"
-										bind:checked={illnesses.covid}
-									/>
-									<Field.Label for="covid"
-										>Covid19</Field.Label
-									>
-								</Field.Field>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="pneumonia"
-										bind:checked={illnesses.pneumonia}
-									/>
-									<Field.Label for="pneumonia"
-										>Pneumonia</Field.Label
-									>
-								</Field.Field>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="emphysema"
-										bind:checked={illnesses.emphysema}
-									/>
-									<Field.Label for="emphysema"
-										>Emphysema</Field.Label
-									>
-								</Field.Field>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="effusion"
-										bind:checked={illnesses.effusion}
-									/>
-									<Field.Label for="effusion"
-										>Effusion</Field.Label
-									>
-								</Field.Field>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="fibrosis"
-										bind:checked={illnesses.fibrosis}
-									/>
-									<Field.Label for="fibrosis"
-										>Fibrosis</Field.Label
-									>
-								</Field.Field>
-							</Field.Group>
 						</Field.Set>
 					</form>
 				</Item.Content>
 			</Item.Root>
 		</div>
 	</div>
+
+	{#snippet topicChecklist(
+			topics: SymptomTopic[],
+			selected: Record<string, boolean>,
+			idPrefix: string,
+		)}
+		{#each topics as topic (topic.topic)}
+			{@const topicCount = selectedCountOf(
+				topic.groups.flatMap((g) => g.symptoms),
+				selected,
+			)}
+			<div class="rounded-xl border p-4">
+				<button
+					type="button"
+					class="flex w-full items-center justify-between gap-4 text-left"
+					onclick={() => toggleTopic(topic.topic)}
+					aria-expanded={openTopics[topic.topic]}
+				>
+					<span class="flex items-center gap-2 font-medium">
+						{topic.topic}
+					</span>
+					<span class="flex items-center gap-3">
+						{#if topicCount > 0}
+							<Badge variant="secondary" class="text-xs">
+								{topicCount} selected
+							</Badge>
+						{/if}
+						<ChevronDown
+							size={16}
+							class="text-muted-foreground transition-transform {openTopics[
+								topic.topic
+							]
+								? ''
+								: '-rotate-90'}"
+						/>
+					</span>
+				</button>
+
+				{#if openTopics[topic.topic]}
+					<Accordion.Root
+						type="multiple"
+						bind:value={openGroupsByTopic[topic.topic]}
+						class="mt-3"
+					>
+						{#each topic.groups as group, groupIndex (group.name)}
+							{@const key = groupKey(topic.topic, group.name)}
+							{@const groupCount = selectedCountOf(group.symptoms, selected)}
+							<Accordion.Item
+								value={key}
+								class={groupIndex > 0 ? "border-t" : ""}
+							>
+								<Accordion.Trigger
+									class="py-2.5 hover:no-underline text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+								>
+									<span class="flex items-center gap-2">
+										{group.name}
+										{#if groupCount > 0}
+											<Badge
+												variant="secondary"
+												class="h-4 px-1.5 text-[10px] normal-case"
+											>
+												{groupCount}
+											</Badge>
+										{/if}
+									</span>
+								</Accordion.Trigger>
+								<Accordion.Content>
+									<div
+										class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 pb-1"
+									>
+										{#each group.symptoms as tag (tag.id)}
+											<Field.Field
+												orientation="horizontal"
+												class="w-auto items-start"
+											>
+												<Checkbox
+													id={`${idPrefix}-${tag.id}`}
+													bind:checked={selected[tag.id]}
+												/>
+												<Field.Label
+													for={`${idPrefix}-${tag.id}`}
+													class="font-normal leading-tight"
+												>
+													{tag.label}
+												</Field.Label>
+											</Field.Field>
+										{/each}
+									</div>
+								</Accordion.Content>
+							</Accordion.Item>
+						{/each}
+					</Accordion.Root>
+				{/if}
+			</div>
+		{/each}
+	{/snippet}
 
 	<div class="w-full">
 		<Item.Root variant="outline">
@@ -381,94 +416,20 @@
 					<ClipboardCheck size={18} /> Symptom Checklist
 				</Item.Title>
 				<div class="mt-4 flex flex-col gap-3">
-					{#each SYMPTOM_TOPICS as topic (topic.topic)}
-						{@const topicCount = selectedCountOf(
-							topic.groups.flatMap((g) => g.symptoms),
-						)}
-						<div class="rounded-xl border p-4">
-							<button
-								type="button"
-								class="flex w-full items-center justify-between gap-4 text-left"
-								onclick={() => toggleTopic(topic.topic)}
-								aria-expanded={openTopics[topic.topic]}
-							>
-								<span class="flex items-center gap-2 font-medium">
-									{topic.topic}
-								</span>
-								<span class="flex items-center gap-3">
-									{#if topicCount > 0}
-										<Badge variant="secondary" class="text-xs">
-											{topicCount} selected
-										</Badge>
-									{/if}
-									<ChevronDown
-										size={16}
-										class="text-muted-foreground transition-transform {openTopics[
-											topic.topic
-										]
-											? ''
-											: '-rotate-90'}"
-									/>
-								</span>
-							</button>
+					{@render topicChecklist(SYMPTOM_TOPICS, selectedSymptoms, "symptom")}
+				</div>
+			</Item.Content>
+		</Item.Root>
+	</div>
 
-							{#if openTopics[topic.topic]}
-								<Accordion.Root
-									type="multiple"
-									bind:value={openGroupsByTopic[topic.topic]}
-									class="mt-3"
-								>
-									{#each topic.groups as group, groupIndex (group.name)}
-										{@const key = groupKey(topic.topic, group.name)}
-										{@const groupCount = selectedCountOf(group.symptoms)}
-										<Accordion.Item
-											value={key}
-											class={groupIndex > 0 ? "border-t" : ""}
-										>
-											<Accordion.Trigger
-												class="py-2.5 hover:no-underline text-xs font-semibold uppercase tracking-wide text-muted-foreground"
-											>
-												<span class="flex items-center gap-2">
-													{group.name}
-													{#if groupCount > 0}
-														<Badge
-															variant="secondary"
-															class="h-4 px-1.5 text-[10px] normal-case"
-														>
-															{groupCount}
-														</Badge>
-													{/if}
-												</span>
-											</Accordion.Trigger>
-											<Accordion.Content>
-												<div
-													class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 pb-1"
-												>
-													{#each group.symptoms as tag (tag.id)}
-														<Field.Field
-															orientation="horizontal"
-															class="w-auto items-start"
-														>
-															<Checkbox
-																id={`symptom-${tag.id}`}
-																bind:checked={selectedSymptoms[tag.id]}
-															/>
-															<Field.Label
-																for={`symptom-${tag.id}`}
-																class="font-normal leading-tight"
-															>
-																{tag.label}
-															</Field.Label>
-														</Field.Field>
-													{/each}
-												</div>
-											</Accordion.Content>
-										</Accordion.Item>
-									{/each}
-								</Accordion.Root>
-							{/if}
-						</div>
-					{/each}
+	<div class="w-full">
+		<Item.Root variant="outline">
+			<Item.Content class="w-full">
+				<Item.Title class="flex items-center gap-2">
+					<ClipboardList size={18} /> Medical History & Risk Factors
+				</Item.Title>
+				<div class="mt-4 flex flex-col gap-3">
+					{@render topicChecklist(HISTORY_TOPICS, selectedHistory, "history")}
 				</div>
 			</Item.Content>
 		</Item.Root>

@@ -14,33 +14,6 @@ const (
 	GenderDiverse Gender = "Diverse"
 )
 
-type Illness string
-
-// Illnesses ist ein Hilfstyp für das Speichern von Slices als JSONB in Postgres
-type Illnesses []Illness
-
-const (
-	IllnessCovid     Illness = "Covid19"
-	IllnessPneumonia Illness = "Pneumonia"
-	IllnessEmphysema Illness = "Emphysema"
-	IllnessEffusion  Illness = "Effusion"
-	IllnessFibrosis  Illness = "Fibrosis"
-)
-
-// wird benötigt für speicherung von go slices in postgres
-func (i *Illnesses) Scan(value any) error {
-	bytes, ok := value.([]byte)
-	if !ok {
-		return errors.New("type assertion to []byte failed")
-	}
-	return json.Unmarshal(bytes, &i)
-}
-
-// wird benötigt für speicherung von go slices in postgres
-func (i Illnesses) Value() (driver.Value, error) {
-	return json.Marshal(i)
-}
-
 type Symptom string
 
 // Symptom vocabulary grouped by topic. Values must match the labels
@@ -138,6 +111,25 @@ func (s Symptoms) Value() (driver.Value, error) {
 	return json.Marshal(s)
 }
 
+// History entries cover injuries, lifestyle/exposure factors, medical
+// conditions and demographics. Vocabulary is defined in
+// frontend/src/lib/history.ts; values are stored and forwarded as-is.
+type History string
+
+type Histories []History
+
+func (h *Histories) Scan(value any) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("type assertion to []byte failed")
+	}
+	return json.Unmarshal(bytes, &h)
+}
+
+func (h Histories) Value() (driver.Value, error) {
+	return json.Marshal(h)
+}
+
 type ImagePaths []string
 
 func (p *ImagePaths) Scan(value any) error {
@@ -153,10 +145,10 @@ func (p ImagePaths) Value() (driver.Value, error) {
 }
 
 type Patient struct {
-	ID             uint       `gorm:"primaryKey" json:"id"`
-	Age            uint       `gorm:"not null" json:"age"`
-	Gender         Gender     `gorm:"not null" json:"gender"`
-	KnownIllnesses Illnesses  `gorm:"type:jsonb" json:"knownIllnesses"`
-	Symptoms       Symptoms   `gorm:"type:jsonb" json:"symptoms"`
-	OrthancIDs     ImagePaths `gorm:"type:jsonb" json:"orthancIDs"`
+	ID         uint       `gorm:"primaryKey" json:"id"`
+	Age        uint       `gorm:"not null" json:"age"`
+	Gender     Gender     `gorm:"not null" json:"gender"`
+	Symptoms   Symptoms   `gorm:"type:jsonb" json:"symptoms"`
+	History    Histories  `gorm:"type:jsonb" json:"history"`
+	OrthancIDs ImagePaths `gorm:"type:jsonb" json:"orthancIDs"`
 }

@@ -18,11 +18,16 @@ def generate_reasons(predictions: list[dict], patient: dict) -> list[dict]:
         gender = patient.get("gender", "unknown")
         illnesses = patient.get("knownIllnesses", [])
         symptoms = patient.get("symptoms", [])
+        history = patient.get("history", [])
         patient_info = f"Patient: {age} years old, {gender}."
         if illnesses:
             patient_info += f" Known conditions: {', '.join(illnesses)}."
         if symptoms:
             patient_info += f" Symptoms: {', '.join(symptoms)}."
+        if history:
+            patient_info += (
+                f" Relevant history and risk factors: {', '.join(history)}."
+            )
 
     predictions_text = "\n".join(
         f"- {p['class']} (confidence: {p['confidence']:.0%})"

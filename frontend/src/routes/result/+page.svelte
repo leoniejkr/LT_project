@@ -59,8 +59,8 @@
             id: 123,
             age: 62,
             gender: "Male",
-            knownIllnesses: ["Covid19", "Pneumonia"],
             symptoms: ["Cough", "Fever"],
+            history: ["Smoking tobacco / cigarettes"],
             orthancIDs: [],
         },
     };
@@ -441,22 +441,6 @@
             <div class="flex flex-col gap-4">
                 <Item.Root variant="outline">
                     <Item.Header>
-                        <Item.Title>Known Illnesses</Item.Title>
-                    </Item.Header>
-                    <Item.Content class="flex flex-wrap gap-2">
-                        {#each patient.knownIllnesses ?? metadata.knownIllnesses ?? [] as illness}
-                            <Badge
-                                variant="outline"
-                                class="illness-badge"
-                            >
-                                {illness}
-                            </Badge>
-                        {/each}
-                    </Item.Content>
-                </Item.Root>
-
-                <Item.Root variant="outline">
-                    <Item.Header>
                         <Item.Title>Known Symptoms</Item.Title>
                     </Item.Header>
                     <Item.Content class="flex flex-wrap gap-2">
@@ -466,6 +450,22 @@
                                 class="symptom-badge"
                             >
                                 {symptom}
+                            </Badge>
+                        {/each}
+                    </Item.Content>
+                </Item.Root>
+
+                <Item.Root variant="outline">
+                    <Item.Header>
+                        <Item.Title>Medical History & Risk Factors</Item.Title>
+                    </Item.Header>
+                    <Item.Content class="flex flex-wrap gap-2">
+                        {#each patient.history ?? metadata.history ?? [] as entry}
+                            <Badge
+                                variant="outline"
+                                class="symptom-badge"
+                            >
+                                {entry}
                             </Badge>
                         {/each}
                     </Item.Content>

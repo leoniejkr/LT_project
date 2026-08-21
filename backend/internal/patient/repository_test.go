@@ -24,10 +24,10 @@ func TestCreate_Success(t *testing.T) {
 	repo := NewRepository(db)
 
 	p := &Patient{
-		Age:            62,
-		Gender:         GenderMale,
-		KnownIllnesses: Illnesses{IllnessCovid, IllnessPneumonia},
-		Symptoms:       Symptoms{SymptomProductiveCough, SymptomFever},
+		Age:      62,
+		Gender:   GenderMale,
+		History:  Histories{History("Asthma, COPD, or Emphysema")},
+		Symptoms: Symptoms{SymptomProductiveCough, SymptomFever},
 	}
 
 	if err := repo.Create(p); err != nil {

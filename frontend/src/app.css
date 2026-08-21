@@ -200,12 +200,6 @@
         background-color: var(--chart-2);
     }
 
-    .illness-badge {
-        color: oklch(0.65 0.18 75);
-        background-color: oklch(0.65 0.18 75 / 10%);
-        border-color: oklch(0.65 0.18 75 / 30%);
-    }
-
     .symptom-badge {
         color: oklch(0.6 0.14 175);
         background-color: oklch(0.6 0.14 175 / 10%);
