@@ -15,6 +15,8 @@
 		ClipboardCheck,
 		Cpu,
 		ImageUp,
+		LoaderCircle,
+		X,
 	} from "lucide-svelte";
 	import { goto } from "$app/navigation";
 	import {
@@ -61,6 +63,18 @@
 	let showDialog = $state(false);
 	let dialogMessage = $state("");
 
+	let showAnalysisPanel = $state(false);
+	let analysisController: AbortController | null = null;
+
+	function abortAnalysis() {
+		analysisController?.abort();
+		analysisController = null;
+		showAnalysisPanel = false;
+		fetch("/api/analysis", { method: "DELETE" }).catch((e) =>
+			console.error("Failed to clean up data after abort:", e),
+		);
+	}
+
 	async function startAnalysis() {
 		if (!files || files.length === 0) {
 			dialogMessage = "Please upload at least one X-Ray file.";
@@ -101,9 +115,12 @@
 		console.log("Submitting Case:", metadata);
 
 		try {
+			analysisController = new AbortController();
+			showAnalysisPanel = true;
 			const response = await fetch("/api/analysis", {
 				method: "POST",
 				body: formData,
+				signal: analysisController.signal,
 			});
 			const result = await response.json();
 			console.log("Analysis Result:", result);
@@ -121,9 +138,15 @@
 			);
 			goto("/result");
 		} catch (error) {
+			if (error instanceof DOMException && error.name === "AbortError") {
+				return;
+			}
 			console.error("Analysis failed:", error);
 			dialogMessage = `Analysis failed: ${error instanceof Error ? error.message : "Unknown error"}. Check if all services are running.`;
 			showDialog = true;
+		} finally {
+			showAnalysisPanel = false;
+			analysisController = null;
 		}
 	}
 
@@ -376,6 +399,30 @@
 					OK
 				</AlertDialog.Action>
 			</div>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={showAnalysisPanel}>
+	<AlertDialog.Content size="sm" escapeKeydownBehavior="ignore">
+		<AlertDialog.Header>
+			<AlertDialog.Title class="flex items-center gap-2">
+				<LoaderCircle class="size-5 animate-spin" />
+				Analysis in Progress
+			</AlertDialog.Title>
+			<AlertDialog.Description>
+				Your X-Ray images are being analyzed. This may take a moment.
+				The application is blocked until the analysis finishes.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<Button
+				variant="destructive"
+				class="w-full"
+				onclick={abortAnalysis}
+			>
+				<X /> Abort Analysis
+			</Button>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>
