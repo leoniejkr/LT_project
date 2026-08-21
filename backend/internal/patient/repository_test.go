@@ -43,10 +43,10 @@ func TestFindByID_Found(t *testing.T) {
 	repo := NewRepository(db)
 
 	created := &Patient{
-		Age:            45,
-		Gender:         GenderFemale,
-		KnownIllnesses: Illnesses{IllnessEffusion},
-		Symptoms:       Symptoms{SymptomFatigue},
+		Age:      45,
+		Gender:   GenderFemale,
+		History:  Histories{History("Known pleural effusion")},
+		Symptoms: Symptoms{SymptomFatigue},
 	}
 	repo.Create(created)
 
