@@ -68,6 +68,8 @@ services:
       DATABASE_URL: host=db user=trustai_user password=trustai_password dbname=trustai_db port=5432 sslmode=disable TimeZone=Europe/Berlin
       MODELLING_URL: http://modelling:5000
       ORTHANC_URL: http://orthanc:8042
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: phi3:mini
       PORT: 8080
 
   frontend:

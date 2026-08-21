@@ -2,6 +2,7 @@ package api
 
 import (
 	"backend/internal/analysis"
+	"backend/internal/chat"
 	"backend/internal/orthanc"
 	"backend/internal/patient"
 	"bytes"
@@ -52,7 +53,7 @@ func setupHandler(t *testing.T, llmHandler http.HandlerFunc) (*Handler, *httptes
 	patientRepo := patient.NewRepository(db)
 	patientSvc := patient.NewService(patientRepo, analysisSvc, orthancRepo)
 
-	handler := NewHandler(patientSvc)
+	handler := NewHandler(patientSvc, chat.NewClient())
 	return handler, llmServer, orthancServer
 }
 
@@ -378,5 +379,127 @@ func TestDeleteAnalysis_CleansUpData(t *testing.T) {
 
 	if deleteW.Code != http.StatusOK {
 		t.Errorf("delete status = %d, want %d", deleteW.Code, http.StatusOK)
+	}
+}
+
+func setupOllama(t *testing.T, handler func(messages []map[string]string) (string, int)) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Model    string                `json:"model"`
+			Messages []map[string]string   `json:"messages"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Errorf("failed to decode ollama request: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		reply, status := handler(req.Messages)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		json.NewEncoder(w).Encode(map[string]any{
+			"message": map[string]string{"role": "assistant", "content": reply},
+		})
+	}))
+}
+
+func TestChat_Success(t *testing.T) {
+	var receivedMessages []map[string]string
+	ollamaSrv := setupOllama(t, func(messages []map[string]string) (string, int) {
+		receivedMessages = messages
+		return "Test reply", http.StatusOK
+	})
+	defer ollamaSrv.Close()
+	t.Setenv("OLLAMA_URL", ollamaSrv.URL)
+
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+
+	body := `{"message": "What does the finding mean?", "history": [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hi"}]}`
+	req := httptest.NewRequest(http.MethodPost, "/chat", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.Chat(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var resp map[string]string
+	json.NewDecoder(w.Body).Decode(&resp)
+	if resp["reply"] != "Test reply" {
+		t.Errorf("reply = %v, want 'Test reply'", resp["reply"])
+	}
+
+	if len(receivedMessages) == 0 || receivedMessages[0]["role"] != "system" {
+		t.Error("expected system prompt as first message")
+	}
+	last := receivedMessages[len(receivedMessages)-1]
+	if last["role"] != "user" || last["content"] != "What does the finding mean?" {
+		t.Errorf("last message = %v/%v, want user/'What does the finding mean?'", last["role"], last["content"])
+	}
+}
+
+func TestChat_MissingMessage(t *testing.T) {
+	ollamaSrv := setupOllama(t, func(messages []map[string]string) (string, int) {
+		return "", http.StatusOK
+	})
+	defer ollamaSrv.Close()
+	t.Setenv("OLLAMA_URL", ollamaSrv.URL)
+
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/chat", strings.NewReader(`{"history": []}`))
+	w := httptest.NewRecorder()
+
+	handler.Chat(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+}
+
+func TestChat_InvalidJSON(t *testing.T) {
+	ollamaSrv := setupOllama(t, func(messages []map[string]string) (string, int) {
+		return "", http.StatusOK
+	})
+	defer ollamaSrv.Close()
+	t.Setenv("OLLAMA_URL", ollamaSrv.URL)
+
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/chat", strings.NewReader("not json"))
+	w := httptest.NewRecorder()
+
+	handler.Chat(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+	}
+}
+
+func TestChat_OllamaFailure(t *testing.T) {
+	ollamaSrv := setupOllama(t, func(messages []map[string]string) (string, int) {
+		return "model overloaded", http.StatusInternalServerError
+	})
+	defer ollamaSrv.Close()
+	t.Setenv("OLLAMA_URL", ollamaSrv.URL)
+
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+
+	req := httptest.NewRequest(http.MethodPost, "/chat", strings.NewReader(`{"message": "hi"}`))
+	w := httptest.NewRecorder()
+
+	handler.Chat(w, req)
+
+	if w.Code != http.StatusBadGateway {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusBadGateway)
 	}
 }

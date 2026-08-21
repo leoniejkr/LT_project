@@ -1,6 +1,7 @@
 package api
 
 import (
+	"backend/internal/chat"
 	"backend/internal/patient"
 	"encoding/json"
 	"io"
@@ -10,17 +11,20 @@ import (
 
 type Handler struct {
 	patientService *patient.Service
+	chatClient     *chat.Client
 }
 
-func NewHandler(patientService *patient.Service) *Handler {
+func NewHandler(patientService *patient.Service, chatClient *chat.Client) *Handler {
 	return &Handler{
 		patientService: patientService,
+		chatClient:     chatClient,
 	}
 }
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /analysis", h.GetAnalysis)
 	router.HandleFunc("DELETE /analysis", h.DeleteAnalysis)
+	router.HandleFunc("POST /chat", h.Chat)
 }
 
 func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
@@ -109,4 +113,49 @@ func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"status": "deleted",
 	})
+}
+
+const chatSystemPrompt = `You are a medical AI assistant helping clinicians understand chest X-ray analysis results.
+Answer questions about diagnoses, confidence scores and findings clearly and concisely.
+If you are unsure, say so. Always recommend consulting a radiologist for final decisions.`
+
+type ChatRequest struct {
+	Message string         `json:"message"`
+	History []chat.Message `json:"history"`
+}
+
+func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
+	var req ChatRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Message == "" {
+		http.Error(w, "Missing message", http.StatusBadRequest)
+		return
+	}
+
+	messages := []chat.Message{{Role: "system", Content: chatSystemPrompt}}
+	for _, m := range req.History {
+		if m.Role == "user" || m.Role == "assistant" {
+			messages = append(messages, m)
+		}
+	}
+
+	last := len(messages) - 1
+	if last < 1 || messages[last].Role != "user" || messages[last].Content != req.Message {
+		messages = append(messages, chat.Message{Role: "user", Content: req.Message})
+	}
+
+	reply, err := h.chatClient.SendMessage(messages)
+	if err != nil {
+		w.WriteHeader(http.StatusBadGateway)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Chat failed: " + err.Error(),
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{"reply": reply})
 }
