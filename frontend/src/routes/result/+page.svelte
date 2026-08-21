@@ -16,7 +16,8 @@
     import { Chat } from "$lib/components/ui/chat/index.js";
 
     import { goto } from "$app/navigation";
-    import { Stethoscope, FileDigit, Undo2, RotateCcw } from "lucide-svelte";
+    import { Stethoscope, FileDigit, Undo2, RotateCcw, AlertTriangle } from "lucide-svelte";
+    import * as Alert from "$lib/components/ui/alert/index.js";
     import "../../app.css";
     import CornerstoneViewport from "./cornerstone-viewport.svelte";
     import ImageBar from "./image-bar.svelte";
@@ -261,6 +262,8 @@
     let activeImageResult = $derived(
         filteredImageResults.find((r) => r.index === activeHeatmapIndex) ?? null,
     );
+
+    let isMockData = $derived(Boolean(analysis.is_mock));
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
@@ -284,6 +287,22 @@
             <RotateCcw size={16} /> Start New Analysis
         </Button>
     </div>
+
+    {#if isMockData}
+        <Alert.Root
+            class="border-amber-500/60 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-200"
+        >
+            <AlertTriangle size={18} class="mt-0.5 shrink-0" />
+            <div>
+                <Alert.Title>Test data — not a real analysis</Alert.Title>
+                <Alert.Description>
+                    This page is showing sample demo data. The results, images
+                    and heatmaps below are placeholders and must not be used
+                    for any medical decision-making.
+                </Alert.Description>
+            </div>
+        </Alert.Root>
+    {/if}
 
     {#snippet findingCard(entry: CategorizedPrediction)}
         <Tooltip.Root>
