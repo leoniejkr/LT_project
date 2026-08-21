@@ -207,8 +207,12 @@
                         {threshold}%
                     </Label>
                 </Item.Content>
-                <Item.Content class="flex flex-col gap-3">
-                    {#each filteredPredictions as pred, idx}
+                <!-- constrained inner panel: lists all findings, scrolls up/down -->
+                <Item.Content class="min-w-0">
+                    <div
+                        class="findings-scroll flex flex-col gap-3 h-[340px] overflow-y-auto min-w-0 rounded-xl border p-2 pr-3"
+                    >
+                        {#each filteredPredictions as pred, idx}
                         <Tooltip.Root>
                             <Tooltip.Trigger>
                                 {#snippet child({ props })}
@@ -219,8 +223,12 @@
                                             pred.confidence,
                                         )}"
                                     >
-                                        <Item.Header class="mb-2">
-                                            <Item.Title>
+                                        <Item.Header
+                                            class="mb-2 basis-auto flex-row min-w-0 shrink-0"
+                                        >
+                                            <Item.Title
+                                                class="min-w-0 truncate"
+                                            >
                                                 <span
                                                     class="text-xs font-bold w-6 h-6 rounded-full bg-background inline-flex items-center justify-center"
                                                 >
@@ -228,21 +236,26 @@
                                                 </span>
                                                 {pred.class}
                                             </Item.Title>
-                                            <span class="font-bold text-sm">
+                                            <span
+                                                class="font-bold text-sm shrink-0"
+                                            >
                                                 {(
                                                     pred.confidence * 100
                                                 ).toFixed(1)}%
                                             </span>
                                         </Item.Header>
+                                        <!-- confidence bar: stays inside the card, full width -->
                                         <Progress
                                             value={pred.confidence * 100}
                                             max={100}
-                                            class="h-2 mb-2 bg-muted {getConfidenceBarColor(
+                                            class="h-2 mb-2 w-full max-w-full shrink-0 bg-muted {getConfidenceBarColor(
                                                 pred.confidence,
                                             )}"
                                         />
                                         {#if pred.reason}
-                                            <Item.Description class="text-xs opacity-80">
+                                            <Item.Description
+                                                class="text-xs opacity-80 min-w-0 break-words"
+                                            >
                                                 {pred.reason}
                                             </Item.Description>
                                         {/if}
@@ -256,6 +269,7 @@
                             {/if}
                         </Tooltip.Root>
                     {/each}
+                    </div>
                 </Item.Content>
                 {#if analysis.model_version}
                     <p class="text-xs text-muted-foreground mt-3">
@@ -385,3 +399,26 @@
         </Item.Root>
     {/if}
 </div>
+
+<style>
+    /* findings list inside AI Diagnosis Ranking: vertical scroll in a
+       constrained inner panel — same scrollbar styling as the
+       heatmap panel */
+    .findings-scroll {
+        min-width: 0;
+        overscroll-behavior-y: contain;
+        scrollbar-width: auto;
+        scrollbar-color: var(--muted-foreground) var(--muted);
+    }
+    .findings-scroll::-webkit-scrollbar {
+        width: 10px;
+        -webkit-appearance: none;
+    }
+    .findings-scroll::-webkit-scrollbar-track {
+        background: var(--muted);
+    }
+    .findings-scroll::-webkit-scrollbar-thumb {
+        background: var(--muted-foreground);
+        border-radius: 8px;
+    }
+</style>
