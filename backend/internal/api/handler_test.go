@@ -441,6 +441,42 @@ func TestChat_Success(t *testing.T) {
 	}
 }
 
+func TestChat_WithContext(t *testing.T) {
+	var receivedMessages []map[string]string
+	ollamaSrv := setupOllama(t, func(messages []map[string]string) (string, int) {
+		receivedMessages = messages
+		return "Test reply", http.StatusOK
+	})
+	defer ollamaSrv.Close()
+	t.Setenv("OLLAMA_URL", ollamaSrv.URL)
+
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+
+	body := `{"message": "What symptoms do I have?", "context": {"patient": {"age": 62, "symptoms": ["Fever (up to 105°F / 40°C)", "Shortness of breath (dyspnea)"], "history": ["Smoking tobacco / cigarettes"]}}}`
+	req := httptest.NewRequest(http.MethodPost, "/chat", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.Chat(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	foundContext := false
+	for _, m := range receivedMessages {
+		if m["role"] == "system" &&
+			strings.Contains(m["content"], "Fever (up to 105°F / 40°C)") &&
+			strings.Contains(m["content"], "Smoking tobacco / cigarettes") {
+			foundContext = true
+		}
+	}
+	if !foundContext {
+		t.Error("expected patient context (symptoms and history) in a system message sent to Ollama")
+	}
+}
+
 func TestChat_MissingMessage(t *testing.T) {
 	ollamaSrv := setupOllama(t, func(messages []map[string]string) (string, int) {
 		return "", http.StatusOK

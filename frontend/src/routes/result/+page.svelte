@@ -264,6 +264,24 @@
     );
 
     let isMockData = $derived(Boolean(analysis.is_mock));
+
+    // Context handed to the chat assistant so it knows the patient's
+    // checked symptoms, medical history/risk factors and the findings.
+    let chatContext = $derived({
+        patient: {
+            age: metadata.age,
+            gender: metadata.gender,
+            symptoms: metadata.symptoms ?? [],
+            history: metadata.history ?? [],
+        },
+        analysis: {
+            model_version: analysis.model_version,
+            predictions: predictions.map((p) => ({
+                class: p.class,
+                confidence: p.confidence,
+            })),
+        },
+    });
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
@@ -544,7 +562,7 @@
             </div>
         </div>
         <HeatmapBar imageResults={filteredImageResults} />
-        <Chat />
+        <Chat context={chatContext} />
     {:else}
         <Item.Root variant="outline" class="bg:primary">
             <Item.Content
