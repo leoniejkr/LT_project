@@ -78,7 +78,7 @@ func TestGetAnalysis_Success(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	patientData := `{"age":62,"gender":"Male","symptoms":["Cough"],"history":["Smoking tobacco / cigarettes"]}`
+	patientData := `{"age":62,"gender":"Male","symptoms":["Shortness of breath (dyspnea)"],"history":["Smoking tobacco / cigarettes"]}`
 	writer.WriteField("formData", patientData)
 
 	part, _ := writer.CreateFormFile("image_files", "xray.png")

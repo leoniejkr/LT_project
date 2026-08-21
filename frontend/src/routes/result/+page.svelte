@@ -22,6 +22,13 @@
     import ImageBar from "./image-bar.svelte";
     import HeatmapBar from "./heatmap-bar.svelte";
     import type { Prediction, ImageResult } from "$lib/types.js";
+    import { symptomLabelById } from "$lib/symptoms";
+    import { historyLabelById } from "$lib/history";
+
+    // Resolve mock patient data from the live tag catalogs so the
+    // example view always shows current vocabulary.
+    const symptomTag = (id: string): string => symptomLabelById(id) ?? id;
+    const historyTag = (id: string): string => historyLabelById(id) ?? id;
 
     const defaultResult = {
         status: "success",
@@ -59,8 +66,17 @@
             id: 123,
             age: 62,
             gender: "Male",
-            symptoms: ["Cough", "Fever"],
-            history: ["Smoking tobacco / cigarettes"],
+            symptoms: [
+                symptomTag("fever"),
+                symptomTag("productive_cough"),
+                symptomTag("dyspnea"),
+                symptomTag("fatigue"),
+            ],
+            history: [
+                historyTag("smoking_tobacco"),
+                historyTag("hypertension"),
+                historyTag("heart_disease"),
+            ],
             orthancIDs: [],
         },
     };

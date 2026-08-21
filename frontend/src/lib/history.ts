@@ -301,3 +301,7 @@ export const HISTORY_TOPICS: HistoryTopic[] = [
 export const ALL_HISTORY_TAGS: HistoryTag[] = HISTORY_TOPICS.flatMap(
 	(t) => t.groups.flatMap((g) => g.symptoms),
 );
+
+export function historyLabelById(id: string): string | undefined {
+	return ALL_HISTORY_TAGS.find((t) => t.id === id)?.label;
+}
