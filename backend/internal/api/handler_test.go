@@ -6,6 +6,8 @@ import (
 	"backend/internal/patient"
 	"bytes"
 	"encoding/json"
+	"image"
+	"image/png"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -15,6 +17,16 @@ import (
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
+
+func testPNG(t *testing.T) []byte {
+	t.Helper()
+	img := image.NewGray(image.Rect(0, 0, 4, 4))
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("failed to create test png: %v", err)
+	}
+	return buf.Bytes()
+}
 
 func setupHandler(t *testing.T, llmHandler http.HandlerFunc) (*Handler, *httptest.Server, *httptest.Server) {
 	t.Helper()
@@ -69,7 +81,7 @@ func TestGetAnalysis_Success(t *testing.T) {
 	writer.WriteField("formData", patientData)
 
 	part, _ := writer.CreateFormFile("image_files", "xray.png")
-	part.Write([]byte("fake-png-data"))
+	part.Write(testPNG(t))
 	writer.Close()
 
 	req := httptest.NewRequest(http.MethodPost, "/analysis", body)
@@ -78,8 +90,8 @@ func TestGetAnalysis_Success(t *testing.T) {
 
 	handler.GetAnalysis(w, req)
 
-	if w.Code != http.StatusAccepted {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusAccepted)
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
 	}
 
 	var resp map[string]any
@@ -180,8 +192,8 @@ func TestGetAnalysis_NoFiles(t *testing.T) {
 
 	handler.GetAnalysis(w, req)
 
-	if w.Code != http.StatusAccepted {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusAccepted)
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
 	}
 }
 
@@ -230,9 +242,9 @@ func TestGetAnalysis_MultipleFiles(t *testing.T) {
 	writer := multipart.NewWriter(body)
 	writer.WriteField("formData", `{"age":50,"gender":"Male"}`)
 
-	for i, name := range []string{"a.png", "b.png", "c.png"} {
+	for _, name := range []string{"a.png", "b.png", "c.png"} {
 		part, _ := writer.CreateFormFile("image_files", name)
-		part.Write([]byte{byte(i)})
+		part.Write(testPNG(t))
 	}
 	writer.Close()
 
@@ -242,8 +254,8 @@ func TestGetAnalysis_MultipleFiles(t *testing.T) {
 
 	handler.GetAnalysis(w, req)
 
-	if w.Code != http.StatusAccepted {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusAccepted)
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
 	}
 }
 
@@ -266,14 +278,14 @@ func TestGetAnalysis_LLMFailure(t *testing.T) {
 
 	handler.GetAnalysis(w, req)
 
-	if w.Code != http.StatusAccepted {
-		t.Errorf("status = %d, want %d (partial on LLM failure)", w.Code, http.StatusAccepted)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want %d (LLM failure)", w.Code, http.StatusInternalServerError)
 	}
 
 	var resp map[string]any
 	json.NewDecoder(w.Body).Decode(&resp)
-	if resp["status"] != "partial" {
-		t.Errorf("response status = %v, want partial", resp["status"])
+	if resp["status"] != "error" {
+		t.Errorf("response status = %v, want error", resp["status"])
 	}
 }
 
@@ -310,7 +322,7 @@ func TestGetAnalysis_CaseInsensitivePNG(t *testing.T) {
 	writer.WriteField("formData", `{"age":25,"gender":"Male"}`)
 
 	part, _ := writer.CreateFormFile("image_files", "XRAY.PNG")
-	part.Write([]byte("fake-png"))
+	part.Write(testPNG(t))
 	writer.Close()
 
 	req := httptest.NewRequest(http.MethodPost, "/analysis", body)
@@ -319,8 +331,8 @@ func TestGetAnalysis_CaseInsensitivePNG(t *testing.T) {
 
 	handler.GetAnalysis(w, req)
 
-	if w.Code != http.StatusAccepted {
-		t.Errorf("status = %d, want %d (uppercase .PNG should be allowed)", w.Code, http.StatusAccepted)
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d (uppercase .PNG should be allowed)", w.Code, http.StatusOK)
 	}
 }
 
@@ -340,8 +352,8 @@ func TestGetAnalysis_MissingImageFiles(t *testing.T) {
 
 	handler.GetAnalysis(w, req)
 
-	if w.Code != http.StatusAccepted {
-		t.Errorf("status = %d, want %d (no image files is ok)", w.Code, http.StatusAccepted)
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d (no image files is ok)", w.Code, http.StatusOK)
 	}
 }
 

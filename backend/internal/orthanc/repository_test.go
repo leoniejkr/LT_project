@@ -1,14 +1,55 @@
 package orthanc
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"image"
+	"image/color"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+func makeTestPNG(t *testing.T) []byte {
+	t.Helper()
+	img := image.NewGray(image.Rect(0, 0, 4, 4))
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("failed to create test png: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func makeTestPalettePNG(t *testing.T) []byte {
+	t.Helper()
+	palette := color.Palette{color.Black, color.White}
+	img := image.NewPaletted(image.Rect(0, 0, 4, 4), palette)
+	for y := 0; y < 4; y++ {
+		for x := 0; x < 4; x++ {
+			img.Set(x, y, palette[(x+y)%2])
+		}
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("failed to create palette test png: %v", err)
+	}
+	return buf.Bytes()
+}
+
+func makeTestJPEG(t *testing.T) []byte {
+	t.Helper()
+	img := image.NewGray(image.Rect(0, 0, 4, 4))
+	var buf bytes.Buffer
+	if err := jpeg.Encode(&buf, img, nil); err != nil {
+		t.Fatalf("failed to create test jpeg: %v", err)
+	}
+	return buf.Bytes()
+}
 
 func TestStoreXRays_Success(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +91,7 @@ func TestStoreXRays_Success(t *testing.T) {
 	defer server.Close()
 
 	repo := NewRepository(server.URL, "", "")
-	instanceID, err := repo.StoreXRays("Patient_1", "42", []byte("fake-png"))
+	instanceID, err := repo.StoreXRays("Patient_1", "42", makeTestPNG(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -60,18 +101,24 @@ func TestStoreXRays_Success(t *testing.T) {
 }
 
 func TestStoreXRays_Base64Encoding(t *testing.T) {
-	pngData := []byte("real-png-bytes")
-	expectedEncoded := base64.StdEncoding.EncodeToString(pngData)
+	pngData := makeTestPNG(t)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		var payload map[string]any
 		json.Unmarshal(body, &payload)
 
-		content := payload["Content"].(string)
-		expected := "data:image/png;base64," + expectedEncoded
-		if content != expected {
-			t.Errorf("Content does not match expected base64 encoding")
+		content, ok := payload["Content"].(string)
+		if !ok || !strings.HasPrefix(content, "data:image/png;base64,") {
+			t.Fatalf("unexpected Content format: %v", payload["Content"])
+		}
+
+		raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(content, "data:image/png;base64,"))
+		if err != nil {
+			t.Fatalf("Content is not valid base64: %v", err)
+		}
+		if _, err := png.Decode(bytes.NewReader(raw)); err != nil {
+			t.Fatalf("Content is not a valid png: %v", err)
 		}
 
 		w.Write([]byte(`{"ID": "test-id"}`))
@@ -79,8 +126,7 @@ func TestStoreXRays_Base64Encoding(t *testing.T) {
 	defer server.Close()
 
 	repo := NewRepository(server.URL, "", "")
-	_, err := repo.StoreXRays("P", "1", pngData)
-	if err != nil {
+	if _, err := repo.StoreXRays("P", "1", pngData); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -102,7 +148,7 @@ func TestStoreXRays_WithAuth(t *testing.T) {
 	defer server.Close()
 
 	repo := NewRepository(server.URL, "admin", "secret")
-	_, err := repo.StoreXRays("P", "1", []byte("data"))
+	_, err := repo.StoreXRays("P", "1", makeTestPNG(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -119,7 +165,7 @@ func TestStoreXRays_WithoutAuth(t *testing.T) {
 	defer server.Close()
 
 	repo := NewRepository(server.URL, "", "")
-	_, err := repo.StoreXRays("P", "1", []byte("data"))
+	_, err := repo.StoreXRays("P", "1", makeTestPNG(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -133,7 +179,7 @@ func TestStoreXRays_ServerError(t *testing.T) {
 	defer server.Close()
 
 	repo := NewRepository(server.URL, "", "")
-	_, err := repo.StoreXRays("P", "1", []byte("data"))
+	_, err := repo.StoreXRays("P", "1", makeTestPNG(t))
 	if err == nil {
 		t.Fatal("expected error for server error")
 	}
@@ -149,7 +195,7 @@ func TestStoreXRays_InvalidJSONResponse(t *testing.T) {
 	defer server.Close()
 
 	repo := NewRepository(server.URL, "", "")
-	_, err := repo.StoreXRays("P", "1", []byte("data"))
+	_, err := repo.StoreXRays("P", "1", makeTestPNG(t))
 	if err == nil {
 		t.Fatal("expected error for invalid JSON response")
 	}
@@ -157,7 +203,7 @@ func TestStoreXRays_InvalidJSONResponse(t *testing.T) {
 
 func TestStoreXRays_ConnectionRefused(t *testing.T) {
 	repo := NewRepository("http://localhost:1", "", "")
-	_, err := repo.StoreXRays("P", "1", []byte("data"))
+	_, err := repo.StoreXRays("P", "1", makeTestPNG(t))
 	if err == nil {
 		t.Fatal("expected error for connection refused")
 	}
@@ -182,8 +228,101 @@ func TestStoreXRays_DICOMTags(t *testing.T) {
 	defer server.Close()
 
 	repo := NewRepository(server.URL, "", "")
-	_, err := repo.StoreXRays("P", "1", []byte("data"))
+	_, err := repo.StoreXRays("P", "1", makeTestPNG(t))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestStoreXRays_FlattensPalettePNG(t *testing.T) {
+	var received []byte
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var payload map[string]any
+		json.Unmarshal(body, &payload)
+
+		content := payload["Content"].(string)
+		raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(content, "data:image/png;base64,"))
+		if err != nil {
+			t.Fatalf("invalid base64: %v", err)
+		}
+		received = raw
+		w.Write([]byte(`{"ID": "flat-id"}`))
+	}))
+	defer server.Close()
+
+	palettePNG := makeTestPalettePNG(t)
+
+	cfg, _, err := image.DecodeConfig(bytes.NewReader(palettePNG))
+	if err != nil {
+		t.Fatalf("fixture should be a valid png: %v", err)
+	}
+	if _, isPalette := cfg.ColorModel.(color.Palette); !isPalette {
+		t.Fatal("fixture should be a palette png")
+	}
+
+	repo := NewRepository(server.URL, "", "")
+	if _, err := repo.StoreXRays("P", "1", palettePNG); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	cfg, format, err := image.DecodeConfig(bytes.NewReader(received))
+	if err != nil {
+		t.Fatalf("stored content should be a valid png: %v", err)
+	}
+	if format != "png" {
+		t.Errorf("format = %q, want png", format)
+	}
+	if _, isPalette := cfg.ColorModel.(color.Palette); isPalette {
+		t.Error("palette should have been flattened, but stored png is still paletted")
+	}
+}
+
+func TestStoreXRays_AcceptsJPEG(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		var payload map[string]any
+		json.Unmarshal(body, &payload)
+
+		content := payload["Content"].(string)
+		raw, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(content, "data:image/png;base64,"))
+		if err != nil {
+			t.Fatalf("invalid base64: %v", err)
+		}
+		cfg, format, err := image.DecodeConfig(bytes.NewReader(raw))
+		if err != nil {
+			t.Fatalf("jpeg input was not converted to a readable image: %v", err)
+		}
+		if format != "png" {
+			t.Errorf("format = %q, want converted png", format)
+		}
+		if cfg.Width != 4 || cfg.Height != 4 {
+			t.Errorf("size = %dx%d, want 4x4", cfg.Width, cfg.Height)
+		}
+
+		w.Write([]byte(`{"ID": "jpeg-id"}`))
+	}))
+	defer server.Close()
+
+	repo := NewRepository(server.URL, "", "")
+	if _, err := repo.StoreXRays("P", "1", makeTestJPEG(t)); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestStoreXRays_RejectsInvalidImageData(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("orthanc should not be called with invalid image data")
+		w.Write([]byte(`{"ID": "never"}`))
+	}))
+	defer server.Close()
+
+	repo := NewRepository(server.URL, "", "")
+	_, err := repo.StoreXRays("P", "1", []byte("this-is-not-an-image"))
+	if err == nil {
+		t.Fatal("expected error for invalid image data")
+	}
+	if !strings.Contains(err.Error(), "unsupported image data") {
+		t.Errorf("error should mention unsupported image data, got: %v", err)
 	}
 }
