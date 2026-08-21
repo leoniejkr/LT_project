@@ -25,6 +25,11 @@
 		uploadedFileUrls,
 	} from "$lib/stores.js";
 	import "../../app.css";
+	import {
+		SYMPTOM_TOPICS,
+		ALL_SYMPTOM_TAGS,
+		type SymptomTag,
+	} from "$lib/symptoms";
 
 	let { data }: { data: any } = $props();
 	let files = $state<FileList | undefined>();
@@ -52,13 +57,17 @@
 		fibrosis: false,
 	});
 
-	// Symptoms
-	let symptoms = $state({
-		cough: false,
-		fever: false,
-		dyspnea: false,
-		fatigue: false,
-	});
+	// Symptoms (tag id -> checked)
+	const allSymptomTags: SymptomTag[] = ALL_SYMPTOM_TAGS;
+	const selectedSymptoms = $state<Record<string, boolean>>(
+		Object.fromEntries(allSymptomTags.map((tag) => [tag.id, false])),
+	);
+
+	function selectedSymptomLabels(): string[] {
+		return allSymptomTags
+			.filter((tag) => selectedSymptoms[tag.id])
+			.map((tag) => tag.label);
+	}
 
 	let showDialog = $state(false);
 	let dialogMessage = $state("");
@@ -105,9 +114,7 @@
 			knownIllnesses: Object.keys(illnesses).filter(
 				(k) => illnesses[k as keyof typeof illnesses],
 			),
-			symptoms: Object.keys(symptoms).filter(
-				(k) => symptoms[k as keyof typeof symptoms],
-			),
+			symptoms: selectedSymptomLabels(),
 		};
 
 		formData.append("formData", JSON.stringify(metadata));
@@ -346,31 +353,49 @@
 				<Item.Title class="flex items-center gap-2 mb-4">
 					<ClipboardCheck size={18} /> Symptom Checklist
 				</Item.Title>
-				<div class="flex flex-wrap gap-x-8 gap-y-3">
-					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="cough" bind:checked={symptoms.cough} />
-						<Field.Label for="cough">Cough</Field.Label>
-					</Field.Field>
-					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="fever" bind:checked={symptoms.fever} />
-						<Field.Label for="fever">Fever</Field.Label>
-					</Field.Field>
-					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox
-							id="dyspnea"
-							bind:checked={symptoms.dyspnea}
-						/>
-						<Field.Label for="dyspnea"
-							>Shortness of breath</Field.Label
-						>
-					</Field.Field>
-					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox
-							id="fatigue"
-							bind:checked={symptoms.fatigue}
-						/>
-						<Field.Label for="fatigue">Fatigue</Field.Label>
-					</Field.Field>
+				<div
+					class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-6"
+				>
+					{#each SYMPTOM_TOPICS as topic (topic.topic)}
+						<div class="flex flex-col gap-3">
+							<Field.Legend class="text-sm font-semibold">
+								{topic.topic}
+							</Field.Legend>
+							{#each topic.groups as group (group.name ?? "")}
+								{#if group.name}
+									<p class="text-xs font-medium text-muted-foreground -mb-2">
+										{group.name}
+									</p>
+								{/if}
+								<div class="flex flex-col gap-2.5">
+									{#each group.symptoms as tag (tag.id)}
+										<Field.Field
+											orientation="horizontal"
+											class="w-auto items-start"
+										>
+											<Checkbox
+												id={`symptom-${tag.id}`}
+												bind:checked={selectedSymptoms[tag.id]}
+											/>
+											<Field.Label
+												for={`symptom-${tag.id}`}
+												class="flex flex-col gap-0.5 font-normal leading-tight"
+											>
+												<span>{tag.label}</span>
+												{#if tag.description}
+													<span
+														class="text-xs text-muted-foreground"
+													>
+														{tag.description}
+													</span>
+												{/if}
+											</Field.Label>
+										</Field.Field>
+									{/each}
+								</div>
+							{/each}
+						</div>
+					{/each}
 				</div>
 			</Item.Content>
 		</Item.Root>

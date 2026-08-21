@@ -27,7 +27,7 @@ func TestCreate_Success(t *testing.T) {
 		Age:            62,
 		Gender:         GenderMale,
 		KnownIllnesses: Illnesses{IllnessCovid, IllnessPneumonia},
-		Symptoms:       Symptoms{SymptomCough, SymptomFever},
+		Symptoms:       Symptoms{SymptomProductiveCough, SymptomFever},
 	}
 
 	if err := repo.Create(p); err != nil {
