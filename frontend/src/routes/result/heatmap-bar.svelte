@@ -26,7 +26,7 @@
         variant="outline"
         class="flex-col items-stretch p-4 overflow-hidden heatmap-root"
     >
-        <div class="flex items-center justify-between mb-4 shrink-0">
+        <div class="flex items-center justify-between mb-4 shrink-0 pr-3">
             <h3 class="text-lg font-semibold">Per-Image Heatmap Analysis</h3>
             <span class="text-xs text-muted-foreground whitespace-nowrap">
                 {imageResults.length} image(s) — use the bar or arrows in each
