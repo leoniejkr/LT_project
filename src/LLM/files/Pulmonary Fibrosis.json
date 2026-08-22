@@ -1,0 +1,120 @@
+[
+  {
+    "primary_condition": "Pulmonary Fibrosis",
+    "definition": "A progressive disease characterized by lung scarring, stiffness, and impaired healing from damage or inflammation.",
+    "general_symptoms": [
+      "Shortness of breath, especially during or soon after exertion",
+      "Breathing in short, shallow spurts",
+      "Dry cough that doesn’t go away",
+      "Fatigue",
+      "Unexplained weight loss",
+      "Clubbed fingers",
+      "Bluish, gray or white skin around your lips, eyes or nails (cyanosis)"
+    ],
+    "general_causes": [
+      "Lungs not healing properly from damage or inflammation",
+      "Connective tissue disease (rheumatoid arthritis (RA), lupus, scleroderma)",
+      "Environmental exposures (asbestos, silica, beryllium, hypersensitivity pneumonitis from certain molds, bacteria, or bits of bird feathers/droppings)",
+      "Granulomatous disease (sarcoidosis, Langerhans cell histiocytosis)",
+      "Medications or treatments (amiodarone, nitrofurantoin, methotrexate, radiation therapy)",
+      "Smoking",
+      "Unknown cause (Idiopathic pulmonary fibrosis)"
+    ],
+    "general_diagnosis_methods": [
+      "Listening to lungs",
+      "Pulmonary (lung) function tests",
+      "Ruling out other conditions that affect heart and lungs",
+      "Chest X-ray",
+      "High-resolution CT (HRCT) scan",
+      "Blood tests, including an arterial blood gas",
+      "Bronchoscopy",
+      "Biopsy",
+      "Echocardiogram"
+    ],
+    "general_treatments": [
+      "Antifibrotic medications (Nintedanib / OFEV®, pirfenidone / Esbriet®)",
+      "Corticosteroids",
+      "Oxygen therapy",
+      "Pulmonary rehabilitation",
+      "Lung transplant",
+      "Clinical trials",
+      "Medications to treat underlying causes (like autoimmune disease) or conditions that make scarring worse (like GERD)"
+    ],
+    "general_outlook": [
+      "Permanent and usually gets progressively worse over time",
+      "Lung scarring is nearly always permanent (unless caused by a medication and caught early)",
+      "Healthcare providers can't easily predict how it will progress; symptoms may get worse very slowly over years or lead to severe symptoms quickly over months"
+    ],
+    "complications": [
+      "Low oxygen in your blood (hypoxemia) and tissues (hypoxia)",
+      "High blood pressure in your lungs (pulmonary hypertension)",
+      "Collapsed lung",
+      "Lung infections",
+      "Respiratory failure",
+      "Heart failure"
+    ],
+    "prevention": [
+      "Avoiding substances that can harm your lungs (asbestos, metal dust, chemicals) and wearing a respirator mask if working with them",
+      "Avoiding things that can cause chronic allergic reactions (hay, grain, bird droppings, feathers, heating/cooling systems) and wearing a respirator mask if working with them",
+      "Not smoking or quitting smoking"
+    ],
+    "living_with": [
+      "Washing hands frequently, disinfecting surfaces, and avoiding crowded places",
+      "Getting recommended vaccinations (pneumonia, flu, RSV, COVID)"
+    ],
+    "is_contagious": null,
+    "etiology_and_subtypes": [
+      {
+        "category_name": "Idiopathic Pulmonary Fibrosis (IPF)",
+        "definition": "Form of pulmonary fibrosis with an unknown cause.",
+        "life_expectancy": [
+          "Three to five years for idiopathic pulmonary fibrosis (though life expectancies have been getting longer in recent years)"
+        ],
+        "symptoms": [],
+        "causes": [
+          "Unknown cause"
+        ],
+        "treatments": [],
+        "outlook": [],
+        "diagnosis": [],
+        "complications": [],
+        "prevention": [],
+        "living_with": [],
+        "is_contagious": null
+      },
+      {
+        "category_name": "Autoimmune / Connective Tissue Disease-Associated",
+        "causes": [
+          "Rheumatoid arthritis (RA)",
+          "Lupus",
+          "Scleroderma"
+        ]
+      },
+      {
+        "category_name": "Environmental & Occupational Exposure-Associated",
+        "causes": [
+          "Asbestos",
+          "Silica",
+          "Beryllium",
+          "Hypersensitivity pneumonitis (from certain molds, bacteria, or bits of bird feathers/droppings)"
+        ]
+      },
+      {
+        "category_name": "Granulomatous Disease-Associated",
+        "causes": [
+          "Sarcoidosis",
+          "Langerhans cell histiocytosis"
+        ]
+      },
+      {
+        "category_name": "Drug & Treatment-Induced",
+        "causes": [
+          "Amiodarone",
+          "Nitrofurantoin",
+          "Methotrexate",
+          "Radiation therapy"
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,122 @@
+[
+  {
+    "primary_condition": "Atelectasis",
+    "definition": "A condition where part or all of your lung deflates or collapses due to air sacs (alveoli) losing air.",
+    "general_symptoms": [
+      "Usually doesn't cause symptoms",
+      "Shortness of breath (dyspnea)",
+      "Coughing",
+      "Chest pain",
+      "Rapid breathing (tachypnea)",
+      "Blue or gray skin, lips or nails (cyanosis)"
+    ],
+    "general_causes": [
+      "Chest or belly surgery",
+      "A blocked airway (obstruction)",
+      "A chest injury",
+      "Being in bed sick and not taking deep breaths, especially when mucus accumulates in your airways",
+      "Anesthesia during surgery (not breathing deeply enough or coughing to clear mucus)",
+      "Taking shallow breaths due to chest pain",
+      "Lying in bed with belly pushing up against lungs",
+      "Buildup of mucus in airways (mucus plug) after surgery, during severe asthma attacks, or due to infection",
+      "Breathing in a foreign object (food, small toy parts)",
+      "Fluid around lungs",
+      "Air around lungs",
+      "Cancerous tumors",
+      "Noncancerous (benign) growths",
+      "Lung scarring",
+      "Underlying illnesses (COPD, bronchiectasis, ARDS, COVID-19, pneumonia)"
+    ],
+    "general_diagnosis_methods": [
+      "Health history review",
+      "Physical exam",
+      "Chest X-rays",
+      "CT scan",
+      "Pulse oximetry",
+      "Ultrasound",
+      "Bronchoscopy"
+    ],
+    "general_treatments": [
+      "Monitoring/regular appointments (mild cases often go away without treatment)",
+      "Incentive spirometry",
+      "Bronchoscopy to remove a blockage",
+      "Pulmonary toilet to clear mucus",
+      "Physical therapy",
+      "Bronchodilators",
+      "Chemotherapy or radiation therapy (to treat a tumor)",
+      "Walking around, breathing exercises (especially for post-surgery)"
+    ],
+    "general_outlook": [
+      "Often goes away on its own",
+      "In most cases, with proper diagnosis and treatment, outlook is good",
+      "Often reversible once cause is determined",
+      "Recovery is usually quick without serious lasting effects",
+      "Atelectasis after surgery usually goes away after 24 hours",
+      "Further treatment may be needed if caused by a long-lasting condition"
+    ],
+    "complications": [
+      "Low blood oxygen levels (hypoxemia)",
+      "Pneumonia",
+      "Respiratory failure"
+    ],
+    "subtypes_and_causes": [
+      {
+        "type": "Compressive atelectasis",
+        "mechanism": "Something around the lung pushes against it causing it to collapse.",
+        "causes": [
+          "Fluid",
+          "Air",
+          "Blood",
+          "Tumor"
+        ]
+      },
+      {
+        "type": "Resorptive/obstructive atelectasis",
+        "mechanism": "A blockage prevents air from filling alveoli; air enters bloodstream without new air coming in, causing alveoli to collapse.",
+        "causes": [
+          "Mucus",
+          "Tumor",
+          "Foreign object accidentally breathed in"
+        ]
+      },
+      {
+        "type": "Microatelectasis",
+        "mechanism": "Lack of surfactant (layer of lipids and proteins lining alveoli that protect lungs from collapsing).",
+        "associated_groups_or_conditions": [
+          "Preterm babies",
+          "Acute respiratory distress syndrome (ARDS)"
+        ]
+      },
+      {
+        "type": "Contraction atelectasis",
+        "mechanism": "Alveoli kept from opening properly.",
+        "causes": [
+          "Lung scarring (fibrosis)"
+        ]
+      },
+      {
+        "type": "Bibasilar atelectasis",
+        "definition": "Partial collapse of the lower part of the lungs.",
+        "causes": [
+          "Not breathing deeply",
+          "Being in bed and having belly push up on lungs"
+        ]
+      },
+      {
+        "type": "Rounded atelectasis",
+        "definition": "The pleura folds and causes lung to collapse."
+      },
+      {
+        "type": "Gravity-dependent atelectasis",
+        "definition": "Gravity causes the lowest parts of lungs to deflate.",
+        "causes": [
+          "Lying on your back"
+        ]
+      },
+      {
+        "type": "Subsegmental atelectasis",
+        "definition": "Mildest form of atelectasis; usually doesn't cause symptoms and goes away quickly."
+      }
+    ]
+  }
+]

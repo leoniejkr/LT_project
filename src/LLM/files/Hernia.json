@@ -1,0 +1,146 @@
+[
+  {
+    "primary_condition": "Hernia",
+    "definition": "A condition occurring when an internal organ or tissue pushes through a weakness or preexisting opening in surrounding muscle or connective tissue.",
+    "general_symptoms": [
+      "Visible lump or bulge that appears during certain activities or in certain physical positions and goes back in at other times",
+      "Pressure",
+      "Dull ache",
+      "Pinching when the hernia comes out",
+      "Sharp pain when the hernia comes through the opening",
+      "Irritability in babies"
+    ],
+    "general_causes": [
+      "Gradual occurrence as you get older and regular wear and tear on your muscles begins to add up",
+      "Injury / traumatic injury",
+      "Surgery",
+      "Birth disorder / preexisting opening",
+      "Weakness or a preexisting opening in your muscle or connective tissue",
+      "Repetitive stress injury",
+      "Years of pressure or exertion"
+    ],
+    "general_diagnosis_methods": [
+      "Simple physical exam",
+      "Asking you to cough or adjust your position",
+      "Physically reducing it",
+      "Soft tissue imaging, such as a CT scan"
+    ],
+    "general_treatments": [
+      "Wait-and-watch approach",
+      "Surgical repair (pushing herniated tissue back into place and reinforcing the barrier with stitches or surgical mesh)",
+      "Minimally-invasive methods (laparoscopic surgery or robotic surgery)",
+      "Traditional open surgery"
+    ],
+    "general_outlook": [
+      "Most aren’t serious, but they can be and can become more serious over time",
+      "Tend to worsen over time, most will need surgical repair sooner or later",
+      "Small hernia may never bother you much, but hernias tend to grow bigger over time",
+      "Surgery is usually a simple outpatient procedure with a short recovery",
+      "Surgery is almost always successful, but there is a 10% chance of the hernia returning sometime later"
+    ],
+    "complications": [
+      "Incarceration (hernia getting stuck in the hole and unable to go back in)",
+      "Strangulation (tissue cut off from blood supply)",
+      "Necrosis (tissue death)",
+      "Gangrene",
+      "Bowel obstruction",
+      "Fever",
+      "Nausea",
+      "Vomiting",
+      "Surgical complications: excessive bleeding, wound infection, reactions to anesthesia, short-term difficulty urinating"
+    ],
+    "prevention": [],
+    "living_with": [
+      "Adjust habits or the nature of work to avoid straining the hernia",
+      "Wearing a special restraining belt to hold it in during certain activities",
+      "Pay attention to symptoms and any changes experienced"
+    ],
+    "is_contagious": null,
+    "types_and_subtypes": [
+      {
+        "type_name": "Inguinal Hernia",
+        "causes": [
+          "Part of your bowel protruding into your inguinal canal"
+        ],
+        "specific_symptoms": [
+          "Visible scrotal swelling in people with testicles"
+        ],
+        "complications": [
+          "Chronic groin pain after inguinal hernia repair"
+        ]
+      },
+      {
+        "type_name": "Femoral Hernia",
+        "causes": [
+          "Fatty tissue poking through the femoral canal"
+        ],
+        "specific_symptoms": [
+          "Invisible, unexplained groin pain"
+        ]
+      },
+      {
+        "type_name": "Hiatal Hernia",
+        "causes": [
+          "Opening in diaphragm widening and top of stomach pushing up through the opening into the chest"
+        ],
+        "specific_symptoms": [
+          "Chronic acid reflux",
+          "Heartburn",
+          "Indigestion"
+        ],
+        "specific_treatments": [
+          "Nissen fundoplication"
+        ],
+        "outlook": [
+          "Often won't need repair"
+        ],
+        "complications": [
+          "Chronic acid reflux"
+        ]
+      },
+      {
+        "type_name": "Congenital Diaphragmatic Hernia",
+        "causes": [
+          "Diaphragm doesn’t close all the way during fetal development"
+        ],
+        "specific_treatments": [
+          "Intensive care for babies"
+        ],
+        "complications": [
+          "Abdominal organs slipping up into the chest cavity and crowding the lungs",
+          "Affecting how fetal organs develop",
+          "Causing babies to be critically ill"
+        ]
+      },
+      {
+        "type_name": "Incisional Hernia",
+        "causes": [
+          "Tissue protruding through a former incision in your abdominal wall that weakened over time",
+          "Abdominal surgery"
+        ]
+      },
+      {
+        "type_name": "Umbilical Hernia",
+        "causes": [
+          "Part of your intestine poking through an opening in your abdominal wall near your belly button",
+          "Congenital (present from birth)"
+        ],
+        "specific_treatments": [
+          "Umbilical hernia repair"
+        ],
+        "outlook": [
+          "Often closes on its own as your child grows"
+        ]
+      },
+      {
+        "type_name": "Ventral Hernia"
+      },
+      {
+        "type_name": "Perineal Hernia",
+        "causes": [
+          "Organs or tissue pushing through an opening or weakness in your pelvic floor into your abdominal cavity"
+        ]
+      }
+    ]
+  }
+]

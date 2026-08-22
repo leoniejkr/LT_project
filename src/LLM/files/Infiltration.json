@@ -1,0 +1,25 @@
+[
+  {
+    "disease_name": "pulmonary infiltration",
+    "symptoms": [
+      "worsening gas exchange"
+    ],
+    "causes": [
+      "immigration of inflammatory cells or Tumor cells in the lung tissue"
+    ],
+    "treatments": [],
+    "life_expectancy": [],
+    "outlook": [],
+    "diagnosis": [
+      "Physical examination",
+      "increased peripheral breath sounds (Bronchial breathing)",
+      "rattling noises (RG)",
+      "Positive Vocal fremitus",
+      "Reinforced Bronchophony"
+    ],
+    "complications": [],
+    "prevention": [],
+    "living_with": [],
+    "is_contagious": null
+  }
+]

@@ -1,0 +1,88 @@
+[
+  {
+    "disease_name": "Emphysema",
+    "symptoms": [
+      "tiredness",
+      "worsening shortness of breath",
+      "Shortness of breath, especially during physical activity or exertion",
+      "Fatigue",
+      "Long-term cough",
+      "Cough with a lot of mucus",
+      "Wheezing (noises when you breathe)",
+      "Constant feeling of not being able to get enough air",
+      "Frequent respiratory infections or bronchitis",
+      "Chest tightness"
+    ],
+    "causes": [
+      "Smoking",
+      "Anything that causes long-term inflammation in your lungs",
+      "Cigarette smoke",
+      "Exposure to cigar and marijuana smoke",
+      "Exposure to dirty air",
+      "Exposure to dust or chemical fumes from your job or hobbies",
+      "Exposure to secondhand smoke",
+      "Exposure to smoke from campfires or wood-burning stoves",
+      "Long-term or recurrent lung infections",
+      "Alpha-1 antitrypsin deficiency (Alpha-1)"
+    ],
+    "treatments": [
+      "quitting smoking",
+      "Bronchodilators to open your airways",
+      "Inhaled corticosteroids to reduce airway inflammation",
+      "Oral corticosteroids to treat symptom flare-ups (exacerbations)",
+      "Antibiotics to treat bacterial infections",
+      "Oxygen therapy to get more oxygen to your lungs",
+      "Lung volume reduction surgery (LVRS) to remove damaged parts of your lungs",
+      "Bronchoscopic lung volume reduction to place valves in your lungs that release and prevent trapped air",
+      "lung transplant"
+    ],
+    "life_expectancy": [
+      "Depends on your age",
+      "Depends on your lung function and the severity of symptoms at diagnosis",
+      "Depends on whether or not you smoke or used to smoke",
+      "Depends on whether you have Alpha-1 antitrypsin deficiency",
+      "If you have limited damage and it’s not progressing, you may have a normal life expectancy",
+      "If emphysema is in the later stages at diagnosis, it can shorten your life by six to nine years"
+    ],
+    "outlook": [
+      "What to expect depends on the severity of the disease when you’re diagnosed",
+      "People who are diagnosed earlier tend to have better outcomes",
+      "If you quit smoking and avoid other lung irritants, you can slow down the progression of emphysema and reduce your risk of new damage",
+      "The existing damage is permanent and can get worse over time",
+      "With treatment, many people manage their symptoms and improve their quality of life"
+    ],
+    "diagnosis": [
+      "Asking about symptoms",
+      "Listening to heart and lungs",
+      "Tapping on chest to listen for hollow sounds",
+      "Chest X-rays",
+      "CT scans",
+      "Pulmonary function testing",
+      "Arterial blood gas (ABG) test",
+      "Blood tests, including genetic testing to diagnose Alpha-1 antitrypsin deficiency"
+    ],
+    "complications": [
+      "Frequent pneumonia",
+      "High levels of carbon dioxide in your blood (hypercapnia)",
+      "Low levels of oxygen in your blood (hypoxemia)",
+      "High blood pressure in your lungs",
+      "Collapsed lung",
+      "Polycythemia vera, when your body makes too many red blood cells",
+      "Respiratory failure",
+      "Right-sided heart failure"
+    ],
+    "prevention": [
+      "Avoid smoking",
+      "Ask a healthcare provider for resources to help you quit if you currently smoke",
+      "Avoid secondhand smoke",
+      "Avoid chemical fumes",
+      "Avoid dust and toxins in the air",
+      "Wear a respirator mask if you need to be around things that can irritate your lungs",
+      "Getting recommended vaccinations",
+      "Washing your hands frequently",
+      "Wearing a mask when you’re around others who could be sick"
+    ],
+    "living_with": [],
+    "is_contagious": null
+  }
+]

@@ -1,0 +1,255 @@
+[
+  {
+    "primary_condition": "Pulmonary Nodule",
+    "definition": "A spot on the lung, smaller than 3 centimeters (or less than 30 millimeters), that looks different from surrounding normal lung tissue on imaging tests.",
+    "general_symptoms": [
+      "Small lung nodules rarely cause symptoms",
+      "Chest pain",
+      "Shortness of breath (dyspnea) or wheezing",
+      "Chronic cough or coughing up blood",
+      "Fatigue",
+      "Hoarseness",
+      "Loss of appetite and unexplained weight loss",
+      "Recurring respiratory infections like bronchitis or pneumonia"
+    ],
+    "risk_factors": [
+      "Smoking or past history of smoking",
+      "Age older than 65",
+      "Family history or personal history of cancer",
+      "Past radiation therapy to the chest",
+      "Exposure to asbestos, radon, or secondhand smoke"
+    ],
+    "general_causes": [
+      "Infections",
+      "Inhaled particles",
+      "Inflammatory conditions",
+      "Scarring (fibrosis)",
+      "Cancer"
+    ],
+    "general_diagnosis_methods": [
+      "Chest X-rays",
+      "CT scan (including active surveillance every 6 to 12 months)",
+      "PET scan",
+      "Blood tests (to look for infections or other causes)",
+      "Sputum tests (to look for infections or other causes)",
+      "Tissue sample (biopsy) including Bronchoscopy, Thoracoscopy, Video-assisted thoracic surgery (VATS), and Needle biopsy",
+      "Removing the entire nodule"
+    ],
+    "general_treatments": [
+      "Small, noncancerous lung nodules usually don't require treatment",
+      "Active surveillance with additional imaging in 6 to 12 months",
+      "Medications for infection-caused nodules (antibiotics or antifungal medications)",
+      "Surgery (if the nodule grows, causes symptoms, or blocks an airway)"
+    ],
+    "life_expectancy": [
+      "Most pulmonary nodules aren't harmful and don't affect survival",
+      "If cancerous, survival rate depends on cancer type and stage"
+    ],
+    "general_outlook": [
+      "Most lung nodules are benign (not cancerous)",
+      "Benign nodules will usually stay the same size or go away on their own",
+      "Nodules staying the same size during a two-year surveillance period are unlikely to be cancer",
+      "Nodules smaller than 0.6 cm and those with smooth edges are less likely to be cancerous",
+      "Nodules <5 mm have a <1% chance of being cancerous",
+      "Nodules 5 mm to 10 mm have up to a 28% chance of being cancerous",
+      "Nodules >2 cm (approaching lung mass size) have a 64% to 82% chance of malignancy",
+      "Nodules can sometimes begin to grow"
+    ],
+    "complications": [
+      "Small possibility of being cancerous",
+      "Pressing against or blocking an airway (rare for noncancerous nodules)"
+    ],
+    "prevention": [
+      "Not much can be done to prevent benign nodules",
+      "Quitting smoking to keep lungs healthy"
+    ],
+    "living_with": [
+      "Follow up with healthcare provider for additional tests or surveillance",
+      "Monitor for symptoms like shortness of breath or chronic cough",
+      "Seek ER/911 for chest pain, difficulty breathing, or coughing up blood"
+    ],
+    "is_contagious": null,
+    "causes_by_type": [
+      {
+        "category_name": "Infectious Granulomas",
+        "description": "Clusters of immune cells; the most common kind of benign nodules.",
+        "causes": [
+          "Fungal lung infections",
+          "Tuberculosis",
+          "Other lung infections"
+        ]
+      },
+      {
+        "category_name": "Noninfectious Granulomas",
+        "description": "Noninfectious nodule formations caused by autoimmune conditions.",
+        "causes": [
+          "Rheumatoid arthritis",
+          "Sarcoidosis"
+        ]
+      },
+      {
+        "category_name": "Benign Tumors",
+        "types": [
+          "Hamartomas",
+          "Lipomas",
+          "Adenomas"
+        ]
+      },
+      {
+        "category_name": "Pre-cancerous Conditions",
+        "types": [
+          "Atypical adenomatous hyperplasia (condition that can lead to cancer)"
+        ]
+      },
+      {
+        "category_name": "Cancerous Tumors",
+        "types": [
+          "Non-small cell lung cancer",
+          "Small cell lung cancer",
+          "Carcinoid tumors"
+        ]
+      },
+      {
+        "category_name": "Scarring (Fibrosis)",
+        "causes": [
+          "Smoking",
+          "Breathing in lung irritants and chemicals"
+        ]
+      }
+    ],
+    "structural_classification": [
+      {
+        "type": "Ground glass opacity",
+        "description": "Area is hazy and structures underneath remain visible."
+      },
+      {
+        "type": "Solid",
+        "description": "Blocks underlying structures from view."
+      },
+      {
+        "type": "Mix",
+        "description": "Combination of solid and ground-glass opacity."
+      }
+    ]
+  },
+  {
+    "primary_condition": "Lung Mass",
+    "definition": "An abnormal area in the lungs larger than 3 centimeters (about 1.5 inches). More likely to be malignant compared to a lung nodule.",
+    "general_symptoms": [
+      "Chronic cough",
+      "Chest pain",
+      "Blood-tinged sputum / coughing up blood",
+      "Shortness of breath",
+      "Lung pain",
+      "Shoulder pain",
+      "Back pain",
+      "Unexplained weight loss"
+    ],
+    "risk_factors": [
+      "Smoking history",
+      "Age",
+      "Genetics",
+      "Environmental/occupational exposure to cancer-causing agents (e.g., radon, asbestos, wood dust in carpenters)"
+    ],
+    "general_causes": [
+      "Primary lung cancer",
+      "Metastatic cancer from other body parts (breast, colon, bladder cancer)",
+      "Benign lung tumors",
+      "Lung abscesses",
+      "AV malformations",
+      "Lipoid pneumonia",
+      "Pulmonary artery aneurysms",
+      "Amyloidosis",
+      "Fungal infections",
+      "Parasitic infections"
+    ],
+    "general_diagnosis_methods": [
+      "Medical history and physical examination",
+      "Chest X-ray",
+      "CT scan",
+      "MRI scan",
+      "PET scan (detects increased metabolic activity)",
+      "Bronchoscopy (with or without Endobronchial ultrasound for central mass near large airways)",
+      "Fine needle biopsy (for mass in outer lung regions)",
+      "Thoracic surgery / Lung surgery (Video-assisted thoracoscopic surgery [VATS] or traditional thoracotomy)"
+    ],
+    "general_treatments": [
+      "Surgery",
+      "Chemotherapy",
+      "Radiation therapy",
+      "Immunotherapy",
+      "Treatments specific to non-cancerous causes (e.g., for infections based on specific diagnosis)"
+    ],
+    "life_expectancy": [
+      "Advances in treatment have extended survival times in recent years"
+    ],
+    "general_outlook": [
+      "Most often diagnosed as lung cancer (especially with a history of smoking)",
+      "More concerning if described as 'ground glass' on imaging",
+      "Typically benign if stable for two years",
+      "Benign tumors are more likely if showing calcifications, fat, or cavitary shapes"
+    ],
+    "complications": [
+      "Some benign causes can cause serious health complications",
+      "Malignancy / cancer spread"
+    ],
+    "prevention": [],
+    "living_with": [],
+    "is_contagious": null,
+    "causes_by_category": [
+      {
+        "category_name": "Malignant / Cancerous Causes",
+        "subtypes": [
+          {
+            "type_name": "Primary Lung Cancer",
+            "types": [
+              "Non-small cell lung cancer (85% of lung cancers; includes adenocarcinoma, squamous cell carcinoma, large cell carcinoma)",
+              "Small cell lung cancer (10% to 15% of lung cancers)",
+              "Lung carcinoid tumors"
+            ]
+          },
+          {
+            "type_name": "Metastatic Cancers (Spread to lungs)",
+            "types": [
+              "Breast cancer",
+              "Colon cancer",
+              "Bladder cancer"
+            ]
+          }
+        ]
+      },
+      {
+        "category_name": "Benign / Noncancerous Causes",
+        "subtypes": [
+          {
+            "cause_name": "Benign lung tumors",
+            "details": "Includes hamartoma (most common type). People with Cowden syndrome have greater risk."
+          },
+          {
+            "cause_name": "Lung abscesses",
+            "details": "Infections walled off and contained by the body."
+          },
+          {
+            "cause_name": "AV malformations",
+            "details": "Abnormal connection between arteries and veins usually present from birth."
+          },
+          {
+            "cause_name": "Lipoid pneumonia"
+          },
+          {
+            "cause_name": "Pulmonary artery aneurysms",
+            "details": "Outpouching in arteries traveling from heart to lungs."
+          },
+          {
+            "cause_name": "Amyloidosis",
+            "details": "Build-up of abnormal proteins forming a mass."
+          },
+          {
+            "cause_name": "Infections",
+            "details": "Fungal and parasitic infections."
+          }
+        ]
+      }
+    ]
+  }
+]

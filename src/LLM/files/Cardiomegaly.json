@@ -1,0 +1,158 @@
+[
+  {
+    "primary_condition": "Cardiomegaly",
+    "definition": "Enlarged heart; a heart that's bigger than what's typical. The heart may be unusually thick or dilated (stretched), short-term or permanent, and can affect the whole heart or just parts of it.",
+    "general_symptoms": [
+      "Might not cause any symptoms",
+      "Shortness of breath",
+      "Tiredness",
+      "Low energy",
+      "Chest pain",
+      "Dizziness",
+      "Fainting",
+      "Swelling, especially in your legs, feet or belly",
+      "Heart fluttering"
+    ],
+    "general_causes": [
+      "Any disease that makes your heart work harder"
+    ],
+    "general_diagnosis_methods": [
+      "Discussing symptoms, biological family health history, and physical activity",
+      "Physical exam (listening with stethoscope for heart murmur, checking for signs of heart failure like leg swelling, crackles in lungs, engorged neck veins)",
+      "Chest X-ray",
+      "Cardiac CT scan",
+      "Echocardiogram",
+      "Electrocardiogram (EKG)",
+      "Exercise stress test",
+      "Heart MRI",
+      "Genetic testing"
+    ],
+    "general_treatments": [
+      "Lifestyle changes (reduce salt intake, avoid tobacco use, eat heart-healthy foods, regular physical activity, stay at healthy weight, reduce alcohol intake, manage fluid intake)",
+      "Antiarrhythmics",
+      "Angiotensin-converting enzyme (ACE) inhibitors",
+      "Angiotensin II receptor blockers (ARBs)",
+      "Anticoagulants",
+      "Beta-blockers",
+      "Diuretics (salt pills or water pills)",
+      "Implanting a pacemaker",
+      "Placing an implantable cardioverter defibrillator (ICD)",
+      "Repairing or replacing a damaged heart valve",
+      "Placing a stent or performing coronary artery bypass surgery"
+    ],
+    "general_outlook": [
+      "Can be short-term or permanent depending on the cause",
+      "Can be serious or mild depending on the underlying condition",
+      "If caused by a short-term factor (like pregnancy or an infection), the heart returns to its usual size after treatment",
+      "If caused by a chronic condition, it usually won't go away and requires ongoing medication/treatment to manage symptoms",
+      "Some complications can be fatal",
+      "Many people effectively manage symptoms",
+      "Early treatment can stop the condition from getting worse; earlier care gives better chances for a good outcome"
+    ],
+    "complications": [
+      "Blood clots (can lead to heart attack, stroke, or pulmonary embolism)",
+      "Heart failure (if left side is enlarged/left ventricular hypertrophy or dilated)",
+      "Heart murmur",
+      "Sudden cardiac death (from deadly abnormal heart rhythms)"
+    ],
+    "prevention": [
+      "Eating heart-healthy foods",
+      "Being physically active for 150 minutes per week (30 minutes 5 times per week)",
+      "Managing blood pressure, blood sugar, and cholesterol",
+      "Maintaining a weight that's healthy for you",
+      "Avoiding use of tobacco products and other addictive substances",
+      "Sleeping eight hours each night",
+      "Drinking alcohol in moderation"
+    ],
+    "underlying_causes_and_conditions": [
+      {
+        "cause_name": "Coronary artery disease",
+        "description": "Most common cause of cardiomegaly"
+      },
+      {
+        "cause_name": "Rheumatoid arthritis",
+        "mechanism": "Can cause inflammation in your heart muscle"
+      },
+      {
+        "cause_name": "Arrhythmia",
+        "description": "Abnormal heart rhythms",
+        "examples": [
+          "atrial fibrillation",
+          "atrial flutter"
+        ]
+      },
+      {
+        "cause_name": "Infiltrative diseases",
+        "mechanism": "Conditions that deposit substances in your heart",
+        "examples": [
+          "sarcoidosis",
+          "amyloidosis",
+          "hypothyroidism"
+        ]
+      },
+      {
+        "cause_name": "Diseases that make your heart pump a lot of blood",
+        "examples": [
+          "anemia",
+          "hyperthyroidism"
+        ]
+      },
+      {
+        "cause_name": "Cardiomyopathy",
+        "mechanism": "Heart muscle problems",
+        "triggers": [
+          "substance use",
+          "myocarditis",
+          "inherited gene change"
+        ]
+      },
+      {
+        "cause_name": "Congenital heart disease",
+        "description": "Heart problems you're born with",
+        "examples": [
+          "valve issues",
+          "hole in the wall between the left and right sides"
+        ]
+      },
+      {
+        "cause_name": "Hypertensive heart disease",
+        "mechanism": "Damage in your heart from unmanaged, long-term high blood pressure"
+      },
+      {
+        "cause_name": "Kidney failure",
+        "mechanism": "Causes fluid buildup, forcing heart to pump more fluid"
+      },
+      {
+        "cause_name": "Heart valve disease",
+        "mechanism": "Narrow or leaky valves keeping blood from flowing normally"
+      },
+      {
+        "cause_name": "Lung diseases",
+        "examples": [
+          "COPD",
+          "pulmonary hypertension",
+          "other problems restricting breathing"
+        ]
+      },
+      {
+        "cause_name": "Repeated exertion in elite athletes",
+        "notes": "Heart function is normal (or better) despite enlargement"
+      },
+      {
+        "cause_name": "Short-term factors",
+        "examples": [
+          "pregnancy",
+          "infection"
+        ]
+      }
+    ],
+    "risk_factors": [
+      "History of the condition in biological family",
+      "Heavy alcohol use or substance use disorder",
+      "Tobacco use",
+      "High blood pressure",
+      "Personal or family history of heart attacks",
+      "Little to no physical activity"
+    ]
+  }
+]

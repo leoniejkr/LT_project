@@ -1,0 +1,73 @@
+[
+  {
+    "disease_name": "Bullous emphysema",
+    "symptoms": [
+      "Shortness of breath",
+      "Chest pain or pressure",
+      "A cough that’s often worse in the morning",
+      "Fatigue",
+      "Loss of appetite",
+      "Nausea",
+      "Trouble breathing",
+      "A barrel-shaped chest",
+      "Clubbed fingers",
+      "A loud heartbeat sound due to pulmonary hypertension",
+      "Swelling (edema)",
+      "Wheezing"
+    ],
+    "causes": [
+      "Chronic obstructive pulmonary disease (COPD)",
+      "Cigarette smoking",
+      "Crack cocaine or marijuana smoking",
+      "Intravenous (through your vein) drug use",
+      "Genetic conditions including Alpha-1 antitrypsin deficiency, Ehlers-Danlos syndrome, and Marfan syndrome",
+      "Having human immunodeficiency virus (HIV)"
+    ],
+    "treatments": [
+      "Bronchodilators",
+      "Antibiotics",
+      "Corticosteroids",
+      "Supplemental oxygen therapy",
+      "Bullectomy (open surgery or video-assisted thoracic surgery)",
+      "Bronchoscopic lung volume reduction (BLVR)",
+      "Lung volume reduction surgery (LVRS)",
+      "Lung transplant"
+    ],
+    "life_expectancy": [],
+    "outlook": [
+      "Treatment can help you manage the condition and increase your lifespan",
+      "Bullous emphysema is a lifelong health condition",
+      "Once your lungs become damaged, they won’t heal",
+      "The sooner you start treating BE, the sooner you can help stop it from becoming worse"
+    ],
+    "diagnosis": [
+      "Asking about symptoms, health history, and family medical history",
+      "Physical exam",
+      "Pulmonary function testing",
+      "Spirometry",
+      "Chest X-ray",
+      "CT scan",
+      "Blood tests (checking for acidic blood/respiratory acidosis or low oxygen levels)",
+      "Complete blood count (CBC)",
+      "Electrocardiogram (EKG)",
+      "Blood tests to test for alpha-1 antitrypsin deficiency"
+    ],
+    "complications": [
+      "Vanishing lung syndrome",
+      "Lung shrinkage",
+      "Permanent damage to your lungs",
+      "Collapsed lung (pneumothorax)",
+      "Coughing up blood (hemoptysis)",
+      "Lung infection"
+    ],
+    "prevention": [
+      "Not smoking or quitting smoking"
+    ],
+    "living_with": [
+      "Managing your symptoms",
+      "Finding treatments that work for you",
+      "Talk with your healthcare provider about what vaccines you might need, including flu, COVID and pneumococcus"
+    ],
+    "is_contagious": null
+  }
+]

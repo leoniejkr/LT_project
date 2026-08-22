@@ -1,0 +1,48 @@
+how did we gather our training data to finetune the LLM?
+
+--> search web for all conditions and findings that our classifier discovers.
+
+sources:
+- https://my.clevelandclinic.org/health/diseases/9370-emphysema
+- https://my.clevelandclinic.org/health/diseases/24728-bullous-emphysema
+- https://my.clevelandclinic.org/health/diseases/subcutaneous-emphysema
+- https://my.clevelandclinic.org/health/diseases/15757-hernia#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/24002-covid-pneumonia#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/covid-in-children#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/covid-while-pregnant#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/25111-long-covid#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/4471-pneumonia#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/pneumonia-in-children-babies#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/10959-pulmonary-fibrosis
+- https://my.clevelandclinic.org/health/diseases/24218-pulmonary-edema#symptoms-and-causes
+- https://flexikon.doccheck.com/de/Pulmonale_Infiltration
+- https://www.healthline.com/health/lung-consolidation#treatment
+- https://my.clevelandclinic.org/health/diseases/17373-pleural-effusion#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/catamenial-pneumothorax#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/15304-collapsed-lung-pneumothorax#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/17699-atelectasis#symptoms-and-causes
+- https://my.clevelandclinic.org/health/diseases/21490-enlarged-heart-cardiomegaly
+- https://www.mesothelioma.com/asbestos-cancer/pleural-thickening/
+- https://my.clevelandclinic.org/health/diseases/14799-pulmonary-nodules#overview
+
+--> extract the content.
+
+next step is to make the text machine-readable. for that we aimed to get structured json-files. we pasted the relevant text with the promt 
+        "Extract medical information from the text into a JSON array.Strict Rule: Extract ONLY information explicitly stated in the text. Do not add outside medical knowledge.
+        Schema:
+        disease_name (string)
+        symptoms (array of strings)
+        causes (array of strings)
+        treatments (array of strings) 
+        life expectancy (array of strings) 
+        outlook (array of strings) 
+        diagnosis (array of strings) 
+        complications (array of strings)
+        prevention (array of strings) 
+        living_with(array of strings)
+        is_contagious (boolean, or null if unmentioned) 
+        You can make it hierachical when sicknesses depend on one another
+        "
+to make a LLM structure us json formats.
+
+--> for every condition/finding have one file
