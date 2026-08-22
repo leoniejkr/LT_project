@@ -11,7 +11,7 @@ from pytorch_grad_cam.utils.image import show_cam_on_image
 import torchvision.models as models
 import torch.nn as nn
 import pytorch_lightning as pl
-from src.train.models.multilabel_models import MultiLabelChestModel
+from model.train.models.multilabel_models import MultiLabelChestModel
 
 
 

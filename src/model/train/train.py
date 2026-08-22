@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score  
 from PIL import Image
 import torchvision.models as models
-from models.multilabel_models import MultiLabelChestModel
+from model.train.models.multilabel_models import MultiLabelChestModel
 import wandb
 from tqdm import tqdm
 
