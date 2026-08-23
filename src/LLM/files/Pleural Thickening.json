@@ -1,0 +1,174 @@
+[
+  {
+    "primary_condition": "Pleural Thickening",
+    "definition": "A condition developing when scar tissue thickens the delicate lining around the lungs (the pleura).",
+    "general_symptoms": [
+      "Often asymptomatic in early stages",
+      "Chest pain",
+      "Cough",
+      "Difficulty catching your breath",
+      "Difficulty or inability to take a deep breath",
+      "Fatigue",
+      "Fever",
+      "Pain when exhaling or inhaling",
+      "Shortness of breath (dyspnea), especially after or during exertion",
+      "Breathlessness during physical activity"
+    ],
+    "general_causes": [
+      "Asbestos exposure",
+      "Empyema (buildup of pus in the pleural cavity)",
+      "Hemothorax (excess blood in the pleural cavity)",
+      "Infection, including tuberculosis or pneumonia",
+      "Inflammation",
+      "Injury to the ribs or chest",
+      "Lung cancer",
+      "Medications (e.g., cyclophosphamides)",
+      "Pleural effusions",
+      "Pulmonary embolism",
+      "Tumors (benign or malignant)"
+    ],
+    "risk_factors": [
+      "Smoking (or past smoking history)",
+      "Asbestos exposure in workers"
+    ],
+    "general_diagnosis_methods": [
+      "Chest X-ray",
+      "CT scan",
+      "Magnetic resonance imaging (MRI)",
+      "Physical examination (checking for physical symptoms, such as altered breathing sounds)",
+      "Positron emission tomography (PET scan)",
+      "Ultrasound",
+      "Biopsies",
+      "Respiratory function tests (analyzing diffusing capacity and testing lung volume)"
+    ],
+    "general_treatments": [
+      "Many cases do not require treatment",
+      "Treatment for the underlying cause",
+      "Pulmonary rehabilitation",
+      "Cessation of smoking",
+      "Exercising regularly",
+      "Improving diet and nutrition",
+      "Learning breathing strategies",
+      "Learning how to conserve energy",
+      "Pleurectomy and decortication (P/D) surgical procedure (in rare, serious cases)",
+      "Regular respiratory function tests"
+    ],
+    "life_expectancy": [
+      "On its own, pleural thickening usually doesn't impact life expectancy"
+    ],
+    "general_outlook": [
+      "Progressive disease; symptoms often become more severe over time",
+      "Not always serious",
+      "Long-term effects are fairly mild in most cases",
+      "Can be benign (typically will not impede normal lung functioning unless advanced)",
+      "Cannot be cured, but treatment can help manage symptoms",
+      "Not documented to be fatal on its own",
+      "Prognosis may depend on underlying condition (like lung disease or mesothelioma)"
+    ],
+    "complications": [
+      "Limited lung function",
+      "Impaired breathing",
+      "Severe lung restriction (in rare cases)"
+    ],
+    "prevention": [
+      "Cessation of smoking"
+    ],
+    "living_with": [
+      "Regularly exercising",
+      "Improving diet and nutrition",
+      "Learning breathing strategies",
+      "Learning how to conserve energy"
+    ],
+    "is_contagious": null,
+    "classification_types": [
+      {
+        "category_name": "By Distribution",
+        "types": [
+          {
+            "type_name": "Diffuse Pleural Thickening (DPT)",
+            "definition": "Thickening of 50% or more of either the left or right pleura, or thickening of 25% or more of both pleurae.",
+            "specific_variant": {
+              "variant_name": "Mesothelioma-specific diffuse pleural thickening",
+              "definition": "Thickening and scarring of the visceral pleura, which can lead to the collapse of the pleural space."
+            }
+          },
+          {
+            "type_name": "Focal Pleural Thickening",
+            "definition": "Thickening confined to one or more specific areas of the pleura.",
+            "subtypes": [
+              {
+                "subtype_name": "Apical pleural thickening",
+                "definition": "Involves the top-most portion of the pleura of one lung."
+              },
+              {
+                "subtype_name": "Biapical pleural thickening",
+                "definition": "Affects the top-most portions of the pleura of both lungs."
+              },
+              {
+                "subtype_name": "Nodular pleural thickening",
+                "definition": "Creates raised bump-like nodules from scar tissue."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "category_name": "By Laterality",
+        "types": [
+          {
+            "type_name": "Unilateral Pleural Thickening",
+            "definition": "Affects the pleura of one lung."
+          },
+          {
+            "type_name": "Bilateral Pleural Thickening",
+            "definition": "Affects the pleura of both lungs."
+          }
+        ]
+      },
+      {
+        "category_name": "By Anatomical Location",
+        "locations": [
+          {
+            "location_name": "Parietal Pleura",
+            "definition": "The outer membrane of the lung attached to the chest wall."
+          },
+          {
+            "location_name": "Visceral Pleura",
+            "definition": "The inner membrane directly covering the lung tissue."
+          },
+          {
+            "location_name": "Pleural Space",
+            "definition": "The inner space between the visceral and parietal pleura."
+          }
+        ]
+      }
+    ],
+    "related_and_underlying_conditions": [
+      {
+        "disease_name": "Malignant Pleural Mesothelioma",
+        "relationship": "Underlying condition that can cause pleural thickening as a symptom, resulting from prolonged asbestos exposure.",
+        "mechanism": "Inhaled or ingested asbestos fibers get trapped in the pleura, cause chronic inflammation, severe fibrosis/scarring, and accumulating scar tissue preventing lungs from fully expanding."
+      },
+      {
+        "disease_name": "Pleural Effusion",
+        "relationship": "Buildup of fluid between the pleurae; can cause pleural thickening or develop alongside it."
+      },
+      {
+        "disease_name": "Pleural Plaques",
+        "relationship": "Buildup of gray/white tissue on the pleura and areas of benign thickening, most commonly in parietal pleura; distinct from pleural thickening."
+      },
+      {
+        "disease_name": "Lung Cancer",
+        "relationship": "Underlying condition that can cause pleural thickening."
+      },
+      {
+        "disease_name": "Tuberculosis",
+        "relationship": "Infectious cause of pleural thickening."
+      },
+      {
+        "disease_name": "Pneumonia",
+        "relationship": "Infectious cause of pleural thickening."
+      }
+    ]
+  }
+]

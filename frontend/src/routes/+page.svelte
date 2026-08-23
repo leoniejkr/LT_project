@@ -43,8 +43,9 @@
           <Card.Description class="mt-4 max-w-xl text-base md:text-lg">
             This project was made to help clinicians with reviewing chest X-rays
             for disease detection and compare model-based findings with patient
-            context. The interactive Chatbot assists in understanding the model's
-            reasoning and provides additional information about the findings.
+            context. TrustAI is specialized in the analysis of chest X-rays. The
+            interactive Chatbot assists in understanding the model's reasoning
+            and provides additional information about the findings.
           </Card.Description>
         </Card.Header>
         <div class="mt-6 flex flex-wrap gap-3">
@@ -101,7 +102,7 @@
         <Alert.Title>Supported formats &amp; conditions</Alert.Title>
         <Alert.Description class="mt-2 space-y-3">
           <p>
-            Supported image format for upload: PNG (&amp; DICOM) Analysis of X-ray
+            Supported image format for upload: PNG. Analysis of chest X-ray
             images to detect abnormalities and provide risk assessment based on AI
             models.
           </p>

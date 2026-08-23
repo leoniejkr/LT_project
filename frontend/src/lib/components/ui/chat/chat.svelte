@@ -8,9 +8,11 @@
 	let {
 		class: className,
 		apiEndpoint = "/api/chat",
+		context = undefined,
 	}: {
 		class?: string;
 		apiEndpoint?: string;
+		context?: Record<string, unknown>;
 	} = $props();
 
 	let open = $state(false);
@@ -47,6 +49,7 @@
 				body: JSON.stringify({
 					message: text,
 					history: messages,
+					...(context ? { context } : {}),
 				}),
 			});
 

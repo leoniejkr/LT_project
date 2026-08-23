@@ -1,0 +1,162 @@
+[
+  {
+    "primary_condition": "Pneumothorax",
+    "definition": "A condition (also called collapsed lung or punctured lung) where air fills the space between your lung and chest wall (pleural space), pressing against the lung and causing it to partially or fully collapse.",
+    "general_symptoms": [
+      "Chest pain on one side, especially when taking breaths",
+      "Cough",
+      "Fast breathing",
+      "Fast heart rate",
+      "Fatigue",
+      "Shortness of breath (dyspnea)",
+      "Bluish skin, lips or nails (cyanosis)"
+    ],
+    "general_diagnosis_methods": [
+      "Listening to lungs with a stethoscope",
+      "Imaging (chest X-rays, CT scans, lung ultrasound)",
+      "Arterial blood gas test",
+      "History of lung disease and physical exam",
+      "Diagnosis based on symptoms (for specific severe types like tension pneumothorax)"
+    ],
+    "general_treatments": [
+      "Observation",
+      "Oxygen therapy",
+      "Thoracentesis",
+      "Chest tube drainage",
+      "Chemical pleurodesis (using doxycycline or talcum powder)",
+      "Surgery (for persistent leaks, non-expanding lung, recurrent collapsed lung, or traumatic injuries)"
+    ],
+    "general_outlook": [
+      "Can be a medical emergency / life-threatening",
+      "Most of the time heals in a few days to two weeks",
+      "Most people heal without major treatment",
+      "Chance of recurrence"
+    ],
+    "complications": [
+      "Re-expansion pulmonary edema",
+      "Damage or infection caused by treatment",
+      "Respiratory failure",
+      "Heart failure"
+    ],
+    "prevention": [
+      "Don't smoke",
+      "Avoid or limit activities with drastic changes in air pressure (scuba diving, flying) or follow precautions",
+      "See provider regularly to monitor underlying lung conditions"
+    ],
+    "subtypes_and_causes": [
+      {
+        "type": "Spontaneous Pneumothorax",
+        "mechanism": "Occurs without an injury.",
+        "categories": [
+          {
+            "category_name": "Primary Spontaneous Pneumothorax",
+            "causes": [
+              "Abnormal air pockets in lung (blebs) breaking apart without underlying health conditions"
+            ]
+          },
+          {
+            "category_name": "Secondary Spontaneous Pneumothorax",
+            "causes": [
+              "Underlying lung diseases causing blocked lungs and bursting bulges (bullae)",
+              "Asthma",
+              "Pneumonia",
+              "Chronic obstructive pulmonary disease (COPD)",
+              "Collagen vascular disease",
+              "Cystic fibrosis",
+              "Emphysema",
+              "Idiopathic pulmonary fibrosis",
+              "Lung cancer",
+              "Lymphangioleiomyomatosis",
+              "Tuberculosis",
+              "Acute respiratory distress syndrome (ARDS)"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Traumatic Pneumothorax",
+        "mechanism": "Caused by physical injuries or medical procedures.",
+        "categories": [
+          {
+            "category_name": "Injury-related Pneumothorax",
+            "causes": [
+              "Blunt force trauma",
+              "Gunshot wound",
+              "Stab wound / knife wound",
+              "Fractured rib"
+            ]
+          },
+          {
+            "category_name": "Iatrogenic Pneumothorax",
+            "causes": [
+              "Medical procedures (nerve block, lung biopsy, central venous line placement/insertion, mechanical ventilation)"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Catamenial Pneumothorax",
+        "definition": "A rare type occurring around the time of menstruation (period) in females who ovulate, mostly affecting the right lung.",
+        "specific_symptoms": [
+          "Chest pain",
+          "Difficulty breathing",
+          "Cough",
+          "Coughing up blood (hemoptysis)",
+          "Fast breathing or heart rate",
+          "Bluish skin, lips or nails (cyanosis)",
+          "Symptoms starting within a few days before or after the start of period"
+        ],
+        "causes": [
+          "Endometriosis (endometrium tissue growing in lungs, pleurae, or diaphragm)",
+          "Prostaglandins causing reduced blood flow and rupture of air pockets in lungs",
+          "Air moving through reproductive tract through small holes in diaphragm into pleural space",
+          "Hormones and inflammation during period"
+        ],
+        "targeted_treatments": [
+          "Thoracentesis or chest tube",
+          "Video-assisted thoracoscopy (VATS) to remove endometrial tissue, fix diaphragm, or close blebs",
+          "Hormone-regulating medications (oral contraceptives, GnRH agonists, danazol)",
+          "Pleurodesis (attaching lung to chest wall chemically or by scraping pleura)",
+          "Hysterectomy with bilateral oophorectomy (removes uterus and ovaries to stop ovulation)"
+        ],
+        "outlook": [
+          "Usually not life-threatening",
+          "Often keeps coming back without treatment",
+          "Requires multiple treatment types (surgery and medications)"
+        ],
+        "related_conditions": [
+          {
+            "condition": "Thoracic Endometriosis Syndrome",
+            "cause": "Endometriosis spreading to lungs or structures around them",
+            "associated_complications": [
+              "Pneumothorax",
+              "Blood in pleural space (hemothorax)",
+              "Pulmonary (lung) nodules",
+              "Coughing up blood around period (catamenial hemoptysis)"
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Tension Pneumothorax",
+        "mechanism": "Air enters lungs/pleural space but cannot get out, creating a one-way valve effect that causes dangerous pressure buildup.",
+        "outlook": [
+          "Serious form of pneumothorax that is a medical emergency"
+        ],
+        "diagnosis": [
+          "Diagnosed primarily based on physical symptoms"
+        ]
+      }
+    ],
+    "lifestyle_risk_factors": [
+      "Family history of pneumothorax",
+      "Pregnancy",
+      "Tall, thin body type (especially in men)",
+      "Marfan syndrome",
+      "Drug use (especially inhaled drugs)",
+      "Smoking",
+      "Flying involving drastic air pressure changes",
+      "Scuba or deep-sea diving"
+    ]
+  }
+]

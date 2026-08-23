@@ -1,0 +1,132 @@
+[
+  {
+    "primary_condition": "Lung Consolidation",
+    "definition": "A condition where air in the small airways of the lungs is replaced with fluid, solid, or other material (pus, blood, water, stomach contents, or cells).",
+    "general_symptoms": [
+      "difficult to breathe",
+      "short of breath",
+      "skin look pale or bluish",
+      "coughing up thick green or bloody sputum",
+      "coughing up blood",
+      "a dry cough",
+      "breathing that sounds funny or is noisy",
+      "chest pain or heaviness",
+      "rapid breathing",
+      "fever",
+      "fatigue"
+    ],
+    "diagnosis_methods": [
+      "chest X-ray (consolidated parts look white/opaque)",
+      "Blood tests",
+      "Sputum culture",
+      "CT scan",
+      "Bronchoscopy"
+    ],
+    "general_outlook": [
+      "With appropriate treatment, consolidation usually goes away and air returns",
+      "The underlying illness can be serious, but many can be easily treated and cured",
+      "Starting treatment early in your illness usually gives you a better outcome"
+    ],
+    "underlying_causes_and_treatments": [
+      {
+        "cause_name": "Pneumonia",
+        "mechanism": "Infection in the lung causes white blood cells to build up dead cells and debris, creating pus that fills the small airways.",
+        "sub_causes": [
+          "bacteria",
+          "virus",
+          "fungus or other unusual organisms",
+          "Aspiration of food"
+        ],
+        "cause_specific_symptoms": [
+          "cough",
+          "chest pain",
+          "fever"
+        ],
+        "targeted_treatment": [
+          "Medication targeted to the specific organism (antibiotics, antivirals, or antifungals)",
+          "Medication to control cough, chest pain, or fever"
+        ]
+      },
+      {
+        "cause_name": "Pulmonary edema",
+        "mechanism": "Increased pressure pushes fluid from lung blood vessels into small airways, or fluid enters airways from outside the body.",
+        "sub_causes": [
+          "Congestive heart failure (heart can’t pump hard enough, backing up blood into lung vessels)",
+          "Near-drowning (fluid entering airways from outside body)"
+        ],
+        "cause_specific_symptoms": [],
+        "targeted_treatment": [
+          "Medication to remove extra fluid",
+          "Medication to lower blood vessel pressure",
+          "Medication to make the heart pump better"
+        ]
+      },
+      {
+        "cause_name": "Pulmonary hemorrhage",
+        "mechanism": "Bleeding in the lungs caused by inflammation of blood vessels making them weak and leaky.",
+        "sub_causes": [
+          "Vasculitis"
+        ],
+        "cause_specific_symptoms": [
+          "bleeding in lungs"
+        ],
+        "targeted_treatment": [
+          "Steroids",
+          "Immunosuppressants"
+        ]
+      },
+      {
+        "cause_name": "Aspiration",
+        "mechanism": "Breathing food particles or stomach contents into the lungs.",
+        "sub_causes": [
+          "Swallowing issues",
+          "Decreased level of consciousness (increases risk for pneumonitis)"
+        ],
+        "cause_specific_symptoms": [],
+        "complications": [
+          {
+            "condition": "Aspiration pneumonia",
+            "targeted_treatment": [
+              "Strong antibiotics",
+              "Evaluation and treatment for swallowing problems"
+            ]
+          },
+          {
+            "condition": "Pneumonitis",
+            "mechanism": "Stomach acid and chemicals cause non-infectious inflammation/injury to lungs.",
+            "targeted_treatment": [
+              "Steroids (if very sick)",
+              "Supportive care while the body heals"
+            ]
+          }
+        ]
+      },
+      {
+        "cause_name": "Lung cancer",
+        "mechanism": "Tumor cells occupying or blocking lung space.",
+        "sub_causes": [
+          "Smoking"
+        ],
+        "cause_specific_symptoms": [],
+        "targeted_treatment": [
+          "Surgery (removing the tumor, if possible)",
+          "Symptom management treatment (if cancer has spread)"
+        ],
+        "outlook": [
+          "Hard to treat",
+          "Takes more lives each year than prostate, colon, and breast cancer combined",
+          "Uncurable once it starts to spread"
+        ]
+      }
+    ],
+    "differential_diagnosis": {
+      "condition": "Pleural effusion",
+      "key_difference": "Fluid accumulates in the pleural space outside the lung (moves with gravity), whereas consolidation is fluid inside the lung tissue (does not move with position changes).",
+      "overlapping_causes": [
+        "Congestive heart failure",
+        "Pneumonia",
+        "Lung cancer"
+      ]
+    }
+  }
+]

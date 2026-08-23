@@ -3,7 +3,10 @@ package patient
 import (
 	"backend/internal/analysis"
 	"backend/internal/orthanc"
+	"bytes"
 	"encoding/json"
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,6 +14,16 @@ import (
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
+
+func testPNG(t *testing.T) []byte {
+	t.Helper()
+	img := image.NewGray(image.Rect(0, 0, 4, 4))
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("failed to create test png: %v", err)
+	}
+	return buf.Bytes()
+}
 
 func setupServiceDeps(t *testing.T, llmHandler http.HandlerFunc) (*Service, *httptest.Server, *httptest.Server) {
 	t.Helper()
@@ -67,8 +80,8 @@ func TestCreatePatient_WithFiles(t *testing.T) {
 
 	p := &Patient{Age: 30, Gender: GenderFemale}
 	files := []FileInput{
-		{Name: "xray1.png", Bytes: []byte("fake-png-1")},
-		{Name: "xray2.png", Bytes: []byte("fake-png-2")},
+		{Name: "xray1.png", Bytes: testPNG(t)},
+		{Name: "xray2.png", Bytes: testPNG(t)},
 	}
 
 	result, err := svc.CreatePatient(p, files)
@@ -104,7 +117,7 @@ func TestCreatePatient_OrthancError(t *testing.T) {
 	svc := NewService(patientRepo, analysisSvc, orthancRepo)
 
 	p := &Patient{Age: 40, Gender: GenderMale}
-	files := []FileInput{{Name: "img.png", Bytes: []byte("data")}}
+	files := []FileInput{{Name: "img.png", Bytes: testPNG(t)}}
 
 	_, err := svc.CreatePatient(p, files)
 	if err == nil {
@@ -155,7 +168,7 @@ func TestGetPatient(t *testing.T) {
 	defer llmSrv.Close()
 	defer orthancSrv.Close()
 
-	p := &Patient{Age: 70, Gender: GenderDiverse, KnownIllnesses: Illnesses{IllnessEmphysema}}
+	p := &Patient{Age: 70, Gender: GenderDiverse, History: Histories{History("Asthma, COPD, or Emphysema")}}
 	svc.CreatePatient(p, nil)
 
 	found, err := svc.GetPatient(p.ID)

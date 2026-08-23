@@ -28,8 +28,8 @@ export interface PatientData {
     id: number;
     age: number;
     gender: string;
-    knownIllnesses: string[];
     symptoms: string[];
+    history: string[];
     orthancIDs: string[];
 }
 

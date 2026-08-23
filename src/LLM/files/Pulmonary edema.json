@@ -1,0 +1,140 @@
+[
+  {
+    "primary_condition": "Pulmonary Edema",
+    "definition": "A condition caused by excess fluid in the lungs, making breathing difficult.",
+    "general_symptoms": [
+      "Shortness of breath (dyspnea), especially during movement or lying down",
+      "Shortness of breath when lying flat",
+      "Feeling of breathlessness that awakens you",
+      "Gasping for air / feeling like you're suffocating",
+      "Difficulty breathing",
+      "Coughing up of foam and loose mucus",
+      "Coughing up blood or frothy mucus",
+      "Wheezing",
+      "Chest tightness",
+      "Chest pain",
+      "Swelling in your legs",
+      "Tiredness",
+      "Dizziness or weakness",
+      "Rapid heartbeat",
+      "Anxiety or restlessness",
+      "Bluish or grayish skin",
+      "Excessive sweating"
+    ],
+    "general_diagnosis_methods": [
+      "Physical exam (listening to heart and lungs with a stethoscope)",
+      "Checking for increased or decreased heart rate or blood pressure",
+      "Checking for increased respiratory rate",
+      "Checking for abnormal heart sounds",
+      "Checking for crackling sounds or wheezing/whistling sounds in lungs",
+      "Checking for swelling of body",
+      "Checking for gray or bluish skin",
+      "Complete blood count (CBC)",
+      "Blood chemistries",
+      "Pulse oximetry",
+      "Chest X-ray",
+      "Echocardiogram",
+      "Electrocardiogram (EKG)",
+      "Cardiac catheterization"
+    ],
+    "general_treatments": [
+      "Oxygen delivered through prongs in your nose",
+      "Machines that blow air into your lungs through a mask on your face",
+      "Ventilators or respirators that blow in air through a tube inserted into your windpipe",
+      "Medications that cause you to urinate more and get rid of fluid",
+      "Medications that strengthen your heart",
+      "Antibiotics",
+      "Steroids"
+    ],
+    "general_outlook": [
+      "Can be life-threatening and requires immediate medical treatment",
+      "Survival rates depend on the cause of the condition and how quickly you receive treatment",
+      "Severe cases can be life-threatening if you don't receive treatment right away"
+    ],
+    "complications": [],
+    "prevention": [
+      "Take medications as directed if you have a heart condition",
+      "Get routine vaccinations",
+      "See your healthcare provider regularly and if you have problems breathing",
+      "Eat a healthy diet low in salt",
+      "Don't smoke",
+      "Maintain a healthy weight",
+      "Talk to your provider if you're planning activities (such as mountain climbing) that can cause pulmonary edema"
+    ],
+    "living_with": [],
+    "is_contagious": null,
+    "causes_by_etiology_and_subtypes": [
+      {
+        "category_name": "Cardiogenic Causes (Heart Problems)",
+        "causes": [
+          "Congestive heart failure",
+          "Heart attack",
+          "Weakened heart muscles (cardiopathy)",
+          "Heart valves that are leaky or narrowed (valvular heart disease)",
+          "High blood pressure (hypertension)",
+          "Abnormal heart rhythm (arrhythmia)",
+          "Inflammation of your heart muscle (myocarditis)",
+          "Fluid in the pericardium (pericardial effusion)"
+        ]
+      },
+      {
+        "category_name": "Noncardiogenic Causes (Inflammation or Injury to Blood Vessels in Lungs)",
+        "causes": [
+          "Adult respiratory distress syndrome (ARDS)",
+          "Pneumonia",
+          "Sepsis (severe infection)",
+          "Trauma",
+          "Pancreatitis",
+          "Liver disease",
+          "Drugs"
+        ],
+        "specific_subtypes": [
+          {
+            "subtype_name": "High Altitude Pulmonary Edema (HAPE)",
+            "definition": "A noncardiogenic form of pulmonary edema occurring at high elevations due to reduced oxygen pressure.",
+            "causes": [
+              "Being at high altitudes or rapidly going up (ascending) a mountain",
+              "Lower oxygen levels at higher altitudes",
+              "Pulmonary blood vessels constricting and becoming leaky"
+            ],
+            "specific_symptoms": [
+              "Tiredness",
+              "Weakness",
+              "Aches",
+              "Shortness of breath",
+              "Coughing",
+              "Chest tightness"
+            ],
+            "specific_treatments": [
+              "Descending (going down) immediately",
+              "Medical treatment"
+            ],
+            "outlook": [
+              "Medical emergency and can be life-threatening"
+            ]
+          },
+          {
+            "subtype_name": "Swimming-Induced Pulmonary Edema (Immersion Pulmonary Edema)",
+            "definition": "A form of noncardiogenic pulmonary edema triggered by immersion in water during swimming or diving.",
+            "causes": [
+              "Capillaries bursting during competitive swimming and diving",
+              "Blood sent to lungs from legs and abdomen during diving, increasing pressure in lung blood vessels and causing fluid to leak into air sacs"
+            ]
+          },
+          {
+            "subtype_name": "Neurogenic Pulmonary Edema",
+            "causes": [
+              "Bleeding or swelling in your brain"
+            ]
+          },
+          {
+            "subtype_name": "Negative Pressure Pulmonary Edema",
+            "causes": [
+              "Blockage in upper airway and straining to breathe"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

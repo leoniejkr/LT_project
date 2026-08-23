@@ -1,0 +1,73 @@
+[
+  {
+    "disease_name": "Subcutaneous emphysema",
+    "symptoms": [
+      "Skin swelling (edema) in the affected area",
+      "Crepitus (a crackling sound that happens when you press on your skin in the affected area)",
+      "Trouble breathing",
+      "Difficulty swallowing (dysphagia)",
+      "Sore throat",
+      "Neck pain",
+      "Gas (bloating)"
+    ],
+    "causes": [
+      "Infections, especially those with flesh-eating bacteria (like necrotizing fasciitis)",
+      "Injuries, especially those that affect your chest, face or sinuses",
+      "Surgical traumas",
+      "Barotrauma, which can occur when there’s a sudden shift in air or water pressure (common in scuba divers)",
+      "Collapsed lung (pneumothorax)",
+      "Medical or surgical traumas, like accidental injuries from equipment issues or placing medical devices",
+      "Bag-mask ventilation during CPR",
+      "Feeding tube insertion",
+      "Holes in your digestive tract (gastrointestinal perforations)",
+      "Intubation",
+      "Mechanical ventilation malfunction",
+      "No known reason"
+    ],
+    "treatments": [
+      "Addressing the underlying cause",
+      "Oxygen concentrators",
+      "Inserting a chest tube (thoracostomy)",
+      "Making two incisions below each clavicle bone",
+      "Using needles, catheters (hollow tubes) or incisions to remove air in other parts of your body",
+      "Surgery",
+      "Placing drains to remove excess air",
+      "Pain medications (analgesics)",
+      "An abdominal binder (a compression garment to wear around your belly)",
+      "Concentrated oxygen"
+    ],
+    "life_expectancy": [],
+    "outlook": [
+      "The outlook is positive with treatment",
+      "With treatment, most people with subcutaneous emphysema recover in about two weeks (10 to 14 days; average 16 days in severe cases)",
+      "Prompt treatment can ease symptoms and reduce the risk of serious complications"
+    ],
+    "diagnosis": [
+      "Bronchoscopy",
+      "CT (computed tomography) scan",
+      "Ultrasound",
+      "X-rays"
+    ],
+    "complications": [
+      "Collapsed lung (pneumothorax)",
+      "Compartment syndrome",
+      "Pacemaker failure",
+      "Poor blood circulation to your brain",
+      "Respiratory issues",
+      "Tracheal compression",
+      "Acute respiratory distress syndrome (ARDS)",
+      "Coma (persistent vegetative state)",
+      "Delirium",
+      "Kidney failure",
+      "Necrosis (tissue death)",
+      "Sepsis"
+    ],
+    "prevention": [
+      "There’s nothing you can do to keep it from happening"
+    ],
+    "living_with": [
+      "Visit your healthcare provider right away if you notice worrisome symptoms like bulging or crackling sounds when you press on your skin"
+    ],
+    "is_contagious": null
+  }
+]

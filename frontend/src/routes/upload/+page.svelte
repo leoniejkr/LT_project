@@ -9,12 +9,17 @@
 	import { Checkbox } from "$lib/components/ui/checkbox/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
 	import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+	import * as Accordion from "$lib/components/ui/accordion/index.js";
 	import {
 		UserSearch,
 		CloudUpload,
 		ClipboardCheck,
+		ChevronDown,
 		Cpu,
 		ImageUp,
+		LoaderCircle,
+		X,
+		ClipboardList,
 	} from "lucide-svelte";
 	import { goto } from "$app/navigation";
 	import {
@@ -23,6 +28,17 @@
 		uploadedFileUrls,
 	} from "$lib/stores.js";
 	import "../../app.css";
+	import {
+		SYMPTOM_TOPICS,
+		ALL_SYMPTOM_TAGS,
+		type SymptomTag,
+		type SymptomTopic,
+	} from "$lib/symptoms";
+	import {
+		HISTORY_TOPICS,
+		ALL_HISTORY_TAGS,
+		type HistoryTag,
+	} from "$lib/history";
 
 	let { data }: { data: any } = $props();
 	let files = $state<FileList | undefined>();
@@ -41,25 +57,69 @@
 	// Patient Metadata
 	let patientAge = $state("");
 
-	// Known Illnesses
-	let illnesses = $state({
-		covid: false,
-		pneumonia: false,
-		emphysema: false,
-		effusion: false,
-		fibrosis: false,
-	});
+	// Symptoms (tag id -> checked)
+	const allSymptomTags: SymptomTag[] = ALL_SYMPTOM_TAGS;
+	const selectedSymptoms = $state<Record<string, boolean>>(
+		Object.fromEntries(allSymptomTags.map((tag) => [tag.id, false])),
+	);
 
-	// Symptoms
-	let symptoms = $state({
-		cough: false,
-		fever: false,
-		dyspnea: false,
-		fatigue: false,
-	});
+	// Medical history / risk factors (tag id -> checked)
+	const allHistoryTags: HistoryTag[] = ALL_HISTORY_TAGS;
+	const selectedHistory = $state<Record<string, boolean>>(
+		Object.fromEntries(allHistoryTags.map((tag) => [tag.id, false])),
+	);
+
+	// Panel / subtopic folding (topic names are unique across both catalogs)
+	let openTopics = $state<Record<string, boolean>>(
+		Object.fromEntries(
+			[...SYMPTOM_TOPICS, ...HISTORY_TOPICS].map((t) => [t.topic, true]),
+		),
+	);
+	let openGroupsByTopic = $state<Record<string, string[]>>(
+		Object.fromEntries(
+			[...SYMPTOM_TOPICS, ...HISTORY_TOPICS].map((t) => [
+				t.topic,
+				t.groups.map((g) => groupKey(t.topic, g.name)),
+			]),
+		),
+	);
+
+	function groupKey(topic: string, groupName?: string): string {
+		return `${topic}::${groupName ?? ""}`;
+	}
+
+	function toggleTopic(topic: string) {
+		openTopics[topic] = !openTopics[topic];
+	}
+
+	function selectedCountOf(
+		tags: { id: string }[],
+		selection: Record<string, boolean>,
+	): number {
+		return tags.filter((tag) => selection[tag.id]).length;
+	}
+
+	function selectedLabels(
+		tags: { id: string; label: string }[],
+		selection: Record<string, boolean>,
+	): string[] {
+		return tags.filter((tag) => selection[tag.id]).map((tag) => tag.label);
+	}
 
 	let showDialog = $state(false);
 	let dialogMessage = $state("");
+
+	let showAnalysisPanel = $state(false);
+	let analysisController: AbortController | null = null;
+
+	function abortAnalysis() {
+		analysisController?.abort();
+		analysisController = null;
+		showAnalysisPanel = false;
+		fetch("/api/analysis", { method: "DELETE" }).catch((e) =>
+			console.error("Failed to clean up data after abort:", e),
+		);
+	}
 
 	async function startAnalysis() {
 		if (!files || files.length === 0) {
@@ -88,12 +148,8 @@
 		const metadata = {
 			age: parseInt(patientAge),
 			gender: value,
-			knownIllnesses: Object.keys(illnesses).filter(
-				(k) => illnesses[k as keyof typeof illnesses],
-			),
-			symptoms: Object.keys(symptoms).filter(
-				(k) => symptoms[k as keyof typeof symptoms],
-			),
+			symptoms: selectedLabels(allSymptomTags, selectedSymptoms),
+			history: selectedLabels(allHistoryTags, selectedHistory),
 		};
 
 		formData.append("formData", JSON.stringify(metadata));
@@ -101,9 +157,12 @@
 		console.log("Submitting Case:", metadata);
 
 		try {
+			analysisController = new AbortController();
+			showAnalysisPanel = true;
 			const response = await fetch("/api/analysis", {
 				method: "POST",
 				body: formData,
+				signal: analysisController.signal,
 			});
 			const result = await response.json();
 			console.log("Analysis Result:", result);
@@ -121,13 +180,19 @@
 			);
 			goto("/result");
 		} catch (error) {
+			if (error instanceof DOMException && error.name === "AbortError") {
+				return;
+			}
 			console.error("Analysis failed:", error);
 			dialogMessage = `Analysis failed: ${error instanceof Error ? error.message : "Unknown error"}. Check if all services are running.`;
 			showDialog = true;
+		} finally {
+			showAnalysisPanel = false;
+			analysisController = null;
 		}
 	}
 
-	// TODO: reusable components besonders bei der checklist der known illnesses
+	// TODO: reusable components besonders bei den checklist panels (symptoms & history)
 	// das kann man gut mit shadcn machen, aber das würde ich jetzt noch nciht machen,
 	// sondern erst, wenn die funktionalität an sich steht und wir das später nocvh schöner machen wollen
 
@@ -241,75 +306,6 @@
 									></Field.Field>
 								</Field.Group>
 							</Field.Group>
-							<Field.Group
-								class="flex-row flex-wrap gap-y-1 mt-4"
-							>
-								<Field.Legend
-									class="w-full text-sm font-semibold"
-								>
-									Known Illnesses
-								</Field.Legend>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="covid"
-										bind:checked={illnesses.covid}
-									/>
-									<Field.Label for="covid"
-										>Covid19</Field.Label
-									>
-								</Field.Field>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="pneumonia"
-										bind:checked={illnesses.pneumonia}
-									/>
-									<Field.Label for="pneumonia"
-										>Pneumonia</Field.Label
-									>
-								</Field.Field>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="emphysema"
-										bind:checked={illnesses.emphysema}
-									/>
-									<Field.Label for="emphysema"
-										>Emphysema</Field.Label
-									>
-								</Field.Field>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="effusion"
-										bind:checked={illnesses.effusion}
-									/>
-									<Field.Label for="effusion"
-										>Effusion</Field.Label
-									>
-								</Field.Field>
-								<Field.Field
-									orientation="horizontal"
-									class="w-auto"
-								>
-									<Checkbox
-										id="fibrosis"
-										bind:checked={illnesses.fibrosis}
-									/>
-									<Field.Label for="fibrosis"
-										>Fibrosis</Field.Label
-									>
-								</Field.Field>
-							</Field.Group>
 						</Field.Set>
 					</form>
 				</Item.Content>
@@ -317,37 +313,123 @@
 		</div>
 	</div>
 
+	{#snippet topicChecklist(
+			topics: SymptomTopic[],
+			selected: Record<string, boolean>,
+			idPrefix: string,
+		)}
+		{#each topics as topic (topic.topic)}
+			{@const topicCount = selectedCountOf(
+				topic.groups.flatMap((g) => g.symptoms),
+				selected,
+			)}
+			<div class="rounded-xl border p-4">
+				<button
+					type="button"
+					class="flex w-full items-center justify-between gap-4 text-left"
+					onclick={() => toggleTopic(topic.topic)}
+					aria-expanded={openTopics[topic.topic]}
+				>
+					<span class="flex items-center gap-2 font-medium">
+						{topic.topic}
+					</span>
+					<span class="flex items-center gap-3">
+						{#if topicCount > 0}
+							<Badge variant="secondary" class="text-xs">
+								{topicCount} selected
+							</Badge>
+						{/if}
+						<ChevronDown
+							size={16}
+							class="text-muted-foreground transition-transform {openTopics[
+								topic.topic
+							]
+								? ''
+								: '-rotate-90'}"
+						/>
+					</span>
+				</button>
+
+				{#if openTopics[topic.topic]}
+					<Accordion.Root
+						type="multiple"
+						bind:value={openGroupsByTopic[topic.topic]}
+						class="mt-3"
+					>
+						{#each topic.groups as group, groupIndex (group.name)}
+							{@const key = groupKey(topic.topic, group.name)}
+							{@const groupCount = selectedCountOf(group.symptoms, selected)}
+							<Accordion.Item
+								value={key}
+								class={groupIndex > 0 ? "border-t" : ""}
+							>
+								<Accordion.Trigger
+									class="py-2.5 hover:no-underline text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+								>
+									<span class="flex items-center gap-2">
+										{group.name}
+										{#if groupCount > 0}
+											<Badge
+												variant="secondary"
+												class="h-4 px-1.5 text-[10px] normal-case"
+											>
+												{groupCount}
+											</Badge>
+										{/if}
+									</span>
+								</Accordion.Trigger>
+								<Accordion.Content>
+									<div
+										class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2.5 pb-1"
+									>
+										{#each group.symptoms as tag (tag.id)}
+											<Field.Field
+												orientation="horizontal"
+												class="w-auto items-start"
+											>
+												<Checkbox
+													id={`${idPrefix}-${tag.id}`}
+													bind:checked={selected[tag.id]}
+												/>
+												<Field.Label
+													for={`${idPrefix}-${tag.id}`}
+													class="font-normal leading-tight"
+												>
+													{tag.label}
+												</Field.Label>
+											</Field.Field>
+										{/each}
+									</div>
+								</Accordion.Content>
+							</Accordion.Item>
+						{/each}
+					</Accordion.Root>
+				{/if}
+			</div>
+		{/each}
+	{/snippet}
+
 	<div class="w-full">
 		<Item.Root variant="outline">
-			<Item.Content>
-				<Item.Title class="flex items-center gap-2 mb-4">
+			<Item.Content class="w-full">
+				<Item.Title class="flex items-center gap-2">
 					<ClipboardCheck size={18} /> Symptom Checklist
 				</Item.Title>
-				<div class="flex flex-wrap gap-x-8 gap-y-3">
-					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="cough" bind:checked={symptoms.cough} />
-						<Field.Label for="cough">Cough</Field.Label>
-					</Field.Field>
-					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox id="fever" bind:checked={symptoms.fever} />
-						<Field.Label for="fever">Fever</Field.Label>
-					</Field.Field>
-					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox
-							id="dyspnea"
-							bind:checked={symptoms.dyspnea}
-						/>
-						<Field.Label for="dyspnea"
-							>Shortness of breath</Field.Label
-						>
-					</Field.Field>
-					<Field.Field orientation="horizontal" class="w-auto">
-						<Checkbox
-							id="fatigue"
-							bind:checked={symptoms.fatigue}
-						/>
-						<Field.Label for="fatigue">Fatigue</Field.Label>
-					</Field.Field>
+				<div class="mt-4 flex flex-col gap-3">
+					{@render topicChecklist(SYMPTOM_TOPICS, selectedSymptoms, "symptom")}
+				</div>
+			</Item.Content>
+		</Item.Root>
+	</div>
+
+	<div class="w-full">
+		<Item.Root variant="outline">
+			<Item.Content class="w-full">
+				<Item.Title class="flex items-center gap-2">
+					<ClipboardList size={18} /> Medical History & Risk Factors
+				</Item.Title>
+				<div class="mt-4 flex flex-col gap-3">
+					{@render topicChecklist(HISTORY_TOPICS, selectedHistory, "history")}
 				</div>
 			</Item.Content>
 		</Item.Root>
@@ -376,6 +458,30 @@
 					OK
 				</AlertDialog.Action>
 			</div>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={showAnalysisPanel}>
+	<AlertDialog.Content size="sm" escapeKeydownBehavior="ignore">
+		<AlertDialog.Header>
+			<AlertDialog.Title class="flex items-center gap-2">
+				<LoaderCircle class="size-5 animate-spin" />
+				Analysis in Progress
+			</AlertDialog.Title>
+			<AlertDialog.Description>
+				Your X-Ray images are being analyzed. This may take a moment.
+				The application is blocked until the analysis finishes.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<Button
+				variant="destructive"
+				class="w-full"
+				onclick={abortAnalysis}
+			>
+				<X /> Abort Analysis
+			</Button>
 		</AlertDialog.Footer>
 	</AlertDialog.Content>
 </AlertDialog.Root>

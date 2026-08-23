@@ -1,0 +1,183 @@
+[
+  {
+    "primary_condition": "Pneumonia",
+    "definition": "An infection that inflames the air sacs (alveoli) in one or both lungs, which may fill with fluid or pus.",
+    "general_symptoms": [
+      "High fever (up to 105 degrees Fahrenheit or 40 degrees Celsius)",
+      "Cough with yellow, green or bloody mucus",
+      "Dry cough",
+      "Tiredness (fatigue) or weakness",
+      "Rapid breathing or shortness of breath",
+      "Rapid heart rate",
+      "Sweating or chills",
+      "Chest pain and/or abdominal pain, especially with coughing or deep breathing",
+      "Loss of appetite",
+      "Bluish skin, lips or nails (cyanosis)",
+      "Confusion or altered mental state",
+      "Headache",
+      "Muscle pain"
+    ],
+    "general_diagnosis_methods": [
+      "Health history and physical examination (listening to lungs with a stethoscope)",
+      "Chest X-ray",
+      "CT scan",
+      "Blood tests",
+      "Sputum test",
+      "Pulse oximetry",
+      "Pleural fluid culture",
+      "Arterial blood gas test",
+      "Bronchoscopy"
+    ],
+    "general_treatments": [
+      "Antibiotics",
+      "Antifungal medications",
+      "Antiviral medications",
+      "Oxygen therapy",
+      "IV fluids",
+      "Draining fluids (done with a catheter or surgery)",
+      "Pain relievers and fever reducers (like ibuprofen and acetaminophen)",
+      "Breathing treatments and exercises",
+      "Humidifiers",
+      "Cough suppressants"
+    ],
+    "general_outlook": [
+      "Viral pneumonia often gets better on its own",
+      "Most symptoms of bacterial pneumonia usually start to get better within a day or two after starting treatment",
+      "Some symptoms, like cough and fatigue, may linger for several weeks",
+      "It may take six to eight weeks to feel back to normal if you’ve been hospitalized",
+      "May have lingering health issues after recovery, such as trouble with physical activity (shortness of breath or reduced stamina), worsening of cardiovascular disease, or general decline in quality of life",
+      "Children who’ve recovered from pneumonia have an increased risk of chronic lung diseases",
+      "Can be life-threatening if left untreated"
+    ],
+    "complications": [
+      "Fluid around your lungs (pleural effusion)",
+      "Bacteria in your bloodstream, which can lead to sepsis and organ failure",
+      "Lung abscess",
+      "Acute respiratory distress syndrome (ARDS) and respiratory failure"
+    ],
+    "prevention": [
+      "Getting vaccinated (Pneumococcal vaccines, COVID-19, flu, childhood vaccinations)",
+      "Quitting smoking and avoiding secondhand smoke",
+      "Not vaping",
+      "Washing hands with soap and water or using alcohol-based hand sanitizer",
+      "Avoiding close contact and sharing items with other people if either of you has a contagious disease",
+      "Asking healthcare providers about reducing infection risk during hospital stays",
+      "Getting treated for other infections or health conditions",
+      "Avoiding excessive alcohol consumption"
+    ],
+    "living_with": [
+      "Follow up with your healthcare provider if you have ongoing health concerns after recovering"
+    ],
+    "causes_by_etiology": [
+      {
+        "category": "Bacterial Pneumonia",
+        "causes": [
+          "Streptococcus pneumoniae (Pneumococcal disease)",
+          "Mycoplasma pneumoniae bacteria",
+          "Chlamydia pneumoniae bacteria",
+          "Haemophilus influenzae bacteria",
+          "Legionella bacteria (Legionnaires’ disease)",
+          "Antibiotic-resistant bacterial infections (MRSA, Klebsiella pneumoniae, Serratia marcescens, Pseudomonas aeruginosa)"
+        ]
+      },
+      {
+        "category": "Viral Pneumonia",
+        "causes": [
+          "Common colds",
+          "COVID-19",
+          "The flu (Influenza)",
+          "Respiratory syncytial virus (RSV)",
+          "Human metapneumovirus (HMPV)",
+          "Human parainfluenza viruses (HPIV)"
+        ]
+      },
+      {
+        "category": "Fungal & Parasitic Pneumonia",
+        "causes": [
+          "Fungal infections (Cryptococcus, Pneumocystis jirovecii, Coccidioides / Valley fever)",
+          "Toxoplasmosis and other protozoal infections"
+        ]
+      },
+      {
+        "category": "Non-Infectious / Aspiration Pneumonia",
+        "causes": [
+          "Aspiration of solid food, liquids, spit or vomit",
+          "Air sacs filling with oily substances"
+        ]
+      }
+    ],
+    "demographic_manifestations": [
+      {
+        "subtype_name": "Pneumonia in Children",
+        "definition": "Pneumonia presenting in pediatric populations, often showing distinct clinical signs and requiring age-specific monitoring.",
+        "causes": [
+          "Streptococcus pneumoniae",
+          "Respiratory syncytial virus (RSV)",
+          "Group B strep bacteria (usually in newborns)",
+          "Herpes simplex virus (usually in newborns)",
+          "Cold and flu viruses (rhinoviruses, human metapneumovirus, adenoviruses, influenza and parainfluenza viruses)",
+          "Coronaviruses (including strains causing COVID-19)",
+          "Haemophilus influenzae bacteria",
+          "Chlamydophila bacteria",
+          "Fungi",
+          "Multiple infections"
+        ],
+        "specific_symptoms": [
+          "Faster breathing (tachypnea)",
+          "Increased work of breathing (retractions / skin between ribs pulling inward with each breath)",
+          "Fever or low body temperature (hypothermia)",
+          "Grunting",
+          "Irritability",
+          "Not wanting to feed or drink",
+          "Lethargy or listlessness",
+          "Low muscle tone (making them feel more 'floppy')",
+          "Pauses in breathing (apnea)",
+          "Belly aches or pain",
+          "Cough",
+          "Painful breathing",
+          "Wheezing (stridor)",
+          "Vomiting",
+          "Seesaw breathing",
+          "Head bobbing",
+          "Flaring (nostril openings widening noticeably)",
+          "Cyanosis (bluish/pale light skin, gray/whitish dark skin)"
+        ],
+        "diagnosis": [
+          "Physical exam (listening to breathing with a stethoscope)",
+          "Pulse oximetry",
+          "Lab tests for viruses and bacteria, electrolytes, and blood gas levels",
+          "Ultrasound",
+          "X-ray",
+          "CT scan"
+        ],
+        "treatments": [
+          "Antibiotics (IV, pill, or liquid form)",
+          "Medications for other symptoms (fever, pain, inflammation)",
+          "Oxygen therapy",
+          "Life support (ventilator or ECMO)",
+          "IV fluids and electrolytes"
+        ],
+        "complications": [
+          "Sepsis",
+          "Needing to stay in a hospital",
+          "Needing breathing support like mechanical ventilation",
+          "Damage that affects lung development",
+          "Follow-up infections while immune system is weak",
+          "Higher risk of having pneumonia or other respiratory diseases in the future"
+        ],
+        "outlook": [
+          "Outlook is generally good, especially with timely diagnosis and treatment",
+          "About 1 in 5 children with pneumonia need to stay in the hospital",
+          "Most children who need to stay in the hospital are under 2 years old",
+          "Recovery time for children with pneumonia varies widely"
+        ],
+        "prevention": [
+          "Getting child vaccinated",
+          "Parents/caregivers getting vaccinated",
+          "Limiting exposure to others who are ill",
+          "Washing hands"
+        ]
+      }
+    ]
+  }
+]

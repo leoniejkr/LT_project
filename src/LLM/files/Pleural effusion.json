@@ -1,0 +1,81 @@
+[
+  {
+    "disease_name": "Pleural effusion",
+    "symptoms": [
+      "Chest pain (made worse by coughing or deep breathing)",
+      "Dyspnea (shortness of breath, or difficult, labored breathing)",
+      "Orthopnea (the inability to breathe easily unless you're sitting up straight or standing up straight)",
+      "No symptoms"
+    ],
+    "causes": [
+      "Body producing too much fluid or not absorbing enough fluid",
+      "Transudative causes (increase in pressure from fluid): Heart failure, Cirrhosis, Nephrotic syndrome",
+      "Exudative causes (fluid getting through smallest blood vessels or lymphatic system not draining enough): Pneumonia, Cancer (lung cancer, breast cancer or lymphoma), Kidney disease, Inflammatory disease, Post open-heart surgery",
+      "Pulmonary embolism (PE)",
+      "Tuberculosis",
+      "Autoimmune disease",
+      "Bleeding from chest trauma",
+      "Chylothorax (chyle from lymphatic system after trauma)",
+      "Rare chest and abdominal infections",
+      "Exposure to asbestos",
+      "Esophageal rupture",
+      "Pancreatitis",
+      "Meig's syndrome (from a benign ovarian tumor)",
+      "Ovarian hyperstimulation syndrome",
+      "Certain medications",
+      "Abdominal surgery",
+      "Radiation therapy",
+      "Malignant (cancerous) cells in fluid",
+      "Direct result of chemotherapy"
+    ],
+    "treatments": [
+      "Diuretics",
+      "Other heart failure medications",
+      "Antibiotics",
+      "Chemotherapy",
+      "Radiation therapy",
+      "Medication infusion within chest",
+      "Therapeutic thoracentesis",
+      "Chest tube",
+      "Sclerosing agent (pleural sclerosis / fibrosis)",
+      "Surgery",
+      "Video-assisted thoracoscopic surgery (VATS) (with optional insertion of sterile talc or an antibiotic)",
+      "Thoracotomy (traditional, 'open' thoracic surgery)"
+    ],
+    "life_expectancy": [],
+    "outlook": [
+      "Varies depending on what caused it and what other conditions you have",
+      "For some people, treatment is successful, but effusions can happen again",
+      "Outlook isn't good when caused by cancer",
+      "Outlook isn't good without treatment"
+    ],
+    "diagnosis": [
+      "Medical history",
+      "Physical exam (listening to lungs)",
+      "Chest X-ray",
+      "Computed tomography (CT) scan of chest",
+      "Ultrasound of chest",
+      "Thoracentesis or biopsy",
+      "Pleural fluid analysis",
+      "Thoracoscopy (video-assisted thoracic surgery, or VATS)"
+    ],
+    "complications": [
+      "An infection that becomes an abscess",
+      "Scarring around the lungs",
+      "Damage to lungs"
+    ],
+    "prevention": [
+      "Avoiding tobacco products",
+      "Avoiding asbestos",
+      "Sticking to low-salt meals if instructed",
+      "Taking prescribed diuretics (water pills)",
+      "Limiting fluid intake if instructed"
+    ],
+    "living_with": [
+      "Stick to treatment plan for chronic condition",
+      "Go to all follow-up appointments to manage chronic condition",
+      "Get immediate help if having trouble breathing"
+    ],
+    "is_contagious": null
+  }
+]

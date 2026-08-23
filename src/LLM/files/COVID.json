@@ -1,0 +1,254 @@
+[
+  {
+    "primary_condition": "COVID-19 (SARS-CoV-2 Infection)",
+    "definition": "Infectious disease caused by the Severe Acute Respiratory Syndrome Coronavirus 2 (SARS-CoV-2).",
+    "transmission_causes": [
+      "SARS-CoV-2 virus infection",
+      "Breathing in respiratory droplets from an infected person",
+      "Close contact (touching, shaking hands) with an infected person and then touching the face",
+      "Touching a contaminated surface and then touching the face"
+    ],
+    "is_contagious": true,
+    "general_prevention": [
+      "Getting vaccinated against COVID-19 and the flu",
+      "Getting vaccinated against pneumococcal disease",
+      "Washing hands frequently with soap and water (or using hand sanitizer)",
+      "Wearing a multilayer, snug-fitting mask (like N95 or KN95) in indoor public spaces or around others",
+      "Avoiding close contact and sharing items with sick or exposed people",
+      "Maintaining distance / limiting exposure to large indoor gatherings or high-risk events",
+      "Disinfecting high-touch surfaces frequently",
+      "Cough etiquette",
+      "Quitting smoking and avoiding secondhand smoke",
+      "Getting treated for underlying health conditions that increase risk"
+    ],
+    "manifestations_and_subtypes": [
+      {
+        "subtype_name": "COVID in Children",
+        "definition": "SARS-CoV-2 infection occurring in pediatric populations (infants, children, and adolescents).",
+        "symptoms": [
+          "Fever",
+          "Cough",
+          "Shortness of breath",
+          "Sore throat",
+          "Headache",
+          "Muscle pain",
+          "Fatigue",
+          "Congestion",
+          "Runny nose",
+          "Nausea",
+          "Vomiting",
+          "Diarrhea",
+          "Uninterested in feeding (in infants)",
+          "Asymptomatic"
+        ],
+        "diagnosis": [
+          "Laboratory test (saliva sample or swab from nose or throat)",
+          "At-home test"
+        ],
+        "treatments": [
+          "At-home care",
+          "Staying hydrated with plenty of fluids",
+          "Fever-reducing medication",
+          "Rest",
+          "Running a humidifier",
+          "Antiviral medications (select high-risk cases)",
+          "Care at a hospital or ICU",
+          "Intravenous (IV) fluids",
+          "Supplemental oxygen"
+        ],
+        "complications": [
+          "Croup",
+          "Bronchiolitis",
+          "Acute respiratory distress syndrome",
+          "Myocarditis",
+          "Acute kidney failure",
+          "Multisystem inflammatory syndrome in children (MIS-C)",
+          "Post-COVID conditions / long COVID"
+        ],
+        "outlook": [
+          "Most kids get better within one to two weeks",
+          "Children who develop complications may need longer to recover",
+          "Most kids recover and bounce back just fine",
+          "Some children develop post-COVID conditions (long COVID)"
+        ],
+        "living_with": [
+          "Follow healthcare provider's and school/daycare's advice about returning to school",
+          "Tell pediatrician if child has lingering or new symptoms"
+        ]
+      },
+      {
+        "subtype_name": "COVID-19 during Pregnancy",
+        "definition": "SARS-CoV-2 infection occurring during pregnancy, posing unique risks to both maternal and fetal health.",
+        "symptoms": [
+          "Fever",
+          "Severe fever (higher than 103 degrees Fahrenheit or 39 degrees Celsius)",
+          "Chills",
+          "Cough and nasal congestion",
+          "Headache and body aches",
+          "Tiredness",
+          "Lethargy or having trouble staying awake",
+          "New loss of taste or smell",
+          "Trouble breathing",
+          "Pain or pressure in your chest",
+          "Disorientation or confusion / inability to wake up",
+          "Diarrhea and vomiting",
+          "Blue-, gray- or white-tinged lips (cyanosis)"
+        ],
+        "diagnosis": [
+          "Diagnosis based on symptoms and likelihood of exposure",
+          "At-home COVID-19 test",
+          "Laboratory test involving swabbing nasal fluid"
+        ],
+        "treatments": [
+          "Ritonavir-boosted nirmatrelvir (Paxlovid®)",
+          "Resting",
+          "Drinking extra fluids",
+          "Taking acetaminophen for pain relief",
+          "Using a humidifier to relieve congestion",
+          "Taking over-the-counter medication containing dextromethorphan to reduce coughing",
+          "Treatment in a hospital for severe symptoms"
+        ],
+        "complications": [
+          "Blood clotting disorders",
+          "Fetal growth restriction",
+          "Gestational diabetes",
+          "Heavy bleeding right after giving birth (postpartum hemorrhage)",
+          "Low birth weight",
+          "Preeclampsia",
+          "Preterm birth",
+          "Stillbirth",
+          "Inflammatory responses in the developing fetus",
+          "Vertical transmission (spreading of virus from pregnant woman to fetus)"
+        ],
+        "outlook": [
+          "Most pregnant women who get COVID-19 experience mild symptoms and fully recover",
+          "Birth defects due to COVID-19 are rare"
+        ],
+        "living_with": [
+          "Rest plenty and drink a lot of water",
+          "Isolate from others living with you until feeling better",
+          "Communicate with healthcare provider and follow their advice",
+          "Attend prenatal appointments"
+        ]
+      },
+      {
+        "subtype_name": "COVID Pneumonia",
+        "definition": "A severe lung complication of COVID-19 where the virus causes inflammation and fluid leakage into the alveoli.",
+        "causes": [
+          "Infection with the SARS-CoV-2 virus in your lungs",
+          "Immune system attacking the infection causing alveoli to swell and leak fluid"
+        ],
+        "symptoms": [
+          "Shortness of breath or trouble breathing",
+          "Confusion",
+          "Extreme fatigue/tiredness",
+          "Cough",
+          "Fever",
+          "Chest pain or tightness",
+          "Bluish lips, skin or nails (cyanosis)"
+        ],
+        "diagnosis": [
+          "Asking about symptoms and physical examination",
+          "Nasal swab",
+          "Pulse oximetry",
+          "Chest X-ray",
+          "CT scan",
+          "Blood tests",
+          "Sputum test",
+          "Pleural fluid culture",
+          "Arterial blood gas test",
+          "Bronchoscopy"
+        ],
+        "treatments": [
+          "Hospitalization",
+          "Antiviral medications (remdesivir, Paxlovid™)",
+          "Antibiotics",
+          "Supplemental oxygen",
+          "IV fluids",
+          "Draining of fluids with a catheter or surgery",
+          "Corticosteroids (dexamethasone)",
+          "Anticoagulants",
+          "Monoclonal antibodies (tocilizumab)",
+          "Mechanical ventilation",
+          "Extracorporeal membrane oxygenation (ECMO)"
+        ],
+        "complications": [
+          "Acute respiratory distress syndrome (ARDS)",
+          "Blood clot in your lungs",
+          "Lung scarring"
+        ],
+        "outlook": [
+          "Can cause life-threatening illness",
+          "Can last longer and cause damage in more places than other types of pneumonia",
+          "Probably need to stay in the hospital for a week or longer to recover",
+          "How soon you feel better depends on age, severity of pneumonia, and other health conditions or complications",
+          "Might still be more tired than usual or have other symptoms for weeks or months after going home",
+          "Mortality rates range from 3% to 5% for hospital patients not in ICU, 30% to 40% for people in the ICU, and 50% to 80% for those on a respirator",
+          "Age is usually the biggest factor in surviving COVID pneumonia"
+        ],
+        "living_with": [
+          "Follow up with your healthcare provider if you have ongoing health concerns after being treated"
+        ]
+      },
+      {
+        "subtype_name": "Long COVID (Post-COVID Conditions)",
+        "definition": "A post-acute sequela characterized by persistent, returning, or new health problems occurring weeks or months after an initial SARS-CoV-2 infection.",
+        "causes": [
+          "Tiny blood clots",
+          "Inflammation",
+          "Autoimmune disorders",
+          "Viral persistence (SARS‑CoV‑2 hanging around in the body)",
+          "Reactivation of other viruses (such as Epstein-Barr virus)",
+          "Long-term psychological effects of having a serious illness"
+        ],
+        "symptoms": [
+          "Fatigue (lack of energy)",
+          "Shortness of breath",
+          "Loss of or altered sense of smell or taste (anosmia or dysgeusia)",
+          "Trouble thinking or focusing — 'brain fog'",
+          "Chronic cough",
+          "Headaches",
+          "Difficulty sleeping or insomnia",
+          "Depression",
+          "Anxiety",
+          "Chest pain",
+          "Heart palpitations",
+          "Diarrhea"
+        ],
+        "diagnosis": [
+          "Listening to symptoms and health history",
+          "Blood tests",
+          "Chest X-rays or other imaging",
+          "CT scans",
+          "Lung (pulmonary) function tests",
+          "Electrocardiogram (EKG/ECG)",
+          "Echocardiogram (Echo)"
+        ],
+        "treatments": [
+          "Medication (for cough, headaches, anxiety, depression, or underlying causes like blood clots)",
+          "Stellate ganglion block",
+          "Olfactory retraining",
+          "Physical therapy",
+          "Pulmonary rehabilitation",
+          "Counseling"
+        ],
+        "prevention": [
+          "Antiviral medications (nirmatrelvir / Paxlovid® within five days of a positive COVID test or symptom start)",
+          "Vaccination against COVID-19",
+          "Avoiding initial infection"
+        ],
+        "outlook": [
+          "Symptoms may come and go, change or get worse over time",
+          "Many long-haulers do eventually get better, though how long that takes is different for each person",
+          "Most people with long COVID start to feel better within 12 to 18 months"
+        ],
+        "living_with": [
+          "See a primary care provider (PCP) and one or more specialists or a long COVID clinic",
+          "Be persistent and patient while trying treatments",
+          "Allow yourself more time for normal tasks and take more breaks",
+          "Take extended time off work or school if needed"
+        ]
+      }
+    ]
+  }
+]

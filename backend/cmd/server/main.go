@@ -7,6 +7,7 @@ import (
 
 	"backend/internal/analysis"
 	"backend/internal/api"
+	"backend/internal/chat"
 	"backend/internal/orthanc"
 	"backend/internal/patient"
 	"backend/internal/platform"
@@ -42,7 +43,8 @@ func main() {
 	llmClient := analysis.NewLLMClient()
 	analysisService := analysis.NewService(analysisRepo, llmClient)
 	patientService := patient.NewService(patientRepo, analysisService, orthancStore)
-	apiHandler := api.NewHandler(patientService)
+	chatClient := chat.NewClient()
+	apiHandler := api.NewHandler(patientService, chatClient)
 	apiHandler.RegisterRoutes(router)
 
 	router.Handle("/swagger/", httpSwagger.WrapHandler)
