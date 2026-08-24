@@ -1,22 +1,92 @@
-<!--
-kleine süße ideen:
+# __TrustAI__
+
+## Project Summary
+
+### What does the application do
+
+TrustAI is a Medical Prediction AI platform created to support clinicians in assessing chest X-ray images. Its main feature is a deep learning model that analyzes uploaded medical images to detect potential abnormalities, diseases, and other visual findings.
+
+The application is build as an interactive web dashboard. Users can upload one or multiple X-ray images and enter relevant patient information (like age, gender, symptoms, and medical history). The model then generates predictions for possible conditions and also gives a certainty estimation for each result (confidence scores).
+
+On the results page, the dashboard displays heatmaps which highlight the image regions that have contributed to each prediction. For more information, the user can interact with an integrated chatbot based on a large language model. The chatbot has knowledge about the supported diseases and uses the patient context and AI findings to answer questions, explain results, and assist with risk assessment.
+
+### Workflow of the application
+
+The application is divided into a frontend (build with Svelte), a backend (build with Go), and a separate modelling service. The user starts by uploading one or more chest X-ray images and entering patient information such as age, gender, symptoms, and medical history through the web interface.
+
+The frontend sends the images and patient metadata to the Go backend. The backend coordinates the analysis workflow: it stores the uploaded images, creates the patient record, and forwards the images to the deep learning modelling service. The modelling service preprocesses the images and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. It also generates heatmaps that indicate which image regions influenced the model's decision.
+
+The analysis results are returned to the backend and saved together with the patient data. The Svelte frontend then presents them in the interactive Medical Analysis Dashboard, where users can review the predictions, confidence scores, original images, and corresponding heatmaps. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
+
+The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for medical image storage. The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.
 
 
-- würd wandb nutzen später (macht keinen krassen unterschied im code, nur dass wir sehen wie model parameter unser modelperformance beinflussen)
+### What did we do with which data
 
-- schreiben code in python!!
-    - prolly ADAM als optimizer
+see [Data](#data)
+
+#### Prediction model
+
+<!-- noch aktuell? -->
+
+The prediction model was trained on the mixed data of MIDRC: Open-A1 and the NIH Chest X-Ray Dataset.
+
+#### LLM -> Chatbot
+
+Data for the LLM
+
+### How did we collect the data
+
+Dataset sources \
+MIDRC: https://www.midrc.org/midrc-data \
+NIH: https://www.kaggle.com/datasets/nih-chest-xrays/data
+
+
+### How do you start the application
+
+<!-- written by AI and not changed yet!!! -->
+
+#### Prerequisites
+
+Install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/). Make sure Docker Compose is available. The application runs all required services in containers, so no separate installation of Go, Python, PostgreSQL, Orthanc, or Ollama is required for normal use.
+
+#### First-time setup
+
+Open a terminal in the project root directory and run:
+
+```bash
+docker compose build
+docker compose up -d
+docker compose exec ollama ollama pull phi3:mini
+```
+
+The first command builds the application images. The second starts the database, image storage, modelling service, backend, frontend, and Ollama. The last command downloads the language model used by the chatbot and is only required once.
+
+#### Open the application
+
+Open [http://localhost:5173](http://localhost:5173) in a browser. On the upload page, select one or more chest X-ray images and enter the required patient information. Start the analysis to view the predictions, confidence scores, and heatmaps on the results dashboard. Use the chatbot button on the dashboard to ask questions about the findings and risk factors.
+
+#### Starting the application later
+
+After the initial setup, start the services with:
+
+```bash
+docker compose up -d
+```
+
+To stop the application, run:
+
+```bash
+docker compose down
+```
+
+The application data and downloaded language model are stored in Docker volumes and remain available after stopping the services. Use `docker compose down -v` only when you intentionally want to delete these volumes and their data.
 
 
 
-website quatsch
-- html
-     gucken wie mit domain wir es machen -->
 
 
-# TrustAI
-
-Project Summary will be here
+# Data
 
 ## Hybrid Chest X-Ray Multi-Label Training Pipeline
 
