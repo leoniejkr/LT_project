@@ -178,6 +178,44 @@ Notes:
 - the backend connects to ollama via ``OLLAMA_URL``/``OLLAMA_MODEL`` (configured in docker-compose.yaml)
 - quick test without the UI: ``curl -X POST http://localhost:8080/chat -H "Content-Type: application/json" -d '{"message": "hello", "history": []}'``
 
+## Production-Deployment und Docker Hub
+
+Der Dev-Workflow (`docker-compose.yaml`: Live-Reload + Volume-Mounts) ist nicht zum
+Publizieren gedacht. Dafür gibt es separate Production-Builds (in den Dockerfiles als
+`target: prod`) und ein eigenes Compose-File.
+
+### Produktions-Stack lokal starten
+
+```bash
+docker compose -f docker-compose.prod.yaml up -d
+docker compose -f docker-compose.prod.yaml exec ollama ollama pull phi3:mini
+```
+
+Danach läuft die App unter [http://localhost](http://localhost). Ein nginx-Reverse-Proxy
+ist der einzige Einstiegspunkt: `/` → Frontend (SvelteKit-SSR), `/api/*` → Go-Backend
+(das `/api`-Präfix wird entfernt), `/swagger/` → Swagger-UI.
+
+Unterschiede zur Entwicklung:
+
+- **Multi-Stage-Images**: kein Live-Reload, keine Volume-Mounts, der Code liegt im Image.
+  Das Backend läuft als statisches Binary, das Frontend als Node-Server (`adapter-node`).
+- **Modelling**: das trainierte Modell (`./checkpoints/dual_view_checkpoint.pth`, 28 MB)
+  wird ins Image gebacken und als gunicorn-Worker gestartet. `checkpoints/` ist in der
+  `.gitignore` — es muss also beim Build lokal vorhanden sein (frische Klones bauen erst,
+  nachdem die Datei dort liegt).
+- **Ports**: Frontend und Backend sind intern (nur `nginx` publiziert `80`); `db`, `orthanc`
+  und `ollama` sind sogar gar nicht von außen erreichbar.
+
+### Images öffentlich machen (z. B. Docker Hub)
+
+1. Registry-Namespace im Compose-File setzen (`laterne/trustai-...` → `<user>/<name>`).
+2. `docker login`
+3. `docker compose -f docker-compose.prod.yaml build`
+4. `docker compose -f docker-compose.prod.yaml push`
+
+Danach kann der Stack statt mit den `build:`-Blöcken mit den veröffentlichten `image:`-Namen
+ausgerollt werden.
+
 ## Update Swagger
 - ``swag init --dir ./cmd/server,./internal/api --output ./docs``
 

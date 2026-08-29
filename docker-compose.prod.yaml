@@ -1,0 +1,105 @@
+# Production-Setup fuer TrustAI.
+#
+# Start:
+#   docker compose -f docker-compose.prod.yaml up -d
+#   docker compose -f docker-compose.prod.yaml exec ollama ollama pull phi3:mini
+#
+# Oeffnen: http://localhost
+#
+# Images nach Docker Hub pushen:
+#   docker login
+#   docker compose -f docker-compose.prod.yaml build
+#   docker compose -f docker-compose.prod.yaml push
+#
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: trustai_user
+      POSTGRES_PASSWORD: trustai_password
+      POSTGRES_DB: trustai_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trustai_user -d trustai_db"]
+      interval: 2s
+      retries: 30
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+  orthanc:
+    image: orthancteam/orthanc
+    volumes:
+      - orthanc_storage:/var/lib/orthanc/db:Z
+    environment:
+      ORTHANC__NAME: "Orthanc Database"
+      ORTHANC__REGISTERED_USERS: |
+        {"user": "user"}
+
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ollama_data:/root/.ollama
+
+  modelling:
+    image: trustai/modelling:latest
+    build:
+      context: .
+      dockerfile: modelling/Dockerfile.prod
+    expose:
+      - "5000"
+    environment:
+      - USE_MOCK=false
+      - CHECKPOINT_PATH=/app/checkpoints/dual_view_checkpoint.pth
+      - OLLAMA_URL=http://ollama:11434
+      - OLLAMA_MODEL=phi3:mini
+    depends_on:
+      - ollama
+
+  backend:
+    image: trustai/backend:latest
+    build:
+      context: ./backend
+      target: prod
+    expose:
+      - "8080"
+    environment:
+      DATABASE_URL: host=db user=trustai_user password=trustai_password dbname=trustai_db port=5432 sslmode=disable TimeZone=Europe/Berlin
+      MODELLING_URL: http://modelling:5000
+      ORTHANC_URL: http://orthanc:8042
+      OLLAMA_URL: http://ollama:11434
+      OLLAMA_MODEL: phi3:mini
+      PORT: 8080
+    depends_on:
+      db:
+        condition: service_healthy
+      modelling:
+        condition: service_started
+      orthanc:
+        condition: service_started
+
+  frontend:
+    image: trustai/frontend:latest
+    build:
+      context: ./frontend
+      target: prod
+    expose:
+      - "3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_started
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+  orthanc_storage:
+  ollama_data:

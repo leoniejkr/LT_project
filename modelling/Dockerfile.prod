@@ -1,0 +1,36 @@
+# Production-Build für den Modelling-Service.
+#
+# WICHTIG: Dieser Build erwartet den Build-Context im REPO-ROOT (`.`), weil das
+# trainierte Modell aus `./checkpoints` mit ins Image gebacken wird. Siehe
+# docker-compose.prod.yaml:
+#
+#   modelling:
+#     build:
+#       context: .
+#       dockerfile: modelling/Dockerfile.prod
+#
+FROM python:3.11-slim AS prod
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY modelling/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Quellcode des Modelling-Service
+COPY modelling/*.py .
+
+# Trainiertes Modell (28 MB) direkt ins Image backen, damit der Container
+# ohne zusätzlichen Volume-Mount sofort lauffähig ist.
+COPY checkpoints/ ./checkpoints/
+
+ENV USE_MOCK=false
+ENV CHECKPOINT_PATH=/app/checkpoints/dual_view_checkpoint.pth
+
+# gunicorn statt des Flask-Dev-Servers (ein Worker, da das Modell im
+# Prozessspeicher gehalten wird und die Inferenz synchron läuft).
+CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:5000", "--access-logfile", "-", "main:app"]

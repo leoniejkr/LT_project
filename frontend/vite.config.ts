@@ -1,12 +1,20 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import tailwindcss from '@tailwindcss/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
 	plugins: [
 		sveltekit(),
 		tailwindcss()
 	],
+	test: {
+		environment: 'jsdom'
+	},
+	resolve: {
+		// Nur unter Vitest die zusätzliche 'browser'-Condition setzen; im normalen
+		// (Produktions-)Build nichts ueberschreiben, damit die Vite-Defaults gelten.
+		...(process.env.VITEST ? { conditions: ['browser'] } : {})
+	},
 	optimizeDeps: {
 		include: []
 	},
