@@ -97,7 +97,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          dockerfile: modelling/Dockerfile.prod
+          file: modelling/Dockerfile.prod
           push: false
           cache-from: type=gha,scope=modelling
           cache-to: type=gha,scope=modelling,mode=max
