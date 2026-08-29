@@ -28,7 +28,7 @@ ViteB
 data/preprocessed
 data_hybrid/midrc_images
 data_hybrid/midrc_images_before
-/checkpoints
+/frontend/build
 
 /images
 
@@ -37,4 +37,3 @@ data_hybrid/midrc_images_before
 *.pyc
 *.wandb
 /wandb
-/checkpoints

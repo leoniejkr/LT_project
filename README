@@ -200,13 +200,29 @@ Unterschiede zur Entwicklung:
 - **Multi-Stage-Images**: kein Live-Reload, keine Volume-Mounts, der Code liegt im Image.
   Das Backend läuft als statisches Binary, das Frontend als Node-Server (`adapter-node`).
 - **Modelling**: das trainierte Modell (`./checkpoints/dual_view_checkpoint.pth`, 28 MB)
-  wird ins Image gebacken und als gunicorn-Worker gestartet. `checkpoints/` ist in der
-  `.gitignore` — es muss also beim Build lokal vorhanden sein (frische Klones bauen erst,
-  nachdem die Datei dort liegt).
+  ist im Repo versioniert und wird beim Docker-Build ins Image gebacken; gestartet wird
+  es als gunicorn-Worker.
 - **Ports**: Frontend und Backend sind intern (nur `nginx` publiziert `80`); `db`, `orthanc`
   und `ollama` sind sogar gar nicht von außen erreichbar.
 
-### Images öffentlich machen (z. B. Docker Hub)
+### Images automatisch publizieren (GitHub Actions)
+
+`.github/workflows/publish-images.yml` baut bei jedem Push auf `main` die drei
+Produktions-Images und pusht sie nach **GHCR**:
+
+- `ghcr.io/leoniejkr/lt_project-backend`
+- `ghcr.io/leoniejkr/lt_project-frontend`
+- `ghcr.io/leoniejkr/lt_project-modelling`
+
+Die Pakete werden im Workflow automatisch auf *public* gesetzt (best effort). Manuell
+anstoßbar über *Actions → Publish Production Images → Run workflow*. Für eigene Deployments
+können die `image:`-Namen in `docker-compose.prod.yaml` auf diese GHCR-Adressen umgestellt
+werden.
+
+Alternativ zu Docker Hub wechseln: im Workflow den Login auf `docker/login-action`
+umbauen und die Secrets `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` anlegen.
+
+### Images manuell publizieren (z. B. Docker Hub)
 
 1. Registry-Namespace im Compose-File setzen (`laterne/trustai-...` → `<user>/<name>`).
 2. `docker login`
