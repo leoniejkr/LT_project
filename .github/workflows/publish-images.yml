@@ -1,6 +1,7 @@
 # Baut und publiziert die Produktions-Images nach GHCR (github.com/leoniejkr/LT_project/pkgs).
 #
-# Auslöser: Push auf main oder manuell (workflow_dispatch).
+# Auslöser: nur manuell (workflow_dispatch) über den Button
+# "Actions → Publish Production Images → Run workflow".
 # Images: ghcr.io/<namespace>/<repo>-backend, -frontend, -modelling (Latest + Commit-SHA).
 #
 # Hinweis: Funktionieren die GHCR-Login/API-Schritte nicht (z.B. Org-Policies),
@@ -12,8 +13,6 @@
 name: Publish Production Images
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

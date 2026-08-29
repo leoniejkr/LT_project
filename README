@@ -207,17 +207,18 @@ Unterschiede zur Entwicklung:
 
 ### Images automatisch publizieren (GitHub Actions)
 
-`.github/workflows/publish-images.yml` baut bei jedem Push auf `main` die drei
-Produktions-Images und pusht sie nach **GHCR**:
+`.github/workflows/publish-images.yml` baut die drei Produktions-Images und pusht sie nach
+**GHCR** — aber nur, wenn man es manuell auslöst, nicht bei jedem Push:
 
-- `ghcr.io/leoniejkr/lt_project-backend`
-- `ghcr.io/leoniejkr/lt_project-frontend`
-- `ghcr.io/leoniejkr/lt_project-modelling`
+1. Auf GitHub → *Actions → Publish Production Images → Run workflow* klicken.
+2. Der Job baut und pusht:
+   - `ghcr.io/leoniejkr/lt_project-backend`
+   - `ghcr.io/leoniejkr/lt_project-frontend`
+   - `ghcr.io/leoniejkr/lt_project-modelling`
 
-Die Pakete werden im Workflow automatisch auf *public* gesetzt (best effort). Manuell
-anstoßbar über *Actions → Publish Production Images → Run workflow*. Für eigene Deployments
-können die `image:`-Namen in `docker-compose.prod.yaml` auf diese GHCR-Adressen umgestellt
-werden.
+Die Pakete werden im Workflow automatisch auf *public* gesetzt (best effort). Für eigene
+Deployments können die `image:`-Namen in `docker-compose.prod.yaml` auf diese GHCR-Adressen
+umgestellt werden.
 
 Alternativ zu Docker Hub wechseln: im Workflow den Login auf `docker/login-action`
 umbauen und die Secrets `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` anlegen.
