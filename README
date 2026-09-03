@@ -6,19 +6,24 @@
 
 TrustAI is a Medical Prediction AI platform created to support clinicians in assessing chest X-ray images. Its main feature is a deep learning model that analyzes uploaded medical images to detect potential abnormalities, diseases, and other visual findings.
 
-The application is build as an interactive web dashboard. Users can upload one or multiple X-ray images and enter relevant patient information (like age, gender, symptoms, and medical history). The model then generates predictions for possible conditions and also gives a certainty estimation for each result (confidence scores).
+Users can upload one or multiple X-ray images via the upload page and enter relevant patient information (like age, gender, symptoms, and medical history). The model then generates predictions for possible conditions and also gives a certainty estimation for each result (confidence scores).
 
-On the results page, the dashboard displays heatmaps which highlight the image regions that have contributed to each prediction. For more information, the user can interact with an integrated chatbot based on a large language model. The chatbot has knowledge about the supported diseases and uses the patient context and AI findings to answer questions, explain results, and assist with risk assessment.
+On the results page, the dashboard displays heatmaps which highlight the image regions that have contributed to each prediction. For more information, the user can use a medical viewport to take a closer look at the X-Rays or interact with an integrated chatbot that is based on a large language model. The chatbot has knowledge about the supported diseases and uses the patient context and AI findings to answer questions, explain results, and assist with risk assessment.
 
 ### Workflow of the application
 
-The application is divided into a frontend (build with Svelte), a backend (build with Go), and a separate modelling service. The user starts by uploading one or more chest X-ray images and entering patient information such as age, gender, symptoms, and medical history through the web interface.
+The application is build as a web app. It is divided into a frontend (build with Typescript and Svelte), a backend (build with Go), and a separate modelling service. The user starts by uploading one or more chest X-Ray .png images and entering patient information such as age, gender, symptoms, and medical history through the web interface. The application does not support the upload of .dcm images.
 
-The frontend sends the images and patient metadata to the Go backend. The backend coordinates the analysis workflow: it stores the uploaded images, creates the patient record, and forwards the images to the deep learning modelling service. The modelling service preprocesses the images and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. It also generates heatmaps that indicate which image regions influenced the model's decision.
+The frontend sends the images and patient metadata to the Go backend via REST. The backend then coordinates the analysis workflow: it stores the uploaded images, creates the patient record, and forwards the images to the deep learning modelling service. The modelling service preprocesses the images and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. It also generates heatmaps that indicate which image regions influenced the model's decision.
 
-The analysis results are returned to the backend and saved together with the patient data. The Svelte frontend then presents them in the interactive Medical Analysis Dashboard, where users can review the predictions, confidence scores, original images, and corresponding heatmaps. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
+All analysis results are returned to the backend and saved together with the patient data. The Svelte frontend then presents them in the results page, where users can review the predictions, confidence scores, original images, and corresponding heatmaps. 
+The application presents two types of prediction results. Aggregated results and individual results, which are both accompanied with confidence scores that are measured in percentages. The aggregated results are located at the top and show the aggregated, calculated classifications over all the uploaded X-Ray images, while the individual results at the bottom show the calculated classifications for each individual X-Ray image with their respective corresponding heatmaps. The classifications are ranked according to their confidence scores. The confidence threshold for shown classifications can be modified in the GUI with a slider in the results page after the calculation. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
 
 The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for medical image storage. The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.
+
+OpenAPI in combination with Swagger are used to construct the REST API and its specification.
+
+Right now, patient data and analysis results are deleted after every new analysis to comply with regulations. But the repository lays the ground work for future contributors to implement persistent databases, as they are already included as Dockerfiles and implementations exist in the backend.
 
 
 ### What did we do with which data
@@ -42,37 +47,29 @@ MIDRC: https://www.midrc.org/midrc-data \
 NIH: https://www.kaggle.com/datasets/nih-chest-xrays/data
 
 
-### How do you start the application
 
-<!-- written by AI and not changed yet!!! -->
+## Contributing and locally starting the application
 
-#### Prerequisites
+### Running the application
 
-Install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/). Make sure Docker Compose is available. The application runs all required services in containers, so no separate installation of Go, Python, PostgreSQL, Orthanc, or Ollama is required for normal use.
+#### Prerequisites for running the application
 
-#### First-time setup
+The application runs all required services in containers, so no separate installation of any programming language or database is needed.
+For most OS just install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/). If you use NixOS or Arch-based systems just install the Docker Engine. For MacOS you can install Colima instead to your liking.
 
+#### Starting the application
 Open a terminal in the project root directory and run:
 
 ```bash
 docker compose build
 docker compose up -d
-docker compose exec ollama ollama pull phi3:mini
+<!-- Dieses exec ding muss man eigentlich nicht machen oder?? -->
+docker compose exec ollama ollama pull phi3:mini 
 ```
 
-The first command builds the application images. The second starts the database, image storage, modelling service, backend, frontend, and Ollama. The last command downloads the language model used by the chatbot and is only required once.
+The first command builds the application images and only has to be executed once, as long as the code stays unchanged. The second command starts the images and has to be executed every time the application is to be started. The last command downloads the language model used by the chatbot and is only required once.
 
-#### Open the application
-
-Open [http://localhost:5173](http://localhost:5173) in a browser. On the upload page, select one or more chest X-ray images and enter the required patient information. Start the analysis to view the predictions, confidence scores, and heatmaps on the results dashboard. Use the chatbot button on the dashboard to ask questions about the findings and risk factors.
-
-#### Starting the application later
-
-After the initial setup, start the services with:
-
-```bash
-docker compose up -d
-```
+Then, open [http://localhost:5173](http://localhost:5173) in a browser.
 
 To stop the application, run:
 
@@ -80,11 +77,72 @@ To stop the application, run:
 docker compose down
 ```
 
-The application data and downloaded language model are stored in Docker volumes and remain available after stopping the services. Use `docker compose down -v` only when you intentionally want to delete these volumes and their data.
+The application data and downloaded language model are stored in Docker volumes and remain available after stopping the services. Use 
 
+```bash
+docker compose down -v
+``` 
+only when you intentionally want to delete these volumes and their data.
 
+### Contributing
 
+#### Frontend
 
+##### Prerequisites
+
+1. Install nvm and the current NodeJS version with npm as seen in the tutorial [https://nodejs.org/en/download/current](https://nodejs.org/en/download/current)
+2. Navigate into the frontend folder and execute 
+```bash
+npm install
+```
+to install all dependencies
+
+##### Running and Testing the Frontend
+
+If you only want to start the frontend, execute ``npm run dev``. Make sure the Docker is not running or else the ports overlap.
+If you want to see changes to the frontend, the Docker images are running, and it is not important for you that only the frontend is running, you do not have to execute ``npm run dev`` to start the frontend. You can just use Docker for development purposes. Live reload is included. 
+
+To to test the frontend there are multiple commands that serve different purposes. The most important two are:
+
+```bash
+npm run test
+```
+Starts the unit tests, which are implemented using vitest as recommended by the Svelte team [https://svelte.dev/docs/svelte/testing](https://svelte.dev/docs/svelte/testing).
+
+```bash
+npm run test:e2e
+```
+Starts the E2E tests, which are implemented using Playwright.
+
+#### Backend
+
+##### Prerequisites
+
+1. Install go as instructed here [https://go.dev/doc/install](https://go.dev/doc/install)
+2. Run 
+```bash
+go mod tidy
+```
+to install all dependencies
+3. You maybe have to write ``export PATH=$PATH:$(go env GOPATH)/bin`` into your .bashrc
+
+##### Testind the Backend
+
+To test the backend move to the backend/internal folder and run
+
+```bash
+go test ./...
+```
+or if you are in VSCode and have installed GOlang support, right click into the internal folder and click on "Run Tests".
+
+##### Update the API with Swagger
+
+Changing the API in any way requires you to update the API specification and documentation. To do this run the following command in the backend folder:
+
+ ```bash
+ swag init --dir ./cmd/server,./internal/api --output ./docs
+ ```
+Changing the API in the backend may require you to also make changes in the frontend.
 
 # Data
 
@@ -92,29 +150,6 @@ The application data and downloaded language model are stored in Docker volumes 
 
 This repository contains an end-to-end medical deep learning pipeline designed to blend the NIH Chest X-Ray 14 dataset with the MIDRC COVID-14 dataset. The framework targets a unified 15-class multi-label classification taxonomy utilizing standard medical imaging processing protocols, parallelized data pipelines, and real-time remote experiment tracking.
 
-Repository Directory Structure:
-
-├── data_hybrid/
-│   ├── midrc_images/              # Standardized 2D PNG outputs from MIDRC DICOMs
-│   ├── combined_master.csv        # Final balanced, unified dataset manifest
-│   ├── midrc_download_manifest.json
-│   └── midrc_processed_manifest.csv
-├── frontend/                      # Optional web deployment / visualization workspace
-├── images/                        # Stage repository for raw incoming zip payloads
-├── main/                          # Alternative entrypoints / orchestration scripts
-└── src/
-    ├── exploration/               # Dataset diagnostic scripts & target listings
-    │   ├── available_conditions.txt
-    │   ├── available_observations.txt
-    │   └── explore_available_conditions.py
-    ├── blend_data.py              # Compiles and aligns NIH and MIDRC metadata structures
-    ├── datasets.py                # PyTorch Dataset construction and mapping utilities
-    ├── download_midrc_data.py     # Automates retrieval of targeted COVID-19 cohorts
-    ├── get_midrc_data.py          # Formulates cohorts and extracts manifest filters
-    ├── get_nih_data.py            # Local cache integration layer for Kaggle NIH assets
-    ├── lightning_module.py        # Lightning wrapper (Optional structure alternative)
-    ├── processing.py              # Standardizes DICOM files via MONAI pipeline & CLAHE contrast
-    └── train.py                   # Patient-grouped training pipeline with Weights & Biases
 
 
 #### 1. Data Acquisition & Processing Pipeline
@@ -235,17 +270,6 @@ ausgerollt werden.
 
 ## Update Swagger
 - ``swag init --dir ./cmd/server,./internal/api --output ./docs``
-
-## Test the User Flow 
-1. Boot up Docker ``docker compose up -d``
-2. upload patient data on the upload page
-3. test PostgreSQL:
-    - ``psql -h localhost -p 5432 -U trustai_user -d trustai_db -c "SELECT * FROM patients;"``
-4. test Orthanc:
-    - ``curl -u user:user http://localhost:8042/instances | python3 -m json.tool``
-5. test if data is correctly connected; the x_ray_paths in the patient table are the Orthanc Instance UUIDs:   
-    - ``SELECT x_ray_paths::text FROM patients;``
-    - UUIDS should match the IDs from http://localhost:8042/instances
 
 ## The Use-Case Flow 
 ### Explanation of Terminus 
