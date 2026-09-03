@@ -11,7 +11,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest",
-		"test:run": "vitest run"
+		"test:run": "vitest run --coverage",
+		"test:coverage": "vitest run --coverage"
 	},
 	"devDependencies": {
 		"@fontsource-variable/inter": "^5.2.8",
@@ -22,7 +23,9 @@
 		"@sveltejs/adapter-node": "^5.5.7",
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
+		"@testing-library/svelte": "^5.4.2",
 		"@types/node": "^25.6.0",
+		"@vitest/coverage-v8": "^4.1.11",
 		"bits-ui": "^2.18.1",
 		"clsx": "^2.1.1",
 		"formsnap": "^2.0.1",
