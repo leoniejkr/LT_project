@@ -44,7 +44,7 @@ func TestSendMessage_Success(t *testing.T) {
 	reply, err := client.SendMessage([]Message{
 		{Role: "user", Content: "Hello"},
 		{Role: "user", Content: "How are you?"},
-	})
+	}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestSendMessage_ServerError(t *testing.T) {
 
 	client := &Client{baseURL: server.URL, model: "test-model", httpClient: &http.Client{}}
 
-	_, err := client.SendMessage([]Message{{Role: "user", Content: "hi"}})
+	_, err := client.SendMessage([]Message{{Role: "user", Content: "hi"}}, "")
 	if err == nil {
 		t.Fatal("expected error for server error response")
 	}
@@ -80,7 +80,7 @@ func TestSendMessage_InvalidJSON(t *testing.T) {
 
 	client := &Client{baseURL: server.URL, model: "test-model", httpClient: &http.Client{}}
 
-	_, err := client.SendMessage([]Message{{Role: "user", Content: "hi"}})
+	_, err := client.SendMessage([]Message{{Role: "user", Content: "hi"}}, "")
 	if err == nil {
 		t.Fatal("expected error for invalid JSON response")
 	}
@@ -92,7 +92,7 @@ func TestSendMessage_InvalidJSON(t *testing.T) {
 func TestSendMessage_ConnectionRefused(t *testing.T) {
 	client := &Client{baseURL: "http://localhost:1", model: "test-model", httpClient: &http.Client{}}
 
-	_, err := client.SendMessage([]Message{{Role: "user", Content: "hi"}})
+	_, err := client.SendMessage([]Message{{Role: "user", Content: "hi"}}, "")
 	if err == nil {
 		t.Fatal("expected error for connection refused")
 	}

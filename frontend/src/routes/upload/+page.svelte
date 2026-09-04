@@ -27,6 +27,7 @@
 		patientMetadata,
 		uploadedFileUrls,
 	} from "$lib/stores.js";
+	import { classifierModel, llmModel } from "$lib/models";
 	import "../../app.css";
 	import {
 		SYMPTOM_TOPICS,
@@ -156,8 +157,13 @@
 		};
 
 		formData.append("formData", JSON.stringify(metadata));
+		formData.append("classifier_model", $classifierModel);
+		formData.append("llm_model", $llmModel);
 
-		console.log("Submitting Case:", metadata);
+		console.log("Submitting Case:", metadata, {
+			classifier: $classifierModel,
+			llm: $llmModel,
+		});
 
 		try {
 			analysisController = new AbortController();
@@ -326,7 +332,7 @@
 				topic.groups.flatMap((g) => g.symptoms),
 				selected,
 			)}
-			<div class="rounded-xl border p-4">
+			<div class="rounded-xl border p-4 w-fit">
 				<button
 					type="button"
 					class="flex w-full items-center justify-between gap-4 text-left"

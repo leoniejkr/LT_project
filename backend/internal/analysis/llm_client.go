@@ -34,7 +34,7 @@ func NewLLMClient() *LLMClient {
 	}
 }
 
-func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageNames []string) (*PredictionResponse, error) {
+func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*PredictionResponse, error) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
@@ -45,6 +45,18 @@ func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageN
 
 	if err := writer.WriteField("formData", string(jsonBytes)); err != nil {
 		return nil, fmt.Errorf("failed to write formData field: %w", err)
+	}
+
+	// Forward the user's model selections to the modelling service.
+	if classifierModel != "" {
+		if err := writer.WriteField("classifier_model", classifierModel); err != nil {
+			return nil, fmt.Errorf("failed to write classifier_model field: %w", err)
+		}
+	}
+	if llmModel != "" {
+		if err := writer.WriteField("llm_model", llmModel); err != nil {
+			return nil, fmt.Errorf("failed to write llm_model field: %w", err)
+		}
 	}
 
 	for i, buf := range imageBuffers {

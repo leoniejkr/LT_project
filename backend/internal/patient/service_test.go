@@ -152,7 +152,7 @@ func TestGetAnalysis(t *testing.T) {
 	orthancRepo := orthanc.NewRepository(orthancServer.URL, "", "")
 	svc := NewService(patientRepo, analysisSvc, orthancRepo)
 
-	resp, err := svc.GetAnalysis(1, &Patient{Age: 50}, nil, nil)
+	resp, err := svc.GetAnalysis(1, &Patient{Age: 50}, nil, nil, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

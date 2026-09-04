@@ -6,7 +6,8 @@
 	import * as Slider from "$lib/components/ui/slider/index.js";
 	import { Label } from "$lib/components/ui/label/index.js";
 	import { Separator } from "$lib/components/ui/separator/index.js";
-	import { SlidersHorizontal, ChevronDown } from "lucide-svelte";
+	import * as Select from "$lib/components/ui/select/index.js";
+	import { SlidersHorizontal, ChevronDown, Cpu, BrainCircuit } from "lucide-svelte";
 	import {
 		DECISION_MODES,
 		decisionMode,
@@ -15,6 +16,16 @@
 		isCustom,
 		type DecisionMode,
 	} from "$lib/settings";
+	import {
+		CLASSIFIER_MODELS,
+		LLM_MODELS,
+		classifierModel,
+		llmModel,
+		classifierLabel,
+		llmLabel,
+		selectedClassifier,
+		selectedLLM,
+	} from "$lib/models";
 
 	// Local editable copy of the threshold so the slider can be bound.
 	// In custom mode, dragging writes back into the store; otherwise the
@@ -32,6 +43,17 @@
 	function toggle() {
 		expanded = !expanded;
 	}
+
+	// Model selection (bound locally, pushed into the stores so the rest of
+	// the app + the analysis request use the active selection).
+	let cls = $state($classifierModel);
+	let llm = $state($llmModel);
+	$effect(() => {
+		classifierModel.set(cls);
+	});
+	$effect(() => {
+		llmModel.set(llm);
+	});
 </script>
 
 	<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
@@ -135,5 +157,63 @@
 			</p>
 		</div>
 		{/if}
+	</Item.Root>
+
+	<Item.Root variant="outline" class="flex-col items-stretch p-4">
+		<Item.Header class="mb-4">
+			<Item.Title class="text-lg flex items-center gap-2">
+				Model Selection / Architecture
+			</Item.Title>
+			<Item.Description class="text-sm">
+				Choose the classifier that analyzes images and the LLM that
+				writes the findings.
+			</Item.Description>
+		</Item.Header>
+
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+			<div>
+				<Label class="flex items-center gap-2 mb-2">
+					<Cpu size={16} /> Classifier Model
+				</Label>
+				<Select.Root type="single" bind:value={cls}>
+					<Select.Trigger class="w-full justify-between">
+						{classifierLabel(cls)}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Label>Classifier</Select.Label>
+						{#each CLASSIFIER_MODELS as m (m.id)}
+							<Select.Item value={m.id} label={m.label}>
+								{m.label}
+							</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
+				<p class="text-xs text-muted-foreground mt-2">
+					{$selectedClassifier?.description}
+				</p>
+			</div>
+
+			<div>
+				<Label class="flex items-center gap-2 mb-2">
+					<BrainCircuit size={16} /> LLM Model
+				</Label>
+				<Select.Root type="single" bind:value={llm}>
+					<Select.Trigger class="w-full justify-between">
+						{llmLabel(llm)}
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Label>LLM</Select.Label>
+						{#each LLM_MODELS as m (m.id)}
+							<Select.Item value={m.id} label={m.label}>
+								{m.label}
+							</Select.Item>
+						{/each}
+					</Select.Content>
+				</Select.Root>
+				<p class="text-xs text-muted-foreground mt-2">
+					{$selectedLLM?.description}
+				</p>
+			</div>
+		</div>
 	</Item.Root>
 </div>

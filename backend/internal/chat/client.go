@@ -47,9 +47,12 @@ type ollamaChatResponse struct {
 	Message Message `json:"message"`
 }
 
-func (c *Client) SendMessage(messages []Message) (string, error) {
+func (c *Client) SendMessage(messages []Message, model string) (string, error) {
+	if model == "" {
+		model = c.model
+	}
 	payload, err := json.Marshal(ollamaChatRequest{
-		Model:    c.model,
+		Model:    model,
 		Messages: messages,
 		Stream:   false,
 	})

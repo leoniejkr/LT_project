@@ -77,13 +77,16 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 		imageNames = append(imageNames, fh.Filename)
 	}
 
+	classifierModel := r.FormValue("classifier_model")
+	llmModel := r.FormValue("llm_model")
+
 	createdPatient, err := h.patientService.CreatePatient(&p, files)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	analysisResp, err := h.patientService.GetAnalysis(createdPatient.ID, createdPatient, imageBuffers, imageNames)
+	analysisResp, err := h.patientService.GetAnalysis(createdPatient.ID, createdPatient, imageBuffers, imageNames, classifierModel, llmModel)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -125,6 +128,7 @@ type ChatRequest struct {
 	Message string         `json:"message"`
 	History []chat.Message `json:"history"`
 	Context map[string]any `json:"context,omitempty"`
+	Model   string         `json:"model,omitempty"`
 }
 
 // buildContextMessage renders the client-supplied patient context as an
@@ -172,7 +176,7 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 		messages = append(messages, chat.Message{Role: "user", Content: req.Message})
 	}
 
-	reply, err := h.chatClient.SendMessage(messages)
+	reply, err := h.chatClient.SendMessage(messages, req.Model)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		json.NewEncoder(w).Encode(map[string]string{

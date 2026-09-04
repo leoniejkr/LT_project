@@ -4,6 +4,7 @@
 	import { Input } from "$lib/components/ui/input/index.js";
 	import * as Item from "$lib/components/ui/item/index.js";
 	import { cn } from "$lib/utils.js";
+	import { llmModel } from "$lib/models";
 
 	let {
 		class: className,
@@ -49,6 +50,7 @@
 				body: JSON.stringify({
 					message: text,
 					history: messages,
+					model: $llmModel,
 					...(context ? { context } : {}),
 				}),
 			});

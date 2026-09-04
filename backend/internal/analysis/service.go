@@ -14,8 +14,8 @@ func NewService(repo *Repository, llmClient *LLMClient) *Service {
 	}
 }
 
-func (s *Service) GetAnalysis(patientID uint, patientData any, imageBuffers [][]byte, imageNames []string) (*PredictionResponse, error) {
-	resp, err := s.llmClient.GetPrediction(patientData, imageBuffers, imageNames)
+func (s *Service) GetAnalysis(patientID uint, patientData any, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*PredictionResponse, error) {
+	resp, err := s.llmClient.GetPrediction(patientData, imageBuffers, imageNames, classifierModel, llmModel)
 	if err != nil {
 		return nil, err
 	}

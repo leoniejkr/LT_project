@@ -52,8 +52,8 @@ func (s *Service) CreatePatient(p *Patient, files []FileInput) (*Patient, error)
 	return p, nil
 }
 
-func (s *Service) GetAnalysis(patientID uint, patientData *Patient, imageBuffers [][]byte, imageNames []string) (*analysis.PredictionResponse, error) {
-	return s.analysisService.GetAnalysis(patientID, patientData, imageBuffers, imageNames)
+func (s *Service) GetAnalysis(patientID uint, patientData *Patient, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*analysis.PredictionResponse, error) {
+	return s.analysisService.GetAnalysis(patientID, patientData, imageBuffers, imageNames, classifierModel, llmModel)
 }
 
 func (s *Service) GetPatient(id uint) (*Patient, error) {
