@@ -26,19 +26,19 @@ export const DECISION_MODES: {
         value: 'high-sensitivity',
         label: 'High Sensitivity',
         threshold: 0.2,
-        description: 'τ = 0.20 — catches more findings.',
+        description: 'τ = 0.20 · catches more findings.',
     },
     {
         value: 'balanced',
         label: 'Balanced',
         threshold: 0.5,
-        description: 'τ = 0.50 — default.',
+        description: 'τ = 0.50 · default.',
     },
     {
         value: 'high-specificity',
         label: 'High Specificity',
         threshold: 0.8,
-        description: 'τ = 0.80 — fewer false positives.',
+        description: 'τ = 0.80 · fewer false positives.',
     },
     {
         value: 'custom',
