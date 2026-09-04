@@ -6,8 +6,8 @@ import { writable, derived, type Writable, type Readable } from 'svelte/store';
  * Two independent choices:
  * - classifierModel: which computer-vision model classifies the chest X-rays
  *   (produces the confidence scores + heatmaps).
- * - llmModel: which LLM (via Ollama) generates the natural-language reasons
- *   and powers the assistant chat.
+ * - llmModel: which LLM generates the natural-language reasons and powers
+ *   the assistant chat.
  *
  * These feed into the analysis pipeline (frontend -> backend -> modelling).
  * The catalogs are designed to grow: add an entry here and implement the
@@ -36,10 +36,8 @@ export const CLASSIFIER_MODELS: ClassifierModelOption[] = [
 ];
 
 /**
- * LLM models that can be selected. IMPORTANT: the model must be pulled into
- * the Ollama instance first (`ollama pull <id>`), otherwise the reasoning
- * and chat calls to Ollama will fail. Only models actually available in the
- * running Ollama container are listed here.
+ * LLM models that can be selected (static catalog — the source of truth for
+ * which models the app supports). Add an entry here to offer a new model.
  */
 export const LLM_MODELS: LLMModelOption[] = [
     {
