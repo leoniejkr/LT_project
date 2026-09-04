@@ -332,7 +332,7 @@
 				topic.groups.flatMap((g) => g.symptoms),
 				selected,
 			)}
-			<div class="rounded-xl border p-4 w-fit">
+			<div class="rounded-xl border p-4 w-full">
 				<button
 					type="button"
 					class="flex w-full items-center justify-between gap-4 text-left"
