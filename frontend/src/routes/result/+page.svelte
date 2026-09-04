@@ -320,16 +320,12 @@
     </div>
 
     {#if isMockData}
-        <Alert.Root
-            class="border-amber-500/60 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-950/60 dark:text-amber-200"
-        >
+        <Alert.Root class="border-red-500/60 bg-red-50 text-red-900 dark:border-red-500/40 dark:bg-red-950/60 dark:text-red-200">
             <AlertTriangle size={18} class="mt-0.5 shrink-0" />
             <div>
-                <Alert.Title>Test data — not a real analysis</Alert.Title>
+                <Alert.Title>Test data, not a real analysis</Alert.Title>
                 <Alert.Description>
-                    This page is showing sample demo data. The results, images
-                    and heatmaps below are placeholders and must not be used
-                    for any medical decision-making.
+                    Sample demo data. Placeholders only, not for medical use.
                 </Alert.Description>
             </div>
         </Alert.Root>
@@ -525,9 +521,8 @@
                     {/if}
                 </div>
                 <Item.Description class="italic px-2 text-xs">
-                    * Interactive Viewport: Left-click and drag to adjust window
-                    level (contrast), right-click and drag to zoom, wheel to
-                    scroll stack.
+                    * Viewport: left-click = window/contrast, right-click = zoom,
+                    wheel = scroll stack.
                 </Item.Description>
             </div>
 
