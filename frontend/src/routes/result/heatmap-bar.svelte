@@ -2,22 +2,32 @@
     import * as Item from "$lib/components/ui/item/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
     import { Button } from "$lib/components/ui/button/index.js";
+    import { Search } from "lucide-svelte";
     import { ChevronLeft, ChevronRight } from "lucide-svelte";
     import type { ImageResult } from "$lib/types";
+    import HeatmapDetail from "./heatmap-detail.svelte";
 
     interface Props {
         imageResults: ImageResult[];
+        imageIds: string[];
     }
 
-    let { imageResults }: Props = $props();
+    let { imageResults, imageIds }: Props = $props();
 
     let stripEls: Record<number, HTMLDivElement | null> = {};
+
+    // Which image's detail view is open (matched by index), if any.
+    let openDetailIndex = $state<number | null>(null);
 
     function scrollStrip(index: number, direction: number) {
         stripEls[index]?.scrollBy({
             left: direction * 220,
             behavior: "smooth",
         });
+    }
+
+    function originalImageIdFor(index: number): string | undefined {
+        return imageIds[index];
     }
 </script>
 
@@ -50,6 +60,15 @@
                         <span class="font-medium truncate min-w-0">
                             {imgResult.filename}
                         </span>
+                        <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            class="shrink-0"
+                            aria-label="Open detail view for {imgResult.filename}"
+                            onclick={() => (openDetailIndex = imgResult.index)}
+                        >
+                            <Search size={14} />
+                        </Button>
                         <span
                             class="text-xs text-muted-foreground ml-auto shrink-0 mr-1"
                         >
@@ -120,6 +139,20 @@
             {/each}
         </div>
     </Item.Root>
+
+    {#if openDetailIndex !== null}
+        {@const detail = imageResults.find(
+            (r) => r.index === openDetailIndex,
+        )}
+        {#if detail}
+            <HeatmapDetail
+                imageResult={detail}
+                originalImageId={originalImageIdFor(detail.index) ?? ""}
+                open={true}
+                onclose={() => (openDetailIndex = null)}
+            />
+        {/if}
+    {/if}
 {:else}
     <Item.Description class="p-3 text-center">
         No significant findings

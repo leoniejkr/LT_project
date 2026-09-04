@@ -561,7 +561,7 @@
                 </Item.Root>
             </div>
         </div>
-        <HeatmapBar imageResults={filteredImageResults} />
+        <HeatmapBar {imageIds} imageResults={filteredImageResults} />
         <Chat context={chatContext} />
     {:else}
         <Item.Root variant="outline" class="bg:primary">
