@@ -99,7 +99,7 @@
     <Tabs.Content value="info">
       <Alert.Root>
         <Info class="size-4" />
-        <Alert.Title>Supported formats &amp; conditions</Alert.Title>
+        <Alert.Title>Supported formats &amp; Pathologies &amp; Imaging Findings</Alert.Title>
         <Alert.Description class="mt-2 space-y-3">
           <p>
             Supported image format for upload: PNG. Analysis of chest X-ray
@@ -107,9 +107,10 @@
             models.
           </p>
           <p>
-            Sicknesses: Atelectasis, Cardiomegaly, Consolidation, Edema, Effusion,
-            Emphysema, Fibrosis, Hernia, Infiltration, Mass, Nodule, Pleural
-            Thickening, Pneumonia, Pneumothorax, Covid
+            Pathologies &amp; Imaging Findings: Atelectasis, Cardiomegaly,
+            Consolidation, Edema, Effusion, Emphysema, Fibrosis, Hernia,
+            Infiltration, Mass, Nodule, Pleural Thickening, Pneumonia,
+            Pneumothorax, Covid
           </p>
         </Alert.Description>
       </Alert.Root>
