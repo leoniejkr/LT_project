@@ -26,6 +26,7 @@
     import { symptomLabelById } from "$lib/symptoms";
     import { historyLabelById } from "$lib/history";
     import { customThreshold, effectiveThreshold, isCustom } from "$lib/settings";
+    import { classifierModel, classifierLabel } from "$lib/models";
 
     // Resolve mock patient data from the live tag catalogs so the
     // example view always shows current vocabulary.
@@ -473,11 +474,12 @@
                         </div>
                     {/each}
                 </div>
-                {#if analysis.model_version}
-                    <p class="text-xs text-muted-foreground mt-3">
-                        Model: {analysis.model_version}
-                    </p>
-                {/if}
+                <p class="text-xs text-muted-foreground mt-3">
+                    Model: {classifierLabel($classifierModel)}
+                    {#if analysis.model_version}
+                        · {analysis.model_version}
+                    {/if}
+                </p>
             </Item.Root>
         {:else}
             <Item.Root
