@@ -50,7 +50,7 @@
 	</div>
 
 	<Item.Root variant="outline" class="flex-col items-stretch p-4">
-		<div class="flex items-start gap-2">
+		<div class="flex items-start gap-6">
 			<Item.Header class="mb-2 flex-1 min-w-0">
 				<Item.Title class="text-lg flex items-center gap-2">
 					Decision Mode
@@ -65,7 +65,7 @@
 			<Button
 				variant="ghost"
 				size="icon"
-				class="mt-0.5 shrink-0"
+				class="mt-0 shrink-0"
 				aria-label={expanded ? "Collapse Decision Mode" : "Expand Decision Mode"}
 				aria-expanded={expanded}
 				onclick={toggle}
