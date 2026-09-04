@@ -23,7 +23,7 @@ model = FastLanguageModel.get_peft_model(
 )
 
 # 3. Load JSONL Data
-dataset = load_dataset("json", data_files={"train": "fine_tuning_ready.jsonl"})
+dataset = load_dataset("json", data_files={"train": "src/LLM/files/fine_tuning_ready.jsonl"})
 
 # 4. Train
 trainer = SFTTrainer(
@@ -46,4 +46,4 @@ trainer = SFTTrainer(
 trainer.train()
 
 # 5. Export to GGUF format for Ollama
-model.save_pretrained_gguf("clinical_model_dir", tokenizer, quantization_method="q4_k_m")
+model.save_pretrained_gguf("src/LLM/files/clinical_model_dir", tokenizer, quantization_method="q4_k_m")
