@@ -388,17 +388,6 @@
     {/snippet}
 
     {#if result}
-        <Item.Root variant="outline" class="flex">
-            <Badge variant="secondary" class="h-8 text-md"
-                >Patient ID: {patient.id}</Badge
-            >
-            <Badge variant="secondary" class="h-8 text-md">
-                Age: {patient.age}
-            </Badge>
-            <Badge variant="secondary" class="h-8 text-md">
-                Gender: {patient.gender}
-            </Badge>
-        </Item.Root>
 
         {#if predictions.length > 0}
             <Item.Root variant="outline" class="flex-col items-stretch p-4">
@@ -543,6 +532,17 @@
             </div>
 
             <div class="flex flex-col gap-4">
+                <Item.Root variant="outline">
+                    <Item.Header>
+                        <Item.Title>Patient Information</Item.Title>
+                    </Item.Header>
+                    <Item.Content class="flex flex-col gap-1">
+                        <span class="text-sm"><strong>Patient ID:</strong> {patient.id}</span>
+                        <span class="text-sm"><strong>Age:</strong> {patient.age}</span>
+                        <span class="text-sm"><strong>Gender:</strong> {patient.gender}</span>
+                    </Item.Content>
+                </Item.Root>
+
                 <Item.Root variant="outline">
                     <Item.Header>
                         <Item.Title>Known Symptoms</Item.Title>
