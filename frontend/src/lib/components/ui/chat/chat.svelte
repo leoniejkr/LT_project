@@ -94,14 +94,27 @@
 	}
 </script>
 
-<div class={cn("fixed bottom-6 right-6 z-50 flex flex-col items-end", className)}>
+<div class={cn("fixed bottom-6 right-6 z-50 grid", className)}>
+	<Button
+		size="icon-lg"
+		variant="default"
+		onclick={toggle}
+		class="col-start-1 row-start-1 size-14 shadow-primary/30 rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95"
+	>
+		{#if open}
+			<X class="size-5" />
+		{:else}
+			<Bot class="size-7" />
+		{/if}
+	</Button>
+
 	{#if open}
 		<div
-			class="bg-card border-border mb-3 flex w-80 flex-col overflow-hidden border shadow-lg sm:w-96"
+			class="bg-card border-border col-start-1 row-start-1 z-10 flex w-80 flex-col overflow-hidden rounded-xl border shadow-lg sm:w-96"
 		>
 			<Item.Root
 				variant="muted"
-				class="bg-primary text-primary-foreground rounded-b-none px-4 py-3"
+				class="bg-primary text-primary-foreground rounded-none px-4 py-3"
 			>
 				<Item.Media variant="icon">
 					<Bot class="text-primary-foreground size-lg" />
@@ -142,6 +155,7 @@
 							<Item.Root
 								size="sm"
 								class={cn(
+									"rounded-lg",
 									msg.role === "user"
 										? "bg-primary/10 justify-end"
 										: "bg-muted/50",
@@ -175,7 +189,7 @@
 						{/each}
 						{#if loading}
 							<Item.Separator />
-							<Item.Root size="sm" class="bg-muted/50">
+							<Item.Root size="sm" class="rounded-lg bg-muted/50">
 								<Item.Media variant="icon">
 									<Bot class="text-muted-foreground size-4" />
 								</Item.Media>
@@ -193,7 +207,7 @@
 			</div>
 
 			<Item.Root
-				class="border-border bg-background rounded-t-none border-t px-3 py-3"
+				class="border-border bg-background rounded-none border-t px-3 py-3"
 			>
 				<Item.Content>
 					<Input
@@ -217,17 +231,4 @@
 			</Item.Root>
 		</div>
 	{/if}
-
-	<Button
-		size="icon-lg"
-		variant="default"
-		onclick={toggle}
-		class="size-14 shadow-primary/30 rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95"
-	>
-		{#if open}
-			<X class="size-5" />
-		{:else}
-			<Bot class="size-7" />
-		{/if}
-	</Button>
 </div>
