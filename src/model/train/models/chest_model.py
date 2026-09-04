@@ -67,9 +67,9 @@ class ChestModel(pl.LightningModule):
         self.parameters(), lr=self.hparams.lr, weight_decay=1e-2
     )
 
-    # Cosine Annealing usually works significantly better than Plateau for vision transfer learning
+    max_epochs = getattr(getattr(self, "trainer", None), "max_epochs", 50) or 50
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=self.trainer.max_epochs
+        optimizer, T_max=max_epochs
     )
 
     return [optimizer], [scheduler]
