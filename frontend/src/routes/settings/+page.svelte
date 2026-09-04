@@ -34,7 +34,7 @@
 	}
 </script>
 
-<div class="mt-6 mx-auto w-full max-w-3xl flex flex-col gap-6 px-6 pb-12">
+	<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
 	<div class="flex items-center justify-between border-b pb-4">
 		<div>
 			<header

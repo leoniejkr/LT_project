@@ -199,7 +199,7 @@
 	// TODO: required auch required machen
 </script>
 
-<div class="mt-6 mx-auto w-full max-w-5xl flex flex-col gap-6 px-6">
+<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6">
 	<div>
 		<header class="text-2xl font-bold tracking-tight">
 			Case Input & Initialization
