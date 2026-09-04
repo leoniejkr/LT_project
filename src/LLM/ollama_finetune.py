@@ -25,6 +25,23 @@ model = FastLanguageModel.get_peft_model(
 # 3. Load JSONL Data
 dataset = load_dataset("json", data_files={"train": "src/LLM/files/fine_tuning_ready.jsonl"})
 
+# Formatting function for ChatML / OpenAI JSONL messages
+def format_prompts_func(examples):
+    texts = []
+    for messages in examples["messages"]:
+        # Applies Llama-3 instruction template (<|begin_of_text|><|start_header_id|>system...)
+        text = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=False,
+        )
+        texts.append(text)
+    return {"text": texts}
+
+
+# Apply formatting to dataset
+dataset = dataset.map(format_prompts_func, batched=True)
+
 # 4. Train
 trainer = SFTTrainer(
     model=model,
