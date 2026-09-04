@@ -23,7 +23,7 @@ model = FastLanguageModel.get_peft_model(
 )
 
 # 3. Load JSONL Data
-dataset = load_dataset("json", data_files={"train": "dataset.jsonl"})
+dataset = load_dataset("json", data_files={"train": "fine_tuning_ready.jsonl"})
 
 # 4. Train
 trainer = SFTTrainer(
