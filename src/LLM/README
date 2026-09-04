@@ -46,3 +46,27 @@ next step is to make the text machine-readable. for that we aimed to get structu
 to make a LLM structure us json formats.
 
 --> for every condition/finding have one file
+
+
+
+
+run the inspect_json.py script on the json files we gathered:
+- Data Audit & Normalization: Our inspection script scanned raw medical JSON files, cataloged key variations across conditions, and mapped equivalent fields (like merging transmission_causes into causes) into unified clinical attributes.
+- Hierarchical Unrolling: Deeply nested structures—such as subtypes, etiologies, and underlying conditions—were extracted and flattened into individual records linked back to their primary condition.
+- Dual Output Generation: The script formatted these normalized records into two distinct formats: medical_dataset_flattened.csv with semicolon-separated list fields for tabular analysis, and fine_tuning_ready.jsonl formatted as system-user-assistant prompts for LLM training.
+
+
+Raw Nested JSONs (COVID.json, Pneumothorax.json, etc.)
+                          │
+                          ▼
+             [ inspect_json Pipeline ]
+             ├─ Key Audit & Mapping
+             ├─ Unrolling Subtypes & Etiologies
+             └─ Attribute Normalization
+                          │
+          ┌───────────────┴───────────────┐
+          ▼                               ▼
+┌───────────────────┐           ┌───────────────────┐
+│ Flattened CSV     │           │ Fine-Tuning JSONL │
+│ (Tabular / SQL)   │           │ (LLM Fine-Tuning) │
+└───────────────────┘           └───────────────────┘
