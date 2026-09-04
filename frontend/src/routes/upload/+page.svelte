@@ -332,7 +332,9 @@
 				topic.groups.flatMap((g) => g.symptoms),
 				selected,
 			)}
-			<div class="rounded-xl border p-4 w-full">
+			<div
+				class="rounded-xl border p-4 w-full min-w-0 overflow-hidden break-words"
+			>
 				<button
 					type="button"
 					class="flex w-full items-center justify-between gap-4 text-left"
@@ -419,7 +421,7 @@
 	{/snippet}
 
 	<div class="w-full">
-		<Item.Root variant="outline">
+		<Item.Root variant="outline" class="flex-col w-full">
 			<button
 				type="button"
 				class="flex w-full items-center justify-between gap-2 text-left"
@@ -438,7 +440,7 @@
 				/>
 			</button>
 			{#if openSymptoms}
-				<div class="mt-4 flex flex-col gap-3">
+				<div class="mt-4 flex flex-col gap-3 w-full">
 					{@render topicChecklist(SYMPTOM_TOPICS, selectedSymptoms, "symptom")}
 				</div>
 			{/if}
@@ -446,7 +448,7 @@
 	</div>
 
 	<div class="w-full">
-		<Item.Root variant="outline">
+		<Item.Root variant="outline" class="flex-col w-full">
 			<button
 				type="button"
 				class="flex w-full items-center justify-between gap-2 text-left"
@@ -465,7 +467,7 @@
 				/>
 			</button>
 			{#if openHistory}
-				<div class="mt-4 flex flex-col gap-3">
+				<div class="mt-4 flex flex-col gap-3 w-full">
 					{@render topicChecklist(HISTORY_TOPICS, selectedHistory, "history")}
 				</div>
 			{/if}
