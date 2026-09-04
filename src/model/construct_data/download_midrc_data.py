@@ -32,18 +32,18 @@ def check_gen3_client():
         if gen3_bin:
             try:
                 result = subprocess.run([gen3_bin, "--version"], capture_output=True, text=True)
-                log.info(f"✅ {name} found: {result.stdout.strip()}")
+                log.info(f"{name} found: {result.stdout.strip()}")
                 return gen3_bin
             except:
                 pass
     
-    log.error("❌ gen3-client not found. Install from: https://github.com/uc-cdis/cdis-data-client/releases")
+    log.error("gen3-client not found. Install from: https://github.com/uc-cdis/cdis-data-client/releases")
     return None
 
 def configure_gen3_profile(credentials_path, gen3_bin):
     """Configure gen3-client with MIDRC credentials."""
     if not Path(credentials_path).exists():
-        log.error(f"❌ Credentials not found: {credentials_path}")
+        log.error(f"Credentials not found: {credentials_path}")
         log.error("Download from: https://data.midrc.org/identity → 'Create API key'")
         return False
     
@@ -56,16 +56,16 @@ def configure_gen3_profile(credentials_path, gen3_bin):
     log.info("Configuring gen3-client profile...")
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        log.error(f"❌ Configure failed: {result.stderr}")
+        log.error(f"Configure failed: {result.stderr}")
         return False
     
-    log.info("✅ Profile configured successfully")
+    log.info("Profile configured successfully")
     return True
 
 def create_limited_manifest(manifest_path, limit):
     """Create a temporary manifest with only the first 'limit' entries."""
     if not Path(manifest_path).exists():
-        log.error(f"❌ Manifest not found: {manifest_path}")
+        log.error(f"Manifest not found: {manifest_path}")
         return None
     
     with open(manifest_path) as f:
@@ -84,7 +84,7 @@ def create_limited_manifest(manifest_path, limit):
         
         return str(temp_path)
     else:
-        log.info(f"📊 Using full manifest with {original_count} entries")
+        log.info(f"Using full manifest with {original_count} entries")
         return manifest_path
 
 def download_manifest(manifest_path, output_dir, workers, gen3_bin, dry_run=False, limit=None):
@@ -107,8 +107,8 @@ def download_manifest(manifest_path, output_dir, workers, gen3_bin, dry_run=Fals
         "--protocol", "s3",
     ]
     
-    log.info(f"📥 Downloading from: {manifest_to_use}")
-    log.info(f"📁 Output: {output_path}")
+    log.info(f"Downloading from: {manifest_to_use}")
+    log.info(f"Output: {output_path}")
     
     if dry_run:
         log.info(f"[DRY RUN] Would run: {' '.join(cmd)}")
@@ -116,12 +116,12 @@ def download_manifest(manifest_path, output_dir, workers, gen3_bin, dry_run=Fals
     
     result = subprocess.run(cmd)
     if result.returncode != 0:
-        log.error(f"❌ Download failed with code {result.returncode}")
+        log.error(f"Download failed with code {result.returncode}")
         return False
     
     # Count downloaded files
     downloaded = sum(1 for _ in output_path.rglob("*") if _.is_file())
-    log.info(f"✅ Downloaded {downloaded} files to {output_path}")
+    log.info(f"Downloaded {downloaded} files to {output_path}")
     
     # Clean up temporary manifest
     if manifest_to_use != manifest_path and Path(manifest_to_use).exists():
@@ -152,7 +152,7 @@ def main():
     
     # Download 
     log.info("\n" + "="*60)
-    log.info("📊 DOWNLOADING IMAGES")
+    log.info("DOWNLOADING IMAGES")
     log.info("="*60)
     ok = download_manifest(
         args.manifest,
@@ -167,16 +167,16 @@ def main():
     
     # Summary
     log.info("\n" + "="*60)
-    log.info("📊 DOWNLOAD SUMMARY")
+    log.info("DOWNLOAD SUMMARY")
     log.info("="*60)
-    log.info(f" {'✅ SUCCESS' if ok else '❌ FAILED'}")
+    log.info(f" {'SUCCESS' if ok else 'FAILED'}")
     
     if ok :
-        log.info("\n✅ All downloads complete!")
-        log.info(f"📁 Files in: {args.output_dir}")
+        log.info("\nAll downloads complete!")
+        log.info(f"Files in: {args.output_dir}")
         return 0
     else:
-        log.error("\n❌ Some downloads failed")
+        log.error("\nSome downloads failed")
         return 1
 
 if __name__ == "__main__":

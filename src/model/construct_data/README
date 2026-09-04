@@ -1,0 +1,15 @@
+diese methoden sind dafür da ein datenset verlässlich zu konstruieren
+
+
+weil wir 2 datensets nutzen, brauchen wir einmal von NIH die daten (path wird adaptiv gespeichert)
+--> führe dazu zunächst get_nih_data.py aus
+
+... und daten von MIDRC
+--> führe dazu zunächst get_midrc_data.py aus
+--> führe anschließend download_midrc_data.py aus
+
+
+final müssen nur noch die beiden gemischt werden!!
+--> führe dazu blend_data.py aus.  um ein csv zum auslesen zum trainieren zu erstellen
+
+
