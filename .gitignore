@@ -39,3 +39,6 @@ data_hybrid/midrc_images_before
 *.pyc
 *.wandb
 /wandb
+
+
+/data_hybrid/nih_images/*
