@@ -35,32 +35,17 @@ export const CLASSIFIER_MODELS: ClassifierModelOption[] = [
     },
 ];
 
-/** LLM models that can be selected (must be pulled into Ollama). */
+/**
+ * LLM models that can be selected. IMPORTANT: the model must be pulled into
+ * the Ollama instance first (`ollama pull <id>`), otherwise the reasoning
+ * and chat calls to Ollama will fail. Only models actually available in the
+ * running Ollama container are listed here.
+ */
 export const LLM_MODELS: LLMModelOption[] = [
     {
         id: 'phi3:mini',
         label: 'Phi-3 mini',
         description: 'Compact, fast. Great for short reasoning.',
-    },
-    {
-        id: 'llama3.2:1b',
-        label: 'Llama 3.2 1B',
-        description: 'Very small, very fast.',
-    },
-    {
-        id: 'llama3.2:3b',
-        label: 'Llama 3.2 3B',
-        description: 'Small, balanced speed and quality.',
-    },
-    {
-        id: 'llama3.1:8b',
-        label: 'Llama 3.1 8B',
-        description: 'Larger, better quality.',
-    },
-    {
-        id: 'mistral',
-        label: 'Mistral 7B',
-        description: 'General-purpose, strong quality.',
     },
 ];
 
