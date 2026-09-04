@@ -168,11 +168,11 @@ if __name__ == '__main__':
         pin_memory=True
     )
 
-    # 7. Model with class-imbalance-aware loss
+    # 7. Model with class-imbalance-aware loss (sqrt-scaled to prevent gradient explosion)
     class_counts = df_train[ALL_CLASSES].sum().values.astype(np.float64)
     total_samples = len(df_train)
     neg_counts = total_samples - class_counts
-    pos_weights = neg_counts / class_counts
+    pos_weights = np.sqrt(neg_counts / (class_counts + 1e-5))
     pos_weights_tensor = torch.tensor(pos_weights, dtype=torch.float32).to(DEVICE)
 
     model = ChestModel(num_classes=len(ALL_CLASSES), pos_weight=pos_weights_tensor)

@@ -161,6 +161,10 @@ def main():
                         img_arr = ((raw_arr - amin) / (amax - amin) * 255.0).astype(np.uint8)
                     else:
                         img_arr = np.zeros_like(raw_arr, dtype=np.uint8)
+
+                    # Check photometric orientation manually on fallback
+                    if "MONOCHROME1" in str(raw_tensor.meta.get("photometric_interpretation", "")):
+                        img_arr = 255 - img_arr
                 except Exception as fallback_err:
                     log.warning(f"Skipping file {obj_id} — MONAI error: {monai_err} | Fallback error: {fallback_err}")
                     continue
