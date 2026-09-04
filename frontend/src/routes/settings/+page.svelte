@@ -40,8 +40,12 @@
 	});
 
 	let expanded = $state(true);
+	let modelExpanded = $state(true);
 	function toggle() {
 		expanded = !expanded;
+	}
+	function toggleModel() {
+		modelExpanded = !modelExpanded;
 	}
 
 	// Model selection (bound locally, pushed into the stores so the rest of
@@ -81,7 +85,7 @@
 					</Badge>
 				</Item.Title>
 				<Item.Description class="text-sm">
-					Sets the confidence threshold for findings on the dashboard.
+					Confidence threshold for displayed findings.
 				</Item.Description>
 			</Item.Header>
 			<Button
@@ -160,16 +164,30 @@
 	</Item.Root>
 
 	<Item.Root variant="outline" class="flex-col items-stretch p-4">
-		<Item.Header class="mb-4">
-			<Item.Title class="text-lg flex items-center gap-2">
-				Model Selection / Architecture
-			</Item.Title>
-			<Item.Description class="text-sm">
-				Choose the classifier that analyzes images and the LLM that
-				writes the findings.
-			</Item.Description>
-		</Item.Header>
+		<div class="flex items-start gap-6">
+			<Item.Header class="mb-4 flex-1 min-w-0">
+				<Item.Title class="text-lg flex items-center gap-2">
+					Model Selection / Architecture
+				</Item.Title>
+				<Item.Description class="text-sm">
+					Select the image classifier and report-writing LLM.
+				</Item.Description>
+			</Item.Header>
+			<Button
+				variant="ghost"
+				size="icon"
+				class="mt-0 shrink-0"
+				aria-label={modelExpanded ? "Collapse Model Selection" : "Expand Model Selection"}
+				aria-expanded={modelExpanded}
+				onclick={toggleModel}
+			>
+				<ChevronDown
+					class="transition-transform duration-200 {modelExpanded ? '' : 'rotate-180'}"
+				/>
+			</Button>
+		</div>
 
+		{#if modelExpanded}
 		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 			<div>
 				<Label class="flex items-center gap-2 mb-2">
@@ -215,5 +233,6 @@
 				</p>
 			</div>
 		</div>
+		{/if}
 	</Item.Root>
 </div>
