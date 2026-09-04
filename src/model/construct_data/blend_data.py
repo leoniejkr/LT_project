@@ -11,24 +11,27 @@ NIH_CLASSES = [
 ALL_CLASSES = NIH_CLASSES + ['Covid']
 
 # ── MIXING CONFIGURATION ───────────────────────────────────────────────────
-# Set ratio of NIH (non-COVID) to MIDRC (COVID) images.
-# Example: 2.0 = 2 NIH images for every 1 MIDRC image (33% COVID overall).
-# Set to 1.0 for an exact 50/50 balance.
 RATIO_NIH_TO_MIDRC = 2.0
 RANDOM_SEED = 42
 
+# ── PATHS ───────────────────────────────────────────────────────────────────
+# NIH data lives in the Kaggle cache. Run get_nih_data.py first to create the pointer.
+NIH_POINTER = os.path.join("data_hybrid", "nih_images", "path.txt")
+with open(NIH_POINTER) as f:
+    NIH_DIR = f.read().strip()
+print(f"NIH data directory: {NIH_DIR}")
+
 # 1. Read Kaggle NIH Metadata
-nih_dir = "/Users/leoniejunkherr/.cache/kagglehub/datasets/nih-chest-xrays/data/versions/3"
-df_nih_raw = pd.read_csv(os.path.join(nih_dir, "Data_Entry_2017.csv"))
+df_nih_raw = pd.read_csv(os.path.join(NIH_DIR, "Data_Entry_2017.csv"))
 
 # Parse pipe-separated pathologies into binary columns
 labels_dummies = df_nih_raw["Finding Labels"].str.get_dummies(sep="|")
 df_nih = pd.concat([df_nih_raw, labels_dummies], axis=1)
 
 # Build lookup map of image file locations
-print("Scanning NIH cache directory for image locations...")
+print("Scanning NIH directory for image locations...")
 image_path_map = {}
-for root, dirs, files in os.walk(nih_dir):
+for root, dirs, files in os.walk(NIH_DIR):
     for file in files:
         if file.endswith(".png"):
             image_path_map[file] = os.path.join(root, file)

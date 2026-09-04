@@ -71,15 +71,22 @@ def extract_zip_and_find_dicoms(zip_path: Path, temp_dir: Path) -> Path | None:
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--image-root", default="images/", help="Path where gen3-client saves downloads")
+    p.add_argument("--image-root", default="data_hybrid/midrc_dicoms", help="Path where gen3-client saves downloads")
     p.add_argument("--output-dir", default="data_hybrid", help="Target folder for manifests and images")
+    p.add_argument("--force", action="store_true", help="Re-query API even if manifest exists")
     args = p.parse_args()
 
     output_root = Path(args.output_dir)
     midrc_cxr_dir = output_root / "midrc_images"
+    manifest_path = output_root / "midrc_download_manifest.json"
     
     output_root.mkdir(exist_ok=True, parents=True)
     midrc_cxr_dir.mkdir(exist_ok=True, parents=True)
+
+    # Skip if manifest already exists
+    if manifest_path.exists() and not args.force:
+        log.info(f"Manifest already exists at {manifest_path}. Use --force to re-query API.")
+        return
 
     # ==============================================================================
     # PHASE 1: AUTH, CLOUD METADATA QUERY, & MANIFEST GENERATION (Always Runs First)
@@ -179,7 +186,7 @@ def main():
             "file_size": int(row["file_size"]) if pd.notna(row["file_size"]) else 0
         })
     
-    json_manifest_path = output_root / "midrc_download_manifest.json"
+    json_manifest_path = manifest_path
     with open(json_manifest_path, "w") as f:
         json.dump(manifest_objects, f, indent=2)
         

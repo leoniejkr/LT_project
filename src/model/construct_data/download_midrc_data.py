@@ -17,7 +17,7 @@ MIDRC_API = "https://data.midrc.org"
 def parse_args():
     p = argparse.ArgumentParser(description="Download MIDRC CXR images")
     p.add_argument("--manifest", default="data_hybrid/midrc_download_manifest.json", help="manifest file")
-    p.add_argument("--output-dir", default="images/", help="Output directory")
+    p.add_argument("--output-dir", default="data_hybrid/midrc_dicoms", help="Output directory")
     p.add_argument("--credentials", default="credentials.json", help="Gen3 credentials JSON")
     p.add_argument("--workers", type=int, default=8, help="Parallel downloads")
     p.add_argument("--limit", type=int, default=None, help="Limit number of images to download per modality")

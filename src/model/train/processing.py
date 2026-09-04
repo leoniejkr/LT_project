@@ -70,7 +70,7 @@ def apply_clahe_contrast(img_array: np.ndarray) -> np.ndarray:
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--manifest", default="data_hybrid/midrc_download_manifest.json")
-    p.add_argument("--image-root", default="images/")
+    p.add_argument("--image-root", default="data_hybrid/midrc_dicoms")
     p.add_argument("--output-dir", default="data_hybrid/midrc_images")
     args = p.parse_args()
 
@@ -126,6 +126,16 @@ def main():
 
         safe_obj_id = obj_id.replace("/", "_")
         save_path = out_dir / f"{safe_obj_id}.png"
+
+        # Skip if PNG already exists
+        if save_path.exists():
+            processed_rows.append({
+                "img_path": str(save_path.absolute()),
+                "patient_id": obj_id,
+                "Covid": 1
+            })
+            success_count += 1
+            continue
 
         with tempfile.TemporaryDirectory() as tmpdir:
             dicom_file = extract_zip_and_find_valid_dicom(zip_path, Path(tmpdir))
