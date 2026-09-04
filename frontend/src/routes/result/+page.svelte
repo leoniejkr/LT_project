@@ -25,6 +25,7 @@
     import type { Prediction, ImageResult } from "$lib/types.js";
     import { symptomLabelById } from "$lib/symptoms";
     import { historyLabelById } from "$lib/history";
+    import { customThreshold, effectiveThreshold, isCustom } from "$lib/settings";
 
     // Resolve mock patient data from the live tag catalogs so the
     // example view always shows current vocabulary.
@@ -138,7 +139,18 @@
               ],
     );
 
-    let threshold = $state(0);
+    // Confidence threshold is controlled by the unified Decision Mode
+    // setting ($lib/settings). Presets are read-only; only 'custom' mode
+    // lets the user drag the slider (writing back into the store).
+    let threshold = $state($effectiveThreshold);
+
+    $effect(() => {
+        if ($isCustom) {
+            customThreshold.set(threshold);
+        } else {
+            threshold = $effectiveThreshold;
+        }
+    });
 
     let filteredPredictions: Prediction[] = $derived(
         predictions.filter((p) => p.confidence * 100 >= threshold),
@@ -407,6 +419,7 @@
                         min={0}
                         max={100}
                         step={1}
+                        disabled={!$isCustom}
                         class="flex-1 slider-thick"
                     />
                     <Label class="min-w-8 text-right">
