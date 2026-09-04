@@ -74,6 +74,7 @@ def main():
     p.add_argument("--image-root", default="data_hybrid/midrc_dicoms", help="Path where gen3-client saves downloads")
     p.add_argument("--output-dir", default="data_hybrid", help="Target folder for manifests and images")
     p.add_argument("--force", action="store_true", help="Re-query API even if manifest exists")
+    p.add_argument("--max-covid", type=int, default=7000, help="Max COVID images to include in the manifest (balanced against NIH conditions)")
     args = p.parse_args()
 
     output_root = Path(args.output_dir)
@@ -173,8 +174,9 @@ def main():
         log.error("❌ ERROR: Structural alignment yielded 0 matching rows. Check project ID configuration.")
         return
 
-    # Cap at a manageable subset size (e.g., up to 1000 records)
-    df_covid_cxr = df_covid_cxr.sample(n=min(1000, len(df_covid_cxr)), random_state=RANDOM_SEED).reset_index(drop=True)
+    # Cap at the balance target (N). Keeps up to `max_covid` COVID images so the
+    # dataset can be balanced 1:1 against the (capped) NIH conditions downstream.
+    df_covid_cxr = df_covid_cxr.sample(n=min(args.max_covid, len(df_covid_cxr)), random_state=RANDOM_SEED).reset_index(drop=True)
 
     # ── BUILD AND EXPORT THE DOWNLOAD JSON MANIFEST FIRST ───────────────────────
     manifest_objects = []
