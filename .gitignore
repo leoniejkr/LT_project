@@ -42,3 +42,7 @@ data_hybrid/midrc_images_before
 
 
 /data_hybrid/nih_images/*
+/data_hybrid/midrc_images/*
+/data_hybrid/midrc_dicoms/*
+
+data_hybrid/combined_master.csv
