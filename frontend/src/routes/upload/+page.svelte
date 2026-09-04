@@ -69,6 +69,9 @@
 		Object.fromEntries(allHistoryTags.map((tag) => [tag.id, false])),
 	);
 
+	let openSymptoms = $state(false);
+	let openHistory = $state(false);
+
 	// Panel / subtopic folding (topic names are unique across both catalogs)
 	let openTopics = $state<Record<string, boolean>>(
 		Object.fromEntries(
@@ -411,27 +414,55 @@
 
 	<div class="w-full">
 		<Item.Root variant="outline">
-			<Item.Content class="w-full">
-				<Item.Title class="flex items-center gap-2">
-					<ClipboardCheck size={18} /> Symptom Checklist
-				</Item.Title>
+			<button
+				type="button"
+				class="flex w-full items-center justify-between gap-2 text-left"
+				onclick={() => (openSymptoms = !openSymptoms)}
+			>
+				<Item.Content class="w-full">
+					<Item.Title class="flex items-center gap-2">
+						<ClipboardCheck size={18} /> Symptom Checklist
+					</Item.Title>
+				</Item.Content>
+				<ChevronDown
+					size={18}
+					class="text-muted-foreground shrink-0 transition-transform {openSymptoms
+						? ''
+						: '-rotate-90'}"
+				/>
+			</button>
+			{#if openSymptoms}
 				<div class="mt-4 flex flex-col gap-3">
 					{@render topicChecklist(SYMPTOM_TOPICS, selectedSymptoms, "symptom")}
 				</div>
-			</Item.Content>
+			{/if}
 		</Item.Root>
 	</div>
 
 	<div class="w-full">
 		<Item.Root variant="outline">
-			<Item.Content class="w-full">
-				<Item.Title class="flex items-center gap-2">
-					<ClipboardList size={18} /> Medical History & Risk Factors
-				</Item.Title>
+			<button
+				type="button"
+				class="flex w-full items-center justify-between gap-2 text-left"
+				onclick={() => (openHistory = !openHistory)}
+			>
+				<Item.Content class="w-full">
+					<Item.Title class="flex items-center gap-2">
+						<ClipboardList size={18} /> Medical History & Risk Factors
+					</Item.Title>
+				</Item.Content>
+				<ChevronDown
+					size={18}
+					class="text-muted-foreground shrink-0 transition-transform {openHistory
+						? ''
+						: '-rotate-90'}"
+				/>
+			</button>
+			{#if openHistory}
 				<div class="mt-4 flex flex-col gap-3">
 					{@render topicChecklist(HISTORY_TOPICS, selectedHistory, "history")}
 				</div>
-			</Item.Content>
+			{/if}
 		</Item.Root>
 	</div>
 	<Separator orientation="horizontal" class="self-stretch mt-1" />
