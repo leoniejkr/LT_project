@@ -172,6 +172,11 @@ def main():
             # Apply final contrast matching and export as standard 2D Grayscale PNG
             final_img_arr = apply_clahe_contrast(img_arr)
             img = Image.fromarray(final_img_arr, mode='L')
+
+            # Auto-rotate landscape images to portrait (chest X-rays should be taller than wide)
+            if img.width > img.height:
+                img = img.transpose(Image.ROTATE_90)
+
             img.save(save_path)
 
             processed_rows.append({
