@@ -193,24 +193,69 @@ good if fundamental changes haven been made in the code and they should be visib
 - In the Frontend File: ``npm run dev``
 
 ## Start the Chatbot
-1. boot up Docker so the ollama service is running:
+1. boot up the stack:
     - ``docker compose up -d``
 2. open the web app and click the bot button in the bottom right corner to start chatting
+
+### Fast path (recommended): native Ollama
+
+In Docker, Ollama runs on **CPU only** — the Docker VM has no access to the host GPU.
+An 8B model on CPU generates ~1 token/s, so replies take minutes. **This is a Docker
+limitation, not a problem with the model.**
+
+Ollama supports GPU acceleration natively on **all platforms**:
+
+| OS | GPU API | Install |
+|----|---------|---------|
+| macOS (Apple Silicon) | Metal | `brew install ollama` |
+| Linux (NVIDIA/AMD) | CUDA / ROCm | `curl -fsSL https://ollama.com/install.sh \| sh` |
+| Windows | CUDA | Download from [ollama.com](https://ollama.com) |
+
+In every case, install native Ollama once, register the model, and the app runs at
+full GPU speed (typically 10-50x faster than Docker CPU):
+
+1. **Install Ollama** (see table above — one-time per machine)
+2. **Start the service:**
+   ```bash
+   # macOS
+   brew services start ollama
+   # Linux
+   ollama serve &   # or via systemd
+   ```
+3. **Register the fine-tuned model** (uses the GGUF in the repo, no extra download):
+   ```bash
+   ollama create trustai-llm -f \
+     src/LLM/files/clinical_model_dir/trustai-llm.Modelfile.native
+   ```
+4. **Point the containers at the host Ollama** (`.env` is gitignored):
+   ```bash
+   echo "LLM_URL=http://host.docker.internal:11434" > .env
+   docker compose up -d --force-recreate backend modelling
+   ```
+
+The Docker `ollama` service stays in compose (internal-only, no published port) as the
+default for pure-Docker setups; when `LLM_URL` is set the app uses the native Ollama and
+the container simply sits idle.
 
 The fine-tuned model (`trustai-llm:latest`) is registered automatically when the `ollama` container starts (downloaded from Hugging Face, see [LLM model configuration](#llm-model-configuration)). `phi3:mini` is only available if pulled separately.
 
 Notes:
-- the models are stored in the ``ollama_data`` volume, so they survive restarts; re-download only after ``docker compose down -v``
+- the models are stored in the ``ollama_data`` volume (container) or ``~/.ollama`` (native), so they survive restarts; re-download only after ``docker compose down -v``
 - optional, to enable the fallback model: ``docker compose exec ollama ollama pull phi3:mini``
-- the backend connects to ollama via ``OLLAMA_URL``/``OLLAMA_MODEL`` (configured in docker-compose.yaml)
+- the backend connects to the LLM via ``OLLAMA_URL``/``OLLAMA_MODEL`` — ``OLLAMA_URL`` is ``http://ollama:11434`` by default and overridden by the ``LLM_URL`` env var (see above)
 - quick test without the UI: ``curl -X POST http://localhost:8080/chat -H "Content-Type: application/json" -d '{"message": "hello", "history": []}'``
 
 #### LLM model configuration
 
-The fine-tuned LLM (`trustai-llm:latest`) is registered in the `ollama` container at startup from a GGUF file hosted on Hugging Face. No local model file needs to be present on the developer's machine.
+The fine-tuned LLM (`trustai-llm:latest`) is registered in the `ollama` container at startup from a GGUF file hosted on Hugging Face. No local model file needs to be present on the developer's machine. The downloaded GGUF is cached in the `llm_models` volume and the registered model in `ollama_data`; the download/registration is skipped if the model already exists.
 
 - **Default repo:** `leoniejkr/trustai-llm-gguf` (public, read-only for everyone — only the account owner can modify the weights)
 - **Default GGUF:** `llama-3-8b-Instruct.Q4_K_M.gguf`
+
+**Important:** the 4.9 GB model file is **not committed to git** (GitHub rejects files > 100 MB).
+Every developer/teacher gets the weights from the HF repo instead — either automatically in
+the `ollama` container (see above) or via `ollama create trustai-llm -f ...` in the native
+setup. Only code/config lives in git.
 
 The download is skipped if the file already exists (cached in `/models`), and the model is only re-created when necessary. Both sources can be overridden via environment variables:
 
@@ -223,7 +268,7 @@ environment:
 
 If you host your own copy (e.g. a fork on your own HF account), just point `HF_MODEL_REPO` at it. A **private** repo requires authentication inside the container; for the default **public** repo no token is needed.
 
-The Go backend and the modelling service use `OLLAMA_MODEL` (default `trustai-llm:latest`) to talk to Ollama. The model actually used per request is chosen in the **Settings → LLM Model** dropdown of the web app (`trustai-llm:latest` or `phi3:mini`); `phi3:mini` must be pulled manually if you want to use it.
+The Go backend and the modelling service use `OLLAMA_MODEL` (default `trustai-llm:latest`) to talk to the LLM. The model actually used per request is chosen in the **Settings → LLM Model** dropdown of the web app (`trustai-llm:latest` or `phi3:mini`); `phi3:mini` must be pulled manually if you want to use it.
 
 ## Production-Deployment und Docker Hub
 
