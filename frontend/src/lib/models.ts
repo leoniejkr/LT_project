@@ -41,6 +41,11 @@ export const CLASSIFIER_MODELS: ClassifierModelOption[] = [
  */
 export const LLM_MODELS: LLMModelOption[] = [
     {
+        id: 'trustai-llm:latest',
+        label: 'TrustAI LLM (fine-tuned)',
+        description: 'Fine-tuned clinical model served by Ollama.',
+    },
+    {
         id: 'phi3:mini',
         label: 'Phi-3 mini',
         description: 'Compact, fast. Great for short reasoning.',
@@ -48,7 +53,7 @@ export const LLM_MODELS: LLMModelOption[] = [
 ];
 
 export const classifierModel: Writable<string> = writable('densenet121');
-export const llmModel: Writable<string> = writable('phi3:mini');
+export const llmModel: Writable<string> = writable('trustai-llm:latest');
 
 export const selectedClassifier = derived(
     classifierModel,
