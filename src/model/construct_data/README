@@ -8,10 +8,11 @@ weil wir 2 datensets nutzen, brauchen wir einmal von NIH die daten (path wird ad
 --> führe dazu zunächst get_midrc_data.py aus.  (erstellt Download-Auftrag über korrekte Dateien)
 --> führe anschließend download_midrc_data.py aus. (lädt rohe DIRCOM-Zip-Dateien)
 
+--> führe processing.py aus. (wandelt DICOM in pngs)
 
 final müssen nur noch die beiden gemischt werden!!
 --> führe dazu blend_data.py aus. 
     um ein csv zum auslesen zum trainieren zu erstellen
-    + die DICOM bilder von midrc in pngs zu wandeln :)
+    
 
 
