@@ -46,3 +46,7 @@ data_hybrid/midrc_images_before
 /data_hybrid/midrc_dicoms/*
 
 data_hybrid/combined_master.csv
+
+*.gguf
+
+/outputs
