@@ -1,6 +1,6 @@
 # ============================== DEV =====================================
 # Wir nutzen Node.js als Basis
-FROM node:24 AS dev
+FROM node:22 AS dev
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ EXPOSE 3000
 CMD ["npm", "run", "dev"]
 
 # ============================== PROD ====================================
-FROM node:24-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -33,7 +33,7 @@ COPY . .
 ENV ADAPTER=node
 RUN npm run build
 
-FROM node:24-alpine AS prod
+FROM node:22-alpine AS prod
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
