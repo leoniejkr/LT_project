@@ -67,11 +67,79 @@ def apply_clahe_contrast(img_array: np.ndarray) -> np.ndarray:
     return (img_equalized * 255.0).astype(np.uint8)
 
 
+# ── POST-HOC CHEST SANITY CHECK ─────────────────────────────────────────
+# Even after the manifest was built, an individual DICOM may not be a chest
+# X-ray (hand, foot, abdomen, ... leaked into earlier downloads). We verify
+# each extracted DICOM against the standard DICOM body-part / view tags and
+# drop anything that is clearly not a chest scan. This happens AFTER
+# loading the image so we only need the MONAI meta dict (no extra dep).
+CHEST_BODY_TERMS = ("CHEST", "THORAX", "THORACIC")
+NON_CHEST_BODY_TERMS = ("HAND", "FOOT", "WRIST", "ANKLE", "KNEE", "ELBOW",
+                        "SHOULDER", "HIP", "ABDOMEN", "HEAD", "SKULL", "SPINE",
+                        "LUMBAR", "CERVICAL", "PELVIS", "FEMUR", "TIBIA", "FIBULA",
+                        "HUMERUS", "RADIUS", "ULNA", "FINGER", "TOE", "HEEL")
+CHEST_VIEW_TERMS = ("PA", "AP", "LATERAL", "LAT", "ANTEROPOSTERIOR",
+                    "POSTEROANTERIOR", "SAGITTAL", "CORONAL")
+NON_CHEST_VIEW_TERMS = ("LL", "LAT OB", "OBLIQUE", "LATERAL", "TANGENTIAL")
+
+
+def _meta_str(meta, tag) -> str:
+    """Read a DICOM tag from a MONAI meta dict (keys like '0018|0015')."""
+    for candidate in (tag, tag.replace("|", "")):
+        if candidate in meta:
+            val = meta[candidate]
+            if isinstance(val, (list, tuple)) and val:
+                val = val[0]
+            return str(val).upper()
+    return ""
+
+
+def is_chest_dicom(meta) -> tuple[bool, str]:
+    """Return (keep, reason). keep=False means the DICOM is NOT a chest scan.
+
+    Uses BodyPartExamined (0018,0015), ViewPosition (0018,5101) and Modality
+    (0008,0060). If we cannot positively determine it is non-chest, we keep it
+    (defensive: never reject a scan we can't inspect).
+    """
+    body = _meta_str(meta, "0018|0015")
+    view = _meta_str(meta, "0018|5101")
+    modality = _meta_str(meta, "0008|0060")
+
+    # Modality must be a projection radiograph if present.
+    if modality and modality not in ("CR", "DX", "RF", ""):
+        return False, f"non-radiograph modality {modality}"
+
+    if body:
+        if any(t in body for t in NON_CHEST_BODY_TERMS) or body in ("CHEST W/O",):
+            return False, f"body part '{body}'"
+        if any(t in body for t in CHEST_BODY_TERMS):
+            # Confirmed chest via body part. Lateral chest views are still chest.
+            return True, f"body part '{body}' matches chest"
+        # Body part present but not recognised as chest -> drop (never risk it).
+        return False, f"body part '{body}' not recognised as chest"
+
+    # No body-part tag: fall back to view position.
+    if view:
+        # Lateral chest is fine, but "LL"/limb obliques etc. are not recognised.
+        if any(t in view for t in CHEST_VIEW_TERMS) and not any(
+            t in view for t in ("WRIST", "HAND", "FOOT", "ANKLE", "KNEE")
+        ):
+            return True, f"view '{view}' consistent with chest"
+        # View present but not a recognised chest view -> drop.
+        return False, f"view '{view}' not recognised as chest"
+
+    # No usable tags at all: keep (cannot prove non-chest).
+    return True, "no body-part/view tags present (kept defensively)"
+
+
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--manifest", default="data_hybrid/midrc_download_manifest.json")
     p.add_argument("--image-root", default="data_hybrid/midrc_dicoms")
     p.add_argument("--output-dir", default="data_hybrid/midrc_images")
+    p.add_argument("--force-reprocess", action="store_true",
+                   help="Delete existing processed PNGs and manifest so every "
+                        "image is re-verified (incl. chest check) from source DICOMs.")
     args = p.parse_args()
 
     manifest_json = Path(args.manifest)
@@ -79,6 +147,16 @@ def main():
     out_dir = Path(args.output_dir)
     
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.force_reprocess:
+        removed = 0
+        for p in out_dir.glob("*.png"):
+            p.unlink()
+            removed += 1
+        manifest_out = Path("data_hybrid/midrc_processed_manifest.csv")
+        if manifest_out.exists():
+            manifest_out.unlink()
+        log.info(f"Force reprocess: removed {removed} existing PNGs and stale manifest.")
 
     if not manifest_json.exists():
         log.error(f"Manifest not found at {manifest_json}. Please generate it first.")
@@ -151,6 +229,12 @@ def main():
                 if "MONOCHROME1" in str(photometric).upper():
                     img_arr = 255 - img_arr
 
+                # Post-hoc chest sanity check (metadata level).
+                keep, reason = is_chest_dicom(meta_dict)
+                if not keep:
+                    log.warning(f"Skipping {obj_id} — not a chest scan ({reason}).")
+                    continue
+
             except Exception as monai_err:
                 # ── STRATEGY B: Cleaned-up Recovery Fallback ──────────────────
                 try:
@@ -175,6 +259,13 @@ def main():
                     # Check photometric orientation manually on fallback
                     if "MONOCHROME1" in str(raw_tensor.meta.get("photometric_interpretation", "")):
                         img_arr = 255 - img_arr
+
+                    # Post-hoc chest sanity check on the fallback meta dict.
+                    keep, reason = is_chest_dicom(raw_tensor.meta)
+                    if not keep:
+                        log.warning(f"Skipping {obj_id} — not a chest scan ({reason}).")
+                        continue
+
                 except Exception as fallback_err:
                     log.warning(f"Skipping file {obj_id} — MONAI error: {monai_err} | Fallback error: {fallback_err}")
                     continue

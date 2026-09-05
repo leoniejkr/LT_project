@@ -115,30 +115,53 @@ def main():
     df_cr     = pd.read_csv(io.StringIO(cr_raw), sep="\t", low_memory=False)
     log.info(f"Found {len(df_cr)} Computed Radiography series objects available.")
 
-    # ── Filter: body part must be CHEST ──────────────────────────────────────
-    CHEST_KEYWORDS = {"CHEST", "CHEST (PORT)", "CHEST PA", "CHEST AP",
-                      "CHEST PA AND LAT", "CHEST AP AND LAT", "THORAX"}
-    if "body_part_examined" in df_study.columns and "imaging_studies" in df_cr.columns:
+    # ── Filter: body part must be CHEST (MANDATORY) ─────────────────────────
+    # BODY PART FILTERING IS NOT OPTIONAL. Chest X-rays only. If we cannot
+    # confirm a series is a chest scan, we drop it — never include it.
+    # "CHEST" as a substring is safe: no non-chest body part (hand, foot,
+    # abdomen, head, ...) contains the word CHEST. THORAX is also chest.
+    CHEST_ALTERNATES = {"THORAX", "CHEST", "CHEST W/O", "THORACIC"}
+
+    def _is_chest(series: pd.Series) -> pd.Series:
+        s = series.fillna("").astype(str).str.upper().str.strip()
+        contains_chest = s.str.contains("CHEST", regex=False, na=False)
+        is_alternate = s.isin(CHEST_ALTERNATES)
+        return contains_chest | is_alternate
+
+    chest_mask = None
+
+    # Primary: filter directly on the series table if it carries the body part.
+    if "body_part_examined" in df_cr.columns:
+        chest_mask = _is_chest(df_cr["body_part_examined"])
+        log.info("Using body_part_examined from cr_series_file for chest filtering.")
+
+    # Secondary: derive chest study ids from imaging_study and join to series.
+    if chest_mask is None and "body_part_examined" in df_study.columns and "imaging_studies" in df_cr.columns:
         df_cr["_study_id"] = df_cr["imaging_studies"].apply(clean_id)
         df_study["_study_id"] = df_study["submitter_id"].apply(clean_id)
-        chest_studies = set(
-            df_study[
-                df_study["body_part_examined"]
-                .fillna("")
-                .str.upper()
-                .str.strip()
-                .isin(CHEST_KEYWORDS)
-            ]["_study_id"]
-        )
-        before = len(df_cr)
-        df_cr = df_cr[df_cr["_study_id"].isin(chest_studies)].copy().reset_index(drop=True)
+        chest_studies = set(df_study[_is_chest(df_study["body_part_examined"])]["_study_id"])
+        chest_mask = df_cr["_study_id"].isin(chest_studies)
+        log.info("Using body_part_examined from imaging_study (joined) for chest filtering.")
         df_cr.drop(columns=["_study_id"], inplace=True, errors="ignore")
-        log.info(
-            f"Filtered to {len(df_cr)} chest scans "
-            f"(removed {before - len(df_cr)} non-chest body parts)."
+
+    if chest_mask is None:
+        log.error(
+            "❌ Cannot apply chest/body-part filter: neither cr_series_file "
+            "nor imaging_study expose 'body_part_examined'. Aborting to avoid "
+            "downloading non-chest (hand/etc.) images."
         )
-    else:
-        log.warning("⚠ 'body_part_examined' or 'imaging_studies' not found – skipping body-part filter.")
+        sys.exit(1)
+
+    before = len(df_cr)
+    df_cr = df_cr[chest_mask.to_numpy()].copy().reset_index(drop=True)
+    log.info(
+        f"Filtered to {len(df_cr)} chest scans "
+        f"(removed {before - len(df_cr)} non-chest body parts)."
+    )
+
+    if len(df_cr) == 0:
+        log.error("❌ No chest scans remain after body-part filtering. Aborting.")
+        sys.exit(1)
 
     # ── Filter: front-facing views only (PA / AP) ───────────────────────────
     FRONT_FACING_VIEWS = {"PA", "AP", "PA AND AP", "AP AND PA"}
