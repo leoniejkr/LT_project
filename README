@@ -222,10 +222,12 @@ full GPU speed (typically 10-50x faster than Docker CPU):
    # Linux
    ollama serve &   # or via systemd
    ```
-3. **Register the fine-tuned model** (uses the GGUF in the repo, no extra download):
+3. **Register the fine-tuned model** (uses the GGUF in the repo, no extra download) and
+   pull the fallback model:
    ```bash
    ollama create trustai-llm -f \
      src/LLM/files/clinical_model_dir/trustai-llm.Modelfile.native
+   ollama pull phi3:mini
    ```
 4. **Point the containers at the host Ollama** (`.env` is gitignored):
    ```bash
@@ -237,10 +239,11 @@ The Docker `ollama` service stays in compose (internal-only, no published port) 
 default for pure-Docker setups; when `LLM_URL` is set the app uses the native Ollama and
 the container simply sits idle.
 
-The fine-tuned model (`trustai-llm:latest`) is registered automatically when the `ollama` container starts (downloaded from Hugging Face, see [LLM model configuration](#llm-model-configuration)). `phi3:mini` is only available if pulled separately.
+The fine-tuned model (`trustai-llm:latest`) is registered automatically when the `ollama` container starts (downloaded from Hugging Face, see [LLM model configuration](#llm-model-configuration)). The fallback model `phi3:mini` is pulled automatically as well, so both options in the **Settings → LLM Model** dropdown work out of the box. On the native path, pull it once with `ollama pull phi3:mini`, otherwise the app will return an error when that model is selected.
 
 Notes:
 - the models are stored in the ``ollama_data`` volume (container) or ``~/.ollama`` (native), so they survive restarts; re-download only after ``docker compose down -v``
+- on the native path both models must be present in the host Ollama: `ollama create trustai-llm -f ...` and `ollama pull phi3:mini` (both one-time per machine)
 - optional, to enable the fallback model: ``docker compose exec ollama ollama pull phi3:mini``
 - the backend connects to the LLM via ``OLLAMA_URL``/``OLLAMA_MODEL`` — ``OLLAMA_URL`` is ``http://ollama:11434`` by default and overridden by the ``LLM_URL`` env var (see above)
 - quick test without the UI: ``curl -X POST http://localhost:8080/chat -H "Content-Type: application/json" -d '{"message": "hello", "history": []}'``
