@@ -81,10 +81,11 @@ class PatientContextMultiViewDataset(Dataset):
 
 # 3. Simplified Single-View Dataset
 class SingleViewXRayDataset(Dataset):
-    def __init__(self, dataframe, class_list, transform=None):
+    def __init__(self, dataframe, class_list, transform=None, mask_matrix=None):
         self.df = dataframe.reset_index(drop=True)
         self.class_list = class_list
         self.transform = transform
+        self.mask_matrix = mask_matrix
 
     def __len__(self):
         return len(self.df)
@@ -94,11 +95,14 @@ class SingleViewXRayDataset(Dataset):
         
         img = Image.open(row['img_path']).convert('RGB')
         labels = torch.tensor(row[self.class_list].values.astype('float32'), dtype=torch.float32)
+        mask = torch.ones(len(self.class_list), dtype=torch.float32)
+        if self.mask_matrix is not None:
+            mask = torch.tensor(self.mask_matrix[idx], dtype=torch.float32)
         
         if self.transform:
             img = self.transform(img)
             
-        return img, labels
+        return img, labels, mask
 
 
 if __name__ == '__main__':
@@ -115,6 +119,21 @@ if __name__ == '__main__':
     df = pd.read_csv("data_hybrid/combined_master.csv", low_memory=False)
     df['patient_id'] = df['patient_id'].astype(str)
 
+    # 4b. Partial-label (loss) masks.
+    # MIDRC rows only carry a Covid annotation; the other 14 findings were never
+    # extracted, so 0 is "unknown", NOT a verified negative. Masking these classes
+    # out of the loss prevents the model from being taught that a Covid image is
+    # e.g. never Pneumonia or Effusion. NIH rows are fully labelled -> all 1s.
+    covid_idx = ALL_CLASSES.index('Covid')
+
+    def build_mask_matrix(frame):
+        # MIDRC rows are identified by their img path living under a midrc folder.
+        is_midrc = frame['img_path'].str.contains('midrc', case=False, na=False)
+        masks = np.ones((len(frame), len(ALL_CLASSES)), dtype=np.float32)
+        masks[is_midrc.to_numpy(), :] = 0.0
+        masks[is_midrc.to_numpy(), covid_idx] = 1.0
+        return masks
+
     df['stratify_key'] = df['Covid'].astype(str) + "_" + df['Effusion'].astype(str)
     patient_labels = df.groupby('patient_id')['stratify_key'].first()
 
@@ -128,6 +147,9 @@ if __name__ == '__main__':
     df_train = df[df['patient_id'].isin(train_patients)].reset_index(drop=True)
     df_val = df[df['patient_id'].isin(val_patients)].reset_index(drop=True)
     df_test = df[df['patient_id'].isin(test_patients)].reset_index(drop=True)
+
+    mask_train = build_mask_matrix(df_train)
+    mask_val = build_mask_matrix(df_val)
 
     # 5. Dataset-specific normalization
     dataset_mean, dataset_std = load_dataset_stats()
@@ -154,14 +176,14 @@ if __name__ == '__main__':
     ])
 
     train_loader = DataLoader(
-        SingleViewXRayDataset(df_train, ALL_CLASSES, train_transforms), 
+        SingleViewXRayDataset(df_train, ALL_CLASSES, train_transforms, mask_train), 
         batch_size=config["batch_size"], 
         shuffle=True,
         num_workers=8,
         pin_memory=True
     )
     val_loader = DataLoader(
-        SingleViewXRayDataset(df_val, ALL_CLASSES, val_transforms), 
+        SingleViewXRayDataset(df_val, ALL_CLASSES, val_transforms, mask_val), 
         batch_size=config["batch_size"], 
         shuffle=False,
         num_workers=8,
@@ -195,13 +217,14 @@ if __name__ == '__main__':
             running_train_loss = 0.0
             
             train_progress = tqdm(train_loader, desc=f"Epoch {epoch}/{config['epochs']} [Train]", leave=True)
-            for images, labels in train_progress:
+            for images, labels, masks in train_progress:
                 images = images.to(DEVICE)
                 labels = labels.to(DEVICE)
+                masks = masks.to(DEVICE)
                 
                 optimizer.zero_grad()
                 outputs = model(images)
-                loss = model.loss_fn(outputs, labels)
+                loss = model.masked_loss_fn(outputs, labels, masks)
                 loss.backward()
                 optimizer.step()
                 
@@ -215,33 +238,48 @@ if __name__ == '__main__':
         running_val_loss = 0.0
         all_val_labels = []
         all_val_preds = []
+        all_val_masks = []
         
         val_progress = tqdm(val_loader, desc=f"Epoch {epoch}/{config['epochs']} [Val]", leave=True)
         with torch.no_grad():
-            for images, labels in val_progress:
+            for images, labels, masks in val_progress:
                 images = images.to(DEVICE)
                 labels = labels.to(DEVICE)
+                masks = masks.to(DEVICE)
                 
                 outputs = model(images)
-                loss = model.loss_fn(outputs, labels)
+                loss = model.masked_loss_fn(outputs, labels, masks)
                 running_val_loss += loss.item() * images.size(0)
                 
                 probs = torch.sigmoid(outputs)
                 all_val_labels.append(labels.cpu().numpy())
                 all_val_preds.append(probs.cpu().numpy())
+                all_val_masks.append(masks.cpu().numpy())
                 
         epoch_val_loss = running_val_loss / len(val_loader.dataset)
         
         if epoch > 0:
             scheduler.step()
         
+        # AUC is computed per class on the entries whose label is KNOWN
+        # (mask == 1), so unknown MIDRC labels never count as fake negatives.
         all_val_labels = np.vstack(all_val_labels)
         all_val_preds = np.vstack(all_val_preds)
-        
-        try:
-            epoch_macro_auc = roc_auc_score(all_val_labels, all_val_preds, average="macro")
-        except ValueError:
-            epoch_macro_auc = 0.5
+        all_val_masks = np.vstack(all_val_masks)
+
+        class_aucs = {}
+        for i, class_name in enumerate(ALL_CLASSES):
+            known = all_val_masks[:, i] == 1
+            if known.sum() == 0:
+                class_aucs[class_name] = 0.5
+                continue
+            try:
+                class_aucs[class_name] = roc_auc_score(
+                    all_val_labels[known, i], all_val_preds[known, i]
+                )
+            except ValueError:
+                class_aucs[class_name] = 0.5
+        epoch_macro_auc = float(np.mean(list(class_aucs.values())))
 
         metrics_to_log = {
             "epoch": epoch,
@@ -254,13 +292,14 @@ if __name__ == '__main__':
         print(f"Val Loss: {epoch_val_loss:.4f} | Macro AUC: {epoch_macro_auc:.4f}")
         
         for i, class_name in enumerate(ALL_CLASSES):
-            try:
-                class_auc = roc_auc_score(all_val_labels[:, i], all_val_preds[:, i])
-                metrics_to_log[f"val_auc_class/{class_name}"] = class_auc
-                print(f" -> {class_name}: AUC = {class_auc:.4f}")
-            except ValueError:
-                metrics_to_log[f"val_auc_class/{class_name}"] = 0.5
+            class_auc = class_aucs[class_name]
+            metrics_to_log[f"val_auc_class/{class_name}"] = class_auc
+            if class_auc == 0.5 and all_val_masks[:, i].sum() == 0:
+                print(f" -> {class_name}: AUC = 0.5000 (No known labels)")
+            elif class_auc == 0.5:
                 print(f" -> {class_name}: AUC = 0.5000 (Insufficient class instances)")
+            else:
+                print(f" -> {class_name}: AUC = {class_auc:.4f}")
 
         if epoch > 0:
             current_lrs = [param_group['lr'] for param_group in optimizer.param_groups]

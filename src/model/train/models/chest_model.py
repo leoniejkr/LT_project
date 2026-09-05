@@ -24,6 +24,21 @@ class ChestModel(pl.LightningModule):
     self.register_buffer("pos_weight", pos_weight)
     self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
 
+  def masked_loss_fn(self, logits, targets, mask):
+    """Masked BCE loss for partial labels.
+
+    `mask` has the same shape as `targets` (batch x num_classes) and is
+    1 where the label is known/reliable and 0 where it is unknown (missing
+    annotation). Loss is only back-propagated through the masked entries,
+    so e.g. MIDRC images (only Covid annotated) never push the other 14
+    classes towards 0 even though they may carry undisclosed comorbidities.
+    """
+    bce = torch.nn.functional.binary_cross_entropy_with_logits(
+        logits, targets, pos_weight=self.pos_weight, reduction="none"
+    )
+    bce = bce * mask
+    return bce.sum() / mask.sum().clamp(min=1.0)
+
     self.train_auroc = torchmetrics.AUROC(
         task="multilabel", num_labels=num_classes, average="macro"
     )
