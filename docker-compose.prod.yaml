@@ -38,6 +38,13 @@ services:
     image: ollama/ollama
     volumes:
       - ollama_data:/root/.ollama
+      - ./src/LLM/files/clinical_model_dir:/models:ro
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        ollama create trustai-llm -f /models/Modelfile
+        exec ollama serve
 
   modelling:
     image: trustai/modelling:latest
@@ -50,7 +57,7 @@ services:
       - USE_MOCK=false
       - CHECKPOINT_PATH=/app/checkpoints/dual_view_checkpoint.pth
       - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=phi3:mini
+      - OLLAMA_MODEL=trustai-llm:latest
     depends_on:
       - ollama
 
@@ -66,7 +73,7 @@ services:
       MODELLING_URL: http://modelling:5000
       ORTHANC_URL: http://orthanc:8042
       OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: phi3:mini
+      OLLAMA_MODEL: trustai-llm:latest
       PORT: 8080
     depends_on:
       db:

@@ -32,6 +32,16 @@ services:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+      - ./src/LLM/files/clinical_model_dir:/models:ro
+    # Beim Start das finetunete GGUF-Modell in Ollama registrieren
+    # (Modelfile: /models/Modelfile -> FROM /models/llama-3-8b-Instruct.Q4_K_M.gguf),
+    # danach den Ollama-Server starten.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        ollama create trustai-llm -f /models/Modelfile
+        exec ollama serve
 
   modelling:
     build: ./modelling
@@ -44,7 +54,7 @@ services:
       - USE_MOCK=false
       - CHECKPOINT_PATH=/app/checkpoints/dual_view_checkpoint.pth
       - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=phi3:mini
+      - OLLAMA_MODEL=trustai-llm:latest
     depends_on:
       - ollama
 
@@ -69,7 +79,7 @@ services:
       MODELLING_URL: http://modelling:5000
       ORTHANC_URL: http://orthanc:8042
       OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: phi3:mini
+      OLLAMA_MODEL: trustai-llm:latest
       PORT: 8080
 
   frontend:
