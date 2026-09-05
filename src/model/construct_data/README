@@ -15,4 +15,7 @@ final müssen nur noch die beiden gemischt werden!!
     um ein csv zum auslesen zum trainieren zu erstellen
     
 
+MIDRC DATENSATZ IST MESSY!!! viele bilder sind random ohne tags gedreht
+--> fix: kleiner classifier der die orientation fixt
+--> führe aus: train_rotation_classifier.py + fix_midrc_orientation.py
 
