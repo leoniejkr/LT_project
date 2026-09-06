@@ -102,6 +102,22 @@ model defaults if set to a non-None value.
 
 - `combined_master.csv` is produced by `src/model/construct_data/blend_data.py`
   (NIH balanced + only orientation-fixed MIDRC images).
-- `dataset_stats.json` is produced by `compute_dataset_stats.py`.
-- Run stats computation if the dataset changes:
-  `python src/model/train/compute_dataset_stats.py --csv data_hybrid/combined_master.csv`
+- `dataset_stats.json` is produced by `compute_dataset_stats.py` and loaded by
+  `train.py` for normalization. **If missing, train.py falls back to ImageNet
+  mean/std — run the script first** so chest X-rays are normalized correctly.
+  The stats script applies the same `ResizeLongest`+`SquarePad` pipeline as
+  training (pass `--resolution` to match the selected model's `INPUT_SIZE`):
+  `python src/model/train/compute_dataset_stats.py --csv data_hybrid/combined_master.csv --resolution 384`
+- ConvNeXt-Base pretrained weights are downloaded automatically on first use
+  into `~/.cache/torch/hub/checkpoints/` (~354 MB).
+
+## Training configuration notes
+
+- **Learning rates** (`config["backbone_lr"]` / `config["classifier_lr"]`):
+  passed to the model, which builds a 2-param-group AdamW (backbone gets
+  `backbone_lr`, the classification head gets `classifier_lr`) plus a cosine
+  schedule whose `T_max` equals `config["epochs"]`.
+- **DataLoader**: `num_workers=4`, `pin_memory` auto-off on MPS/CPU (it only
+  helps on CUDA). Adjust to taste.
+- **Metrics**: AUROC metrics are set up in the model constructor and used by
+  `training_step`/`validation_step` when trained via Lightning.
