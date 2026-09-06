@@ -8,7 +8,7 @@ from torchvision import transforms
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score  
 from PIL import Image
-from model.train.models.chest_model import ChestModel
+from models.chest_model import ChestModel
 import wandb
 from tqdm import tqdm
 
@@ -44,6 +44,49 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.b
 # subprocesses contending for the same cores.
 PIN_MEMORY = DEVICE.type == "cuda"
 WORKERS = 4
+
+# Aspect-preserving resize + padding: images keep their true cardiothoracic
+# proportions (squashing to a square would distort anatomy and hurt classes
+# like Cardiomegaly). We scale the LONGER side down to `size`, then pad the
+# shorter side to fill the square with black. Black is the natural background
+# of a radiograph (air outside the body) and stays consistent with the fill=0
+# used by the RandomRotation/RandomAffine augmentations.
+# Fixing the longer side guarantees EVERY output is exactly (size, size).
+# NOTE: these must live at module level so DataLoader workers (spawn) can
+# pickle them — they can NOT be defined inside __main__.
+class ResizeLongest:
+    def __init__(self, size):
+        self.size = size
+
+    def __call__(self, img):
+        w, h = img.size
+        scale = self.size / max(w, h)
+        new_w, new_h = round(w * scale), round(h * scale)
+        return transforms.functional.resize(img, (new_h, new_w))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.size})"
+
+
+class SquarePad:
+    def __init__(self, fill=0):
+        self.fill = fill
+
+    def __call__(self, img):
+        w, h = img.size
+        if w == h:
+            return img
+        max_side = max(w, h)
+        pad_l = (max_side - w) // 2
+        pad_r = max_side - w - pad_l
+        pad_t = (max_side - h) // 2
+        pad_b = max_side - h - pad_t
+
+        return transforms.functional.pad(
+            img, (pad_l, pad_t, pad_r, pad_b), fill=(self.fill, self.fill, self.fill))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(fill={self.fill})"
 
 
 def load_dataset_stats(stats_path="src/model/train/dataset_stats.json"):
@@ -126,12 +169,15 @@ if __name__ == '__main__':
     
     wandb.init(
         project="hybrid-xray-covid", 
-        name="single-view-convnext-384px", 
+        name="convnext-384px", 
         config=config,
         settings=wandb.Settings(start_method="fork")
     )
 
     # 4. Stratified Patient Splitting (No Data Leaks)
+    # NOTE: pandas 3.x defaults to Arrow-backed DataFrames; sklearn (and some
+    # pandas ops) expect plain numpy data. Force everything to plain NumPy
+    # arrays/str right away to avoid Arrow-specific indexing errors.
     df = pd.read_csv("data_hybrid/combined_master.csv", low_memory=False)
     df['patient_id'] = df['patient_id'].astype(str)
 
@@ -144,20 +190,23 @@ if __name__ == '__main__':
 
     def build_mask_matrix(frame):
         # MIDRC rows are identified by their img path living under a midrc folder.
-        is_midrc = frame['img_path'].str.contains('midrc', case=False, na=False)
+        is_midrc = frame['img_path'].str.contains('midrc', case=False, na=False).to_numpy()
         masks = np.ones((len(frame), len(ALL_CLASSES)), dtype=np.float32)
-        masks[is_midrc.to_numpy(), :] = 0.0
-        masks[is_midrc.to_numpy(), covid_idx] = 1.0
+        masks[is_midrc, :] = 0.0
+        masks[is_midrc, covid_idx] = 1.0
         return masks
 
     df['stratify_key'] = df['Covid'].astype(str) + "_" + df['Effusion'].astype(str)
-    patient_labels = df.groupby('patient_id')['stratify_key'].first()
+    patient_labels = (df.groupby('patient_id')['stratify_key'].first()
+                        .to_dict())  # plain python dict: {patient_id: strat_key}
 
     train_val_patients, test_patients = train_test_split(
-        patient_labels.index, test_size=0.1, random_state=42, stratify=patient_labels.values
+        list(patient_labels), test_size=0.1, random_state=42,
+        stratify=np.array(list(patient_labels.values()), dtype=str)
     )
     train_patients, val_patients = train_test_split(
-        train_val_patients, test_size=0.111, random_state=42, stratify=patient_labels[train_val_patients].values
+        train_val_patients, test_size=0.111, random_state=42,
+        stratify=np.array([patient_labels[p] for p in train_val_patients], dtype=str)
     )
 
     df_train = df[df['patient_id'].isin(train_patients)].reset_index(drop=True)
@@ -171,46 +220,8 @@ if __name__ == '__main__':
     dataset_mean, dataset_std = load_dataset_stats()
 
     # 6. Medical-Grade Augmentation Space
-    # Aspect-preserving resize + padding: images keep their true cardiothoracic
-    # proportions (squashing to a square would distort anatomy and hurt classes
-    # like Cardiomegaly). We scale the LONGER side down to `resolution`, then pad
-    # the shorter side to fill the square with black. Black is the natural
-    # background of a radiograph (air outside the body), and it stays consistent
-    # with the fill=0 used by RandomRotation/RandomAffine below.
-    # Fixing the longer side guarantees EVERY output is exactly (resolution, resolution).
-    class ResizeLongest:
-        def __init__(self, size):
-            self.size = size
-
-        def __call__(self, img):
-            w, h = img.size
-            scale = self.size / max(w, h)
-            new_w, new_h = round(w * scale), round(h * scale)
-            return transforms.functional.resize(img, (new_h, new_w))
-
-        def __repr__(self):
-            return f"{self.__class__.__name__}({self.size})"
-
-    class SquarePad:
-        def __init__(self, fill=0):
-            self.fill = fill
-
-        def __call__(self, img):
-            w, h = img.size
-            if w == h:
-                return img
-            max_side = max(w, h)
-            pad_l = (max_side - w) // 2
-            pad_r = max_side - w - pad_l
-            pad_t = (max_side - h) // 2
-            pad_b = max_side - h - pad_t
-
-            return transforms.functional.pad(
-                img, (pad_l, pad_t, pad_r, pad_b), fill=(self.fill, self.fill, self.fill))
-
-        def __repr__(self):
-            return f"{self.__class__.__name__}(fill={self.fill})"
-
+    # ResizeLongest + SquarePad are defined at module level (importable by
+    # DataLoader workers). Train adds spatial augmentation; val only resizes.
     train_transforms = transforms.Compose([
         ResizeLongest(RESOLUTION),
         SquarePad(),
