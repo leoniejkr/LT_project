@@ -7,13 +7,22 @@ import torchvision.models as models
 
 class SwinTransformerChestModel(pl.LightningModule):
 
+  # Swin uses a relative-position bias that can be interpolated, so it accepts
+  # other resolutions (e.g. 384) without breaking. We default to 224 because the
+  # ImageNet-1K pre-trained weights were tuned at 224 — matching the pre-training
+  # resolution is the safest transfer-learning choice. Bump INPUT_SIZE if higher
+  # detail matters more than preserving the pre-trained bias.
+  INPUT_SIZE = 224
+  # Transformers are memory-hungry; a conservative batch size at 224.
+  BATCH_SIZE = 24
+
   def __init__(
       self, num_classes=15, lr=1e-4, weight_decay=1e-2, pos_weight=None
   ):
     super().__init__()
     self.save_hyperparameters(ignore=["pos_weight"])
 
-    # 1. Load Pretrained Swin Transformer Base (Configured for 384x384 input resolution)
+    # 1. Load Pretrained Swin Transformer Base
     self.backbone = models.swin_b(
         weights=models.Swin_B_Weights.SWIN_B_IMAGE1K_V1
     )

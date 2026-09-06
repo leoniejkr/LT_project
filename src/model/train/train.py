@@ -18,14 +18,24 @@ ALL_CLASSES = ['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema', 'Effusio
                'Pleural_Thickening', 'Pneumonia', 'Pneumothorax', 'Covid']
 
 config = {
-    "batch_size": 32,
+    "batch_size": None,  # None -> use selected model's BATCH_SIZE (see below)
     "epochs": 5,
     "backbone_lr": 1e-5,
     "classifier_lr": 1e-4,
     "architecture": "ConvNeXt-Base",
     "dataset": "NIH-MIDRC-Hybrid-PatientContext",
-    "resolution": 384
+    "resolution": None  # None -> use selected model's INPUT_SIZE (see below)
 }
+
+# Resolution and batch size are now model-specific: each model class declares
+# its expected input size and a sensible batch size (see models/*.py
+# `INPUT_SIZE` / `BATCH_SIZE`). Transforms are built from the selected model so
+# we never squeeze/downsample to a fixed value that might not fit the backbone
+# (e.g. Swin/ViT wants its pre-trained grid). Override per run by editing
+# `MODEL_CLASS` or setting `config["batch_size"]` to a non-None value.
+MODEL_CLASS = ChestModel
+RESOLUTION = MODEL_CLASS.INPUT_SIZE
+BATCH_SIZE = config["batch_size"] if config["batch_size"] else MODEL_CLASS.BATCH_SIZE
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
 
@@ -155,36 +165,79 @@ if __name__ == '__main__':
     dataset_mean, dataset_std = load_dataset_stats()
 
     # 6. Medical-Grade Augmentation Space
+    # Aspect-preserving resize + padding: images keep their true cardiothoracic
+    # proportions (squashing to a square would distort anatomy and hurt classes
+    # like Cardiomegaly). We scale the LONGER side down to `resolution`, then pad
+    # the shorter side to fill the square with black. Black is the natural
+    # background of a radiograph (air outside the body), and it stays consistent
+    # with the fill=0 used by RandomRotation/RandomAffine below.
+    # Fixing the longer side guarantees EVERY output is exactly (resolution, resolution).
+    class ResizeLongest:
+        def __init__(self, size):
+            self.size = size
+
+        def __call__(self, img):
+            w, h = img.size
+            scale = self.size / max(w, h)
+            new_w, new_h = round(w * scale), round(h * scale)
+            return transforms.functional.resize(img, (new_h, new_w))
+
+        def __repr__(self):
+            return f"{self.__class__.__name__}({self.size})"
+
+    class SquarePad:
+        def __init__(self, fill=0):
+            self.fill = fill
+
+        def __call__(self, img):
+            w, h = img.size
+            if w == h:
+                return img
+            max_side = max(w, h)
+            pad_l = (max_side - w) // 2
+            pad_r = max_side - w - pad_l
+            pad_t = (max_side - h) // 2
+            pad_b = max_side - h - pad_t
+
+            return transforms.functional.pad(
+                img, (pad_l, pad_t, pad_r, pad_b), fill=(self.fill, self.fill, self.fill))
+
+        def __repr__(self):
+            return f"{self.__class__.__name__}(fill={self.fill})"
+
     train_transforms = transforms.Compose([
-        transforms.Resize((config["resolution"], config["resolution"])),
+        ResizeLongest(RESOLUTION),
+        SquarePad(),
         transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(5),
+        transforms.RandomRotation(5, fill=0),
         transforms.RandomAffine(
-            degrees=0, 
-            translate=(0.1, 0.05), 
-            scale=(0.85, 1.15), 
-            shear=5
+            degrees=0,
+            translate=(0.1, 0.05),
+            scale=(0.85, 1.15),
+            shear=5,
+            fill=0
         ),
         transforms.ToTensor(),
         transforms.Normalize(mean=dataset_mean, std=dataset_std)
     ])
 
     val_transforms = transforms.Compose([
-        transforms.Resize((config["resolution"], config["resolution"])),
+        ResizeLongest(RESOLUTION),
+        SquarePad(),
         transforms.ToTensor(),
         transforms.Normalize(mean=dataset_mean, std=dataset_std)
     ])
 
     train_loader = DataLoader(
         SingleViewXRayDataset(df_train, ALL_CLASSES, train_transforms, mask_train), 
-        batch_size=config["batch_size"], 
+        batch_size=BATCH_SIZE, 
         shuffle=True,
         num_workers=8,
         pin_memory=True
     )
     val_loader = DataLoader(
         SingleViewXRayDataset(df_val, ALL_CLASSES, val_transforms, mask_val), 
-        batch_size=config["batch_size"], 
+        batch_size=BATCH_SIZE, 
         shuffle=False,
         num_workers=8,
         pin_memory=True
@@ -197,7 +250,7 @@ if __name__ == '__main__':
     pos_weights = np.sqrt(neg_counts / (class_counts + 1e-5))
     pos_weights_tensor = torch.tensor(pos_weights, dtype=torch.float32).to(DEVICE)
 
-    model = ChestModel(num_classes=len(ALL_CLASSES), pos_weight=pos_weights_tensor)
+    model = MODEL_CLASS(num_classes=len(ALL_CLASSES), pos_weight=pos_weights_tensor)
     model = model.to(DEVICE)
 
     wandb.watch(model, log="all", log_freq=100)

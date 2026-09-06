@@ -7,6 +7,13 @@ import torchmetrics
 
 class ChestModel(pl.LightningModule):
 
+  # Fully-convolutional backbone (ConvNeXt-Base), so the input resolution is
+  # flexible. 384 is a good detail/performance trade-off for chest X-rays.
+  INPUT_SIZE = 384
+  # Recommended default batch size at INPUT_SIZE (memory-sensitive models can
+  # lower this). train.py uses it unless overridden in its config.
+  BATCH_SIZE = 32
+
   def __init__(self, num_classes=15, lr=1e-4, pos_weight=None):
     super().__init__()
     self.save_hyperparameters(ignore=["pos_weight"])
