@@ -131,6 +131,32 @@ for cls in NIH_CLASSES + [NORMAL_LABEL]:
 # 2. Read processed MIDRC COVID Manifest
 df_midrc = pd.read_csv("data_hybrid/midrc_processed_manifest.csv")
 
+# ── MIDRC ORIENTATION FIX ───────────────────────────────────────────────
+# Use ONLY the orientation-corrected copies (midrc_fixed_images/, produced by
+# fix_midrc_orientation.py). Manifest rows without a fixed copy are dropped:
+# their DICOMs were never rotated to a canonical orientation, so they would
+# otherwise inject rotated images into training.
+MIDRC_FIXED_DIR = os.path.join("data_hybrid", "midrc_fixed_images")
+
+
+def remap_to_fixed(path: str):
+    fixed_path = os.path.join(MIDRC_FIXED_DIR, os.path.basename(path))
+    if os.path.exists(fixed_path):
+        return fixed_path
+    return None
+
+
+orig_rows = len(df_midrc)
+df_midrc['img_path'] = df_midrc['img_path'].apply(remap_to_fixed)
+df_midrc = df_midrc.dropna(subset=['img_path']).reset_index(drop=True)
+n_fixed = len(df_midrc)
+print(f"MIDRC images with fixed orientation: {n_fixed} / {orig_rows} "
+      f"({orig_rows - n_fixed} dropped, not yet orientation-fixed)")
+
+if len(df_midrc) == 0:
+    raise SystemExit("No MIDRC images have fixed orientations yet. "
+                     "Run fix_midrc_orientation.py first.")
+
 df_midrc_clean = pd.DataFrame()
 df_midrc_clean['img_path'] = df_midrc['img_path']
 df_midrc_clean['patient_id'] = df_midrc['patient_id'].astype(str)
