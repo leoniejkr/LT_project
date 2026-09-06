@@ -39,6 +39,12 @@ BATCH_SIZE = config["batch_size"] if config["batch_size"] else MODEL_CLASS.BATCH
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
 
+# DataLoader tuning: pin_memory only helps on CUDA; on MPS/CPU it is a no-op.
+# Workers are capped conservatively so MPS/CPU training isn't starved by loader
+# subprocesses contending for the same cores.
+PIN_MEMORY = DEVICE.type == "cuda"
+WORKERS = 4
+
 
 def load_dataset_stats(stats_path="src/model/train/dataset_stats.json"):
     if os.path.exists(stats_path):
@@ -232,15 +238,15 @@ if __name__ == '__main__':
         SingleViewXRayDataset(df_train, ALL_CLASSES, train_transforms, mask_train), 
         batch_size=BATCH_SIZE, 
         shuffle=True,
-        num_workers=8,
-        pin_memory=True
+        num_workers=WORKERS,
+        pin_memory=PIN_MEMORY
     )
     val_loader = DataLoader(
         SingleViewXRayDataset(df_val, ALL_CLASSES, val_transforms, mask_val), 
         batch_size=BATCH_SIZE, 
         shuffle=False,
-        num_workers=8,
-        pin_memory=True
+        num_workers=WORKERS,
+        pin_memory=PIN_MEMORY
     )
 
     # 7. Model with class-imbalance-aware loss (sqrt-scaled to prevent gradient explosion)
@@ -250,7 +256,13 @@ if __name__ == '__main__':
     pos_weights = np.sqrt(neg_counts / (class_counts + 1e-5))
     pos_weights_tensor = torch.tensor(pos_weights, dtype=torch.float32).to(DEVICE)
 
-    model = MODEL_CLASS(num_classes=len(ALL_CLASSES), pos_weight=pos_weights_tensor)
+    model = MODEL_CLASS(
+        num_classes=len(ALL_CLASSES),
+        lr=config["classifier_lr"],
+        backbone_factor=config["backbone_lr"] / config["classifier_lr"],
+        max_epochs=config["epochs"],
+        pos_weight=pos_weights_tensor,
+    )
     model = model.to(DEVICE)
 
     wandb.watch(model, log="all", log_freq=100)
