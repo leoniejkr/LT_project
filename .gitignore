@@ -46,6 +46,7 @@ checkpoints/xray_orientation_resnet18.pth
 /data_hybrid/midrc_images/*
 /data_hybrid/midrc_dicoms/*
 /data_hybrid/midrc_fixed_images/*
+/data_hybrid/midrc_fixed_1024/*
 
 
 data_hybrid/combined_master.csv

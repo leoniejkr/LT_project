@@ -102,6 +102,11 @@ model defaults if set to a non-None value.
 
 - `combined_master.csv` is produced by `src/model/construct_data/blend_data.py`
   (NIH balanced + only orientation-fixed MIDRC images).
+- MIDRC fixed PNGs are huge (up to ~4400x3610 px, ~48 GB in total). Run
+  `src/model/construct_data/resize_midrc.py` once to pre-downscale them to
+  `data_hybrid/midrc_fixed_1024/` (~1024 px long side). Without this the
+  DataLoader re-decodes full-res X-rays every epoch, thrashing a 24 GB RAM
+  machine into swap (training collapses to minutes per batch).
 - `dataset_stats.json` is produced by `compute_dataset_stats.py` and loaded by
   `train.py` for normalization. **If missing, train.py falls back to ImageNet
   mean/std — run the script first** so chest X-rays are normalized correctly.

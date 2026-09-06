@@ -40,10 +40,11 @@ BATCH_SIZE = config["batch_size"] if config["batch_size"] else MODEL_CLASS.BATCH
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
 
 # DataLoader tuning: pin_memory only helps on CUDA; on MPS/CPU it is a no-op.
-# Workers are capped conservatively so MPS/CPU training isn't starved by loader
-# subprocesses contending for the same cores.
+# Workers are capped low (2) because each spawned worker imports torch (~250 MB)
+# AND the machine has only 24 GB unified RAM shared with MPS — 4 workers plus
+# full-res MIDRC decodes previously thrashed the system into swap.
 PIN_MEMORY = DEVICE.type == "cuda"
-WORKERS = 4
+WORKERS = 2
 
 # Aspect-preserving resize + padding: images keep their true cardiothoracic
 # proportions (squashing to a square would distort anatomy and hurt classes
