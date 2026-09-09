@@ -4,19 +4,20 @@
 
 ### What does the application do
 
-TrustAI is a Medical Prediction AI platform created to support clinicians in assessing chest X-ray images. Its main feature is a deep learning model that analyzes uploaded medical images to detect potential abnormalities, diseases, and other visual findings.
+TrustAI is a Medical Prediction AI platform created to support clinicians in assessing chest X-ray images. Its main feature is a deep learning model that analyzes uploaded medical images uploaded in .png format, to detect potential abnormalities, diseases, and other visual findings.
 
-Users can upload one or multiple X-ray images via the upload page and enter relevant patient information (like age, gender, symptoms, and medical history). The model then generates predictions for possible conditions and also gives a certainty estimation for each result (confidence scores).
+Users can upload one or multiple X-ray images and patient information. The model then generates predictions for possible conditions and also gives a certainty estimation for each result (confidence scores).
 
-On the results page, the dashboard displays heatmaps which highlight the image regions that have contributed to each prediction. For more information, the user can use a medical viewport to take a closer look at the X-Rays or interact with an integrated chatbot that is based on a large language model. The chatbot has knowledge about the supported diseases and uses the patient context and AI findings to answer questions, explain results, and assist with risk assessment.
+On the results page, the dashboard displays heatmaps which highlight the image regions that have contributed to each prediction. For more information, the user can use a medical viewport to take a closer look at the X-Rays or interact with an integrated chatbot. The chatbot has knowledge about the supported diseases and can use the patient context and model findings.
 
 ### Workflow of the application
 
-The application is build as a web app. It is divided into a frontend (build with Typescript and Svelte), a backend (build with Go), and a separate modelling service. The user starts by uploading one or more chest X-Ray .png images and entering patient information such as age, gender, symptoms, and medical history through the web interface. The application does not support the upload of .dcm images.
+The application is build as a web app. It is divided into a frontend, which is built with Typescript and SvelteKit (on top of Vite), a backend, which is built with Golang, and a separate modelling service. The user starts by uploading one or more chest X-Ray .png images and entering patient information such as age, gender, symptoms, and medical history via the upload page through the web interface. The application does not support the upload of .dcm images.
 
-The frontend sends the images and patient metadata to the Go backend via REST. The backend then coordinates the analysis workflow: it stores the uploaded images, creates the patient record, and forwards the images to the deep learning modelling service. The modelling service preprocesses the images and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. It also generates heatmaps that indicate which image regions influenced the model's decision.
+The frontend sends the images and patient metadata to the Go backend via REST. The backend then coordinates the analysis workflow: it stores the uploaded images, creates the patient record, and forwards the images to the deep learning modelling service. The modelling service preprocesses the images and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. The confidence store is a certainty estimation showing how certain the model is for each prediction. It also generates heatmaps that indicate which image regions influenced the model's decision.
 
-All analysis results are returned to the backend and saved together with the patient data. The Svelte frontend then presents them in the results page, where users can review the predictions, confidence scores, original images, and corresponding heatmaps. 
+All analysis results are returned to the backend and saved together with the patient data. The frontend then presents them in the results page, where users can see the original images through a CornerstoneJS medical viewer. Furthermore the predictions, confidence scores and corresponding heatmaps can be reviewed.
+
 The application presents two types of prediction results. Aggregated results and individual results, which are both accompanied with confidence scores that are measured in percentages. The aggregated results are located at the top and show the aggregated, calculated classifications over all the uploaded X-Ray images, while the individual results at the bottom show the calculated classifications for each individual X-Ray image with their respective corresponding heatmaps. The classifications are ranked according to their confidence scores. The confidence threshold for shown classifications can be modified in the GUI with a slider in the results page after the calculation. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
 
 The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for medical image storage. The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.
@@ -47,14 +48,13 @@ MIDRC: https://www.midrc.org/midrc-data \
 NIH: https://www.kaggle.com/datasets/nih-chest-xrays/data
 
 
-
-## Contributing and locally starting the application
+## How to run and start the application
 
 ### Running the application
 
 #### Prerequisites for running the application
 
-The application runs all required services in containers, so no separate installation of any programming language or database is needed.
+The application runs all required services in containers, so no separate installation of any programming language or database is needed if you only want to run the application.
 For most OS just install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/). If you use NixOS or Arch-based systems just install the Docker Engine. For MacOS you can install Colima instead to your liking.
 
 #### Starting the application
@@ -84,9 +84,18 @@ docker compose down -v
 ``` 
 only when you intentionally want to delete these volumes and their data.
 
-### Contributing
+## General Information for Backend and Frontend and how to contribute
 
-#### Frontend
+### Frontend
+
+#### Structure of the 
+Frontend
+The frontend is written in Typescript in combination with Svelte and SvelteKit as a build tool. SvelteKit is powered by Vite. 
+SvelteKit operates on a filesystem based router, which means that routes / URLs are defined by the directories in the frontend codebase. The frontend route/ directory is structured in a way to accomodate this. No manual router setup is needed.
+
+The lib directory contains different kinds of shared functions and components. The individual files are composed of services and utility logic that are used throughout the frontend. General UI components are located in /components. ShadCN for Svelte was used for the UI components. The /assets folder contains .svg files. 
+
+#### Contributing
 
 ##### Prerequisites
 
@@ -99,8 +108,7 @@ to install all dependencies
 
 ##### Running and Testing the Frontend
 
-If you only want to start the frontend, execute ``npm run dev``. Make sure the Docker is not running or else the ports overlap.
-If you want to see changes to the frontend, the Docker images are running, and it is not important for you that only the frontend is running, you do not have to execute ``npm run dev`` to start the frontend. You can just use Docker for development purposes. Live reload is included. 
+If you only want to start and work on the frontend, execute ``npm run dev``. This command executes Vite, which is a build tool for web development. It comes with integrated live reloading, meaning you dont have to restart Vite after making changes to the code. Make sure the Docker images are not running or else the ports overlap.
 
 To to test the frontend there are multiple commands that serve different purposes. The most important two are:
 
@@ -112,9 +120,11 @@ Starts the unit tests, which are implemented using vitest as recommended by the 
 ```bash
 npm run test:e2e
 ```
-Starts the E2E tests, which are implemented using Playwright.
+Starts the E2E tests which are implemented using Playwright. Playwright is the de-facto standard nowadays for end-to-end tests as it is generally faster and more reliable than Selenium for example. 
 
-#### Backend
+### Backend
+
+#### Contributing
 
 ##### Prerequisites
 
