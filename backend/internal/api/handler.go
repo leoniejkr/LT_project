@@ -14,6 +14,18 @@ type Handler struct {
 	chatClient     *chat.Client
 }
 
+const chatSystemPrompt = `You are a medical AI assistant helping clinicians understand chest X-ray analysis results.
+Answer questions about diagnoses, confidence scores and findings clearly and concisely.
+Use the patient context provided in this conversation (symptoms, medical history, risk factors)
+when answering questions about the patient.
+If you are unsure, say so. Always recommend consulting a radiologist for final decisions.`
+
+type ChatRequest struct {
+	Message string         `json:"message"`
+	History []chat.Message `json:"history"`
+	Context map[string]any `json:"context,omitempty"`
+}
+
 func NewHandler(patientService *patient.Service, chatClient *chat.Client) *Handler {
 	return &Handler{
 		patientService: patientService,
@@ -27,6 +39,18 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /chat", h.Chat)
 }
 
+// GetAnalysis godoc
+// @Summary      Get AI analysis
+// @Description  Upload patient data and X-Ray pictures and get analysis results back
+// @Tags         analysis
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        formData  formData  string  true  "Patient data as JSON (age, gender, symptoms, history)"
+// @Param        image_files  formData  []file  true  "X-Ray PNG images"
+// @Success      200  {object}  map[string]interface{}  "Successful analysis"
+// @Failure      400  {object}  string  "Invalid request"
+// @Failure      500  {object}  map[string]interface{}  "Analysis or server error"
+// @Router       /analysis [post]
 func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(50 << 20); err != nil {
 		http.Error(w, "Unable to parse multipart form", http.StatusBadRequest)
@@ -104,6 +128,14 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// DeleteAnalysis godoc
+// @Summary      Delete all patient data
+// @Description  Deletes all patient data and analysis results from the database
+// @Tags         analysis
+// @Produce      json
+// @Success      200  {object}  map[string]string  "Deletion successful"
+// @Failure      500  {object}  string  "Deletion failed"
+// @Router       /analysis [delete]
 func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
 	if err := h.patientService.DeleteAllData(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -113,18 +145,6 @@ func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"status": "deleted",
 	})
-}
-
-const chatSystemPrompt = `You are a medical AI assistant helping clinicians understand chest X-ray analysis results.
-Answer questions about diagnoses, confidence scores and findings clearly and concisely.
-Use the patient context provided in this conversation (symptoms, medical history, risk factors)
-when answering questions about the patient.
-If you are unsure, say so. Always recommend consulting a radiologist for final decisions.`
-
-type ChatRequest struct {
-	Message string         `json:"message"`
-	History []chat.Message `json:"history"`
-	Context map[string]any `json:"context,omitempty"`
 }
 
 // buildContextMessage renders the client-supplied patient context as an
@@ -145,6 +165,17 @@ func buildContextMessage(context map[string]any) (chat.Message, bool) {
 	}, true
 }
 
+// Chat godoc
+// @Summary      Chat with medical AI
+// @Description  Send a message to the medical AI assistant with patient context
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        request  body  ChatRequest  true  "Chat request with message, history, and context"
+// @Success      200  {object}  map[string]string  "AI reply"
+// @Failure      400  {object}  string  "Invalid request or missing message"
+// @Failure      502  {object}  map[string]string  "Chat service error"
+// @Router       /chat [post]
 func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

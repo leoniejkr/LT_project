@@ -49,6 +49,13 @@ func main() {
 
 	router.Handle("/swagger/", httpSwagger.WrapHandler)
 
+	// Health godoc
+	// @Summary      Health check
+	// @Description  Returns OK if the server is running
+	// @Tags         health
+	// @Produce      plain
+	// @Success      200  {string}  string  "OK"
+	// @Router       /health [get]
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "OK")
 	})
