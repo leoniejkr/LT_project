@@ -37,14 +37,21 @@ func main() {
 		orthancURL = "http://localhost:8042"
 	}
 
+	ollamaURL := os.Getenv("OLLAMA_URL")
+	if ollamaURL == "" {
+		ollamaURL = "http://localhost:11434"
+	}
+
+	model := os.Getenv("LLM_MODEL")
+
 	orthancStore := orthanc.NewRepository(orthancURL, "user", "user")
 	patientRepo := patient.NewRepository(db)
 	analysisRepo := analysis.NewRepository(db)
 	llmClient := analysis.NewLLMClient()
 	analysisService := analysis.NewService(analysisRepo, llmClient)
 	patientService := patient.NewService(patientRepo, analysisService, orthancStore)
-	chatClient := chat.NewClient()
-	apiHandler := api.NewHandler(patientService, chatClient)
+	chatService := chat.NewService(ollamaURL, model, nil)
+	apiHandler := api.NewHandler(patientService, chatService, analysisService)
 	apiHandler.RegisterRoutes(router)
 
 	router.Handle("/swagger/", httpSwagger.WrapHandler)

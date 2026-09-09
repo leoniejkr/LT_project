@@ -77,3 +77,10 @@ type Analysis struct {
 	Predictions      Predictions  `gorm:"type:jsonb" json:"predictions"`
 	ImageResults     ImageResults `gorm:"type:jsonb" json:"imageResults"`
 }
+
+type PredictionResponse struct {
+	Status       string       `json:"status"`
+	ModelVersion string       `json:"model_version"`
+	Predictions  Predictions  `json:"predictions"`
+	ImageResults ImageResults `json:"image_results"`
+}

@@ -52,8 +52,9 @@ func setupHandler(t *testing.T, llmHandler http.HandlerFunc) (*Handler, *httptes
 	orthancRepo := orthanc.NewRepository(orthancServer.URL, "", "")
 	patientRepo := patient.NewRepository(db)
 	patientSvc := patient.NewService(patientRepo, analysisSvc, orthancRepo)
+	chatSvc := chat.NewService("", "default-model", &http.Client{})
 
-	handler := NewHandler(patientSvc, chat.NewClient())
+	handler := NewHandler(patientSvc, chatSvc, analysisSvc)
 	return handler, llmServer, orthancServer
 }
 
@@ -386,8 +387,8 @@ func setupOllama(t *testing.T, handler func(messages []map[string]string) (strin
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Model    string                `json:"model"`
-			Messages []map[string]string   `json:"messages"`
+			Model    string              `json:"model"`
+			Messages []map[string]string `json:"messages"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Errorf("failed to decode ollama request: %v", err)

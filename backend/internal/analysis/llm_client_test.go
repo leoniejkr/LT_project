@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	httpclient "backend/internal/http"
 )
 
 func TestGetPrediction_Success(t *testing.T) {
@@ -33,13 +35,13 @@ func TestGetPrediction_Success(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := &LLMClient{baseURL: server.URL, httpClient: &http.Client{}}
+	client := &LLMClient{client: httpclient.New(server.URL)}
 
 	patientData := map[string]string{"id": "1"}
 	imageBuffers := [][]byte{[]byte("fake-png-data")}
 	imageNames := []string{"test.png"}
 
-	result, err := client.GetPrediction(patientData, imageBuffers, imageNames)
+	result, err := client.GetPrediction(patientData, imageBuffers, imageNames, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -67,9 +69,9 @@ func TestGetPrediction_NoImages(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := &LLMClient{baseURL: server.URL, httpClient: &http.Client{}}
+	client := &LLMClient{client: httpclient.New(server.URL)}
 
-	result, err := client.GetPrediction(map[string]string{"id": "1"}, nil, nil)
+	result, err := client.GetPrediction(map[string]string{"id": "1"}, nil, nil, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -85,9 +87,9 @@ func TestGetPrediction_ServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := &LLMClient{baseURL: server.URL, httpClient: &http.Client{}}
+	client := &LLMClient{client: httpclient.New(server.URL)}
 
-	_, err := client.GetPrediction(map[string]string{"id": "1"}, nil, nil)
+	_, err := client.GetPrediction(map[string]string{"id": "1"}, nil, nil, "", "")
 	if err == nil {
 		t.Fatal("expected error for server error response")
 	}
@@ -103,9 +105,9 @@ func TestGetPrediction_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := &LLMClient{baseURL: server.URL, httpClient: &http.Client{}}
+	client := &LLMClient{client: httpclient.New(server.URL)}
 
-	_, err := client.GetPrediction(map[string]string{"id": "1"}, nil, nil)
+	_, err := client.GetPrediction(map[string]string{"id": "1"}, nil, nil, "", "")
 	if err == nil {
 		t.Fatal("expected error for invalid JSON response")
 	}
@@ -115,20 +117,20 @@ func TestGetPrediction_InvalidJSON(t *testing.T) {
 }
 
 func TestGetPrediction_ConnectionRefused(t *testing.T) {
-	client := &LLMClient{baseURL: "http://localhost:1", httpClient: &http.Client{}}
+	client := &LLMClient{client: httpclient.New("http://localhost:1")}
 
-	_, err := client.GetPrediction(map[string]string{"id": "1"}, nil, nil)
+	_, err := client.GetPrediction(map[string]string{"id": "1"}, nil, nil, "", "")
 	if err == nil {
 		t.Fatal("expected error for connection refused")
 	}
 }
 
 func TestGetPrediction_MarshalError(t *testing.T) {
-	client := &LLMClient{baseURL: "http://localhost:1", httpClient: &http.Client{}}
+	client := &LLMClient{client: httpclient.New("http://localhost:1")}
 
 	// channels cannot be marshaled to JSON
 	ch := make(chan int)
-	_, err := client.GetPrediction(ch, nil, nil)
+	_, err := client.GetPrediction(ch, nil, nil, "", "")
 	if err == nil {
 		t.Fatal("expected error for marshal failure")
 	}
@@ -153,12 +155,12 @@ func TestGetPrediction_MultipleImages(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := &LLMClient{baseURL: server.URL, httpClient: &http.Client{}}
+	client := &LLMClient{client: httpclient.New(server.URL)}
 
 	buffers := [][]byte{[]byte("img1"), []byte("img2")}
 	names := []string{"a.png", "b.png"}
 
-	result, err := client.GetPrediction(map[string]string{}, buffers, names)
+	result, err := client.GetPrediction(map[string]string{}, buffers, names, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

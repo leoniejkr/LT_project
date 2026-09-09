@@ -8,9 +8,11 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini")
 logger = logging.getLogger(__name__)
 
 
-def generate_reasons(predictions: list[dict], patient: dict) -> list[dict]:
+def generate_reasons(predictions: list[dict], patient: dict, model: str | None = None) -> list[dict]:
     if not predictions:
         return []
+
+    llm_model = model or OLLAMA_MODEL
 
     patient_info = ""
     if patient:
@@ -52,7 +54,7 @@ Only include the conditions listed above. Do not add extra conditions."""
         response = requests.post(
             f"{OLLAMA_URL}/api/generate",
             json={
-                "model": OLLAMA_MODEL,
+                "model": llm_model,
                 "prompt": prompt,
                 "stream": False,
                 "options": {

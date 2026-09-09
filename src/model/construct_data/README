@@ -1,0 +1,21 @@
+diese methoden sind dafür da ein datenset verlässlich zu konstruieren
+
+
+weil wir 2 datensets nutzen, brauchen wir einmal von NIH die daten (path wird adaptiv gespeichert)
+--> führe dazu zunächst get_nih_data.py aus
+
+... und daten von MIDRC
+--> führe dazu zunächst get_midrc_data.py aus.  (erstellt Download-Auftrag über korrekte Dateien)
+--> führe anschließend download_midrc_data.py aus. (lädt rohe DIRCOM-Zip-Dateien)
+
+--> führe processing.py aus. (wandelt DICOM in pngs)
+
+final müssen nur noch die beiden gemischt werden!!
+--> führe dazu blend_data.py aus. 
+    um ein csv zum auslesen zum trainieren zu erstellen
+    
+
+MIDRC DATENSATZ IST MESSY!!! viele bilder sind random ohne tags gedreht
+--> fix: kleiner classifier der die orientation fixt
+--> führe aus: train_rotation_classifier.py + fix_midrc_orientation.py
+

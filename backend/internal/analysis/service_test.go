@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	httpclient "backend/internal/http"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
@@ -23,7 +24,7 @@ func setupServiceTest(t *testing.T, llmResponse PredictionResponse) (*Service, *
 		json.NewEncoder(w).Encode(llmResponse)
 	}))
 
-	llmClient := &LLMClient{baseURL: server.URL, httpClient: &http.Client{}}
+	llmClient := &LLMClient{client: httpclient.New(server.URL)}
 	repo := NewRepository(db)
 	svc := NewService(repo, llmClient)
 
@@ -43,7 +44,7 @@ func TestGetAnalysis_Success(t *testing.T) {
 	defer server.Close()
 
 	patientData := map[string]string{"id": "1"}
-	result, err := svc.GetAnalysis(1, patientData, nil, nil)
+	result, err := svc.GetAnalysis(1, patientData, nil, nil, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -67,7 +68,7 @@ func TestGetAnalysis_PersistsToDB(t *testing.T) {
 	svc, server := setupServiceTest(t, llmResp)
 	defer server.Close()
 
-	_, err := svc.GetAnalysis(5, map[string]string{}, nil, nil)
+	_, err := svc.GetAnalysis(5, map[string]string{}, nil, nil, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -100,7 +101,7 @@ func TestGetAnalysis_PersistsTopPrediction(t *testing.T) {
 	svc, server := setupServiceTest(t, llmResp)
 	defer server.Close()
 
-	_, err := svc.GetAnalysis(1, map[string]string{}, nil, nil)
+	_, err := svc.GetAnalysis(1, map[string]string{}, nil, nil, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -123,7 +124,7 @@ func TestGetAnalysis_EmptyPredictions(t *testing.T) {
 	svc, server := setupServiceTest(t, llmResp)
 	defer server.Close()
 
-	_, err := svc.GetAnalysis(1, map[string]string{}, nil, nil)
+	_, err := svc.GetAnalysis(1, map[string]string{}, nil, nil, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -144,11 +145,11 @@ func TestGetAnalysis_LLMError(t *testing.T) {
 	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	db.AutoMigrate(&Analysis{})
 
-	llmClient := &LLMClient{baseURL: server.URL, httpClient: &http.Client{}}
+	llmClient := &LLMClient{client: httpclient.New(server.URL)}
 	repo := NewRepository(db)
 	svc := NewService(repo, llmClient)
 
-	_, err := svc.GetAnalysis(1, map[string]string{}, nil, nil)
+	_, err := svc.GetAnalysis(1, map[string]string{}, nil, nil, "", "")
 	if err == nil {
 		t.Fatal("expected error when LLM service fails")
 	}
@@ -163,7 +164,7 @@ func TestServiceDeletePatientAnalysis(t *testing.T) {
 	svc, server := setupServiceTest(t, llmResp)
 	defer server.Close()
 
-	svc.GetAnalysis(1, map[string]string{}, nil, nil)
+	svc.GetAnalysis(1, map[string]string{}, nil, nil, "", "")
 
 	if err := svc.DeletePatientAnalysis(1); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -196,7 +197,7 @@ func TestPersistAnalysis_PreservesAllFields(t *testing.T) {
 	svc, server := setupServiceTest(t, llmResp)
 	defer server.Close()
 
-	_, err := svc.GetAnalysis(10, map[string]string{}, nil, nil)
+	_, err := svc.GetAnalysis(10, map[string]string{}, nil, nil, "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

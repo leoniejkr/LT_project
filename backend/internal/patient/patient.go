@@ -16,8 +16,6 @@ const (
 
 type Symptom string
 
-// Symptom vocabulary grouped by topic. Values must match the labels
-// defined in frontend/src/lib/symptoms.ts.
 const (
 	// Breathing & Respiratory Symptoms
 	SymptomApnea               Symptom = "Pauses in breathing (apnea)"
@@ -111,9 +109,6 @@ func (s Symptoms) Value() (driver.Value, error) {
 	return json.Marshal(s)
 }
 
-// History entries cover injuries, lifestyle/exposure factors, medical
-// conditions and demographics. Vocabulary is defined in
-// frontend/src/lib/history.ts; values are stored and forwarded as-is.
 type History string
 
 type Histories []History

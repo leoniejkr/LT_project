@@ -148,41 +148,91 @@ Changing the API in the backend may require you to also make changes in the fron
 
 ## Hybrid Chest X-Ray Multi-Label Training Pipeline
 
-This repository contains an end-to-end medical deep learning pipeline designed to blend the NIH Chest X-Ray 14 dataset with the MIDRC COVID-14 dataset. The framework targets a unified 15-class multi-label classification taxonomy utilizing standard medical imaging processing protocols, parallelized data pipelines, and real-time remote experiment tracking.
+An end-to-end pipeline that blends the NIH Chest X-Ray 14 dataset with the MIDRC COVID-19 dataset into a unified 15-class multi-label classification problem.
 
+### Dataset Sources
 
+| Dataset | Source | Contents |
+|---------|--------|----------|
+| NIH Chest X-Ray | [Kaggle](https://www.kaggle.com/datasets/nih-chest-xrays/data) | ~112k images, 14 pathologies, no COVID |
+| MIDRC | [midrc.org](https://www.midrc.org/midrc-data) | COVID-19 positive chest X-rays |
 
-#### 1. Data Acquisition & Processing Pipeline
+### Directory Structure
 
-The dataset is compiled sequentially to isolate, transform, and balance raw arrays before feeding them into your deep learning architectures.
+```
+data_hybrid/
+├── nih_images/
+│   └── path.txt                     ← Pointer to Kaggle cache (run get_nih_data.py first)
+├── midrc_dicoms/                    ← Raw MIDRC DICOM zips
+├── midrc_images/                    ← Converted 512×512 PNGs
+├── midrc_download_manifest.json     ← gen3-client download list
+├── midrc_processed_manifest.csv     ← Processed image manifest
+└── combined_master.csv              ← Final training dataset
+```
 
-    Step A: Fetch & Build the Metadata Framework
-    Run the target extraction layers to parse the raw index configurations:
+### Pipeline Execution Order
 
-        python3 src/get_nih_data.py
-        python3 src/get_midrc_data.py
-        python3 src/download_midrc_data.py
+Each step reads the output of the previous one. Run from the project root.
 
-    Step B: Standardize DICOM Images
-    Raw medical imaging files have distinct structural variations. Run the processing module to apply adaptive histogram transformations (CLAHE) and reshape spatial domains using MONAI's robust fallback architecture:
+```bash
+# Step 1: Download NIH dataset to Kaggle cache + create pointer file (skips if cached)
+python src/model/construct_data/get_nih_data.py
 
-        python3 src/processing.py
+# Step 2: Query MIDRC cloud API → generates download manifest (skips if manifest exists)
+python src/model/construct_data/get_midrc_data.py          # add --force to re-query
 
-    This handles unusual shapes, flattens extra dimension layers, resolves MONOCHROME1 inversions, and builds high-contrast, uniform 2D gray grids saved natively to data_hybrid/midrc_images/.
+# Step 3: Download DICOM zips via gen3-client → data_hybrid/midrc_dicoms/ (skips completed)
+python src/model/construct_data/download_midrc_data.py
 
-    Step C: Blend the Manifests
-    To link your physical assets on disk directly to a unified classification matrix, run the data blending engine:
+# Step 4: Convert DICOMs → 512×512 PNGs with CLAHE + auto-rotation (skips existing PNGs)
+python src/model/train/processing.py
 
-        python3 src/blend_data.py
+# Step 5: Merge NIH + MIDRC into combined_master.csv (2:1 ratio, patient-level)
+python src/model/construct_data/blend_data.py
 
-    This module extracts image paths dynamically, drops unretrieved arrays safely, maps pipe-separated categorical tags, and outputs a clean dataset tracking ledger to data_hybrid/combined_master.csv.
+# Step 6: Compute dataset-specific normalization (mean/std)
+python src/model/train/compute_dataset_stats.py
 
-#### 2. Model Training Engine
-The pipeline is set up for multi-label classification using ResNet50, applying weighted binary cross-entropy loops to tackle severe dataset imbalances.
+# Step 7: Train the model
+python src/model/train/train.py
+```
 
-To start training, execute:
+All steps are idempotent — re-running any step skips work already done.
 
-    python3 src/train.py
+### What Each Step Does
+
+| Step | Script | Input | Output | Skip Logic |
+|------|--------|-------|--------|------------|
+| 1 | `get_nih_data.py` | Kaggle API | Kaggle cache + `nih_images/path.txt` | `kagglehub` skips cached downloads |
+| 2 | `get_midrc_data.py` | MIDRC Gen3 API | `midrc_download_manifest.json` | Skips if manifest exists (`--force` to re-query) |
+| 3 | `download_midrc_data.py` | manifest JSON | `data_hybrid/midrc_dicoms/` | `--skip-completed` flag |
+| 4 | `processing.py` | DICOM zips | 512×512 PNGs + `midrc_processed_manifest.csv` | Skips if output PNG already exists |
+| 5 | `blend_data.py` | NIH cache + MIDRC manifest | `combined_master.csv` | Always rewrites (deterministic, fast) |
+| 6 | `compute_dataset_stats.py` | `combined_master.csv` | `dataset_stats.json` | Always rewrites (deterministic, fast) |
+| 7 | `train.py` | `combined_master.csv` + stats | `dual_view_checkpoint.pth` | Resumes from checkpoint if available |
+
+### Processing Details
+
+**DICOM → PNG (Step 4)** applies:
+- MONAI `ScaleIntensityRangePercentiles(0.5, 99.5)` windowing
+- CLAHE adaptive histogram equalization (clip_limit=0.02)
+- MONOCHROME1 photometric inversion (both Strategy A and fallback)
+- Auto-rotation of landscape images to portrait (width > height → rotate 90°)
+- Resize to 512×512, saved as 8-bit grayscale
+
+**Data Blending (Step 5)** applies:
+- NIH: 14 pathologies from `Data_Entry_2017.csv`, filtered to PA/AP views only
+- MIDRC: COVID=1, all other pathologies=0
+- 2:1 ratio (NIH:MIDRC) via patient-level random sampling
+- Stratified by patient (not image) to prevent data leakage
+
+**Training (Step 7)** uses:
+- ConvNeXt-Base backbone (pretrained)
+- 384×384 resolution
+- Dataset-specific normalization (computed in Step 6)
+- sqrt-scaled `pos_weight` BCE loss for class imbalance
+- CosineAnnealing LR scheduler
+- Patient-stratified 80/10/10 train/val/test split
 
 ## Start Docker environment on Windows/Mac and prepare for the project
 - download Docker Desktop and start or download docker package
@@ -202,16 +252,86 @@ good if fundamental changes haven been made in the code and they should be visib
 - In the Frontend File: ``npm run dev``
 
 ## Start the Chatbot
-1. boot up Docker so the ollama service is running:
+1. boot up the stack:
     - ``docker compose up -d``
-2. pull the LLM model into the ollama container (only needed once, ~2.2 GB):
-    - ``docker compose exec ollama ollama pull phi3:mini``
-3. open the web app and click the bot button in the bottom right corner to start chatting
+2. open the web app and click the bot button in the bottom right corner to start chatting
+
+### Fast path (recommended): native Ollama
+
+In Docker, Ollama runs on **CPU only** — the Docker VM has no access to the host GPU.
+An 8B model on CPU generates ~1 token/s, so replies take minutes. **This is a Docker
+limitation, not a problem with the model.**
+
+Ollama supports GPU acceleration natively on **all platforms**:
+
+| OS | GPU API | Install |
+|----|---------|---------|
+| macOS (Apple Silicon) | Metal | `brew install ollama` |
+| Linux (NVIDIA/AMD) | CUDA / ROCm | `curl -fsSL https://ollama.com/install.sh \| sh` |
+| Windows | CUDA | Download from [ollama.com](https://ollama.com) |
+
+In every case, install native Ollama once, register the model, and the app runs at
+full GPU speed (typically 10-50x faster than Docker CPU):
+
+1. **Install Ollama** (see table above — one-time per machine)
+2. **Start the service:**
+   ```bash
+   # macOS
+   brew services start ollama
+   # Linux
+   ollama serve &   # or via systemd
+   ```
+3. **Register the fine-tuned model** (uses the GGUF in the repo, no extra download) and
+   pull the fallback model:
+   ```bash
+   ollama create trustai-llm -f \
+     src/LLM/files/clinical_model_dir/trustai-llm.Modelfile.native
+   ollama pull phi3:mini
+   ```
+4. **Point the containers at the host Ollama** (`.env` is gitignored):
+   ```bash
+   echo "LLM_URL=http://host.docker.internal:11434" > .env
+   docker compose up -d --force-recreate backend modelling
+   ```
+
+The Docker `ollama` service stays in compose (internal-only, no published port) as the
+default for pure-Docker setups; when `LLM_URL` is set the app uses the native Ollama and
+the container simply sits idle.
+
+The fine-tuned model (`trustai-llm:latest`) is registered automatically when the `ollama` container starts (downloaded from Hugging Face, see [LLM model configuration](#llm-model-configuration)). The fallback model `phi3:mini` is pulled automatically as well, so both options in the **Settings → LLM Model** dropdown work out of the box. On the native path, pull it once with `ollama pull phi3:mini`, otherwise the app will return an error when that model is selected.
 
 Notes:
-- the model is stored in the ``ollama_data`` volume, so it survives restarts; re-pull only after ``docker compose down -v``
-- the backend connects to ollama via ``OLLAMA_URL``/``OLLAMA_MODEL`` (configured in docker-compose.yaml)
+- the models are stored in the ``ollama_data`` volume (container) or ``~/.ollama`` (native), so they survive restarts; re-download only after ``docker compose down -v``
+- on the native path both models must be present in the host Ollama: `ollama create trustai-llm -f ...` and `ollama pull phi3:mini` (both one-time per machine)
+- optional, to enable the fallback model: ``docker compose exec ollama ollama pull phi3:mini``
+- the backend connects to the LLM via ``OLLAMA_URL``/``OLLAMA_MODEL`` — ``OLLAMA_URL`` is ``http://ollama:11434`` by default and overridden by the ``LLM_URL`` env var (see above)
 - quick test without the UI: ``curl -X POST http://localhost:8080/chat -H "Content-Type: application/json" -d '{"message": "hello", "history": []}'``
+
+#### LLM model configuration
+
+The fine-tuned LLM (`trustai-llm:latest`) is registered in the `ollama` container at startup from a GGUF file hosted on Hugging Face. No local model file needs to be present on the developer's machine. The downloaded GGUF is cached in the `llm_models` volume and the registered model in `ollama_data`; the download/registration is skipped if the model already exists.
+
+- **Base model (before fine-tuning):** `unsloth/llama-3-8b-Instruct-bnb-4bit` — the Llama-3-8B-Instruct base model (Meta) in the 4-bit quantized Unsloth variant, used in `src/LLM/ollama_finetune.py`
+- **Fine-tuned GGUF repo:** `leoniejkr/trustai-llm-gguf` (public, read-only for everyone — only the account owner can modify the weights)
+- **Default GGUF:** `llama-3-8b-Instruct.Q4_K_M.gguf`
+
+**Important:** the 4.9 GB model file is **not committed to git** (GitHub rejects files > 100 MB).
+Every developer/teacher gets the weights from the HF repo instead — either automatically in
+the `ollama` container (see above) or via `ollama create trustai-llm -f ...` in the native
+setup. Only code/config lives in git.
+
+The download is skipped if the file already exists (cached in `/models`), and the model is only re-created when necessary. Both sources can be overridden via environment variables:
+
+```yaml
+# docker-compose.yaml  (ollama service)
+environment:
+  HF_MODEL_REPO: leoniejkr/trustai-llm-gguf   # namespace/repo on the HF Hub
+  HF_GGUF_FILE: llama-3-8b-Instruct.Q4_K_M.gguf
+```
+
+If you host your own copy (e.g. a fork on your own HF account), just point `HF_MODEL_REPO` at it. A **private** repo requires authentication inside the container; for the default **public** repo no token is needed.
+
+The Go backend and the modelling service use `OLLAMA_MODEL` (default `trustai-llm:latest`) to talk to the LLM. The model actually used per request is chosen in the **Settings → LLM Model** dropdown of the web app (`trustai-llm:latest` or `phi3:mini`); `phi3:mini` must be pulled manually if you want to use it.
 
 ## Production-Deployment und Docker Hub
 
@@ -223,12 +343,13 @@ Publizieren gedacht. Dafür gibt es separate Production-Builds (in den Dockerfil
 
 ```bash
 docker compose -f docker-compose.prod.yaml up -d
-docker compose -f docker-compose.prod.yaml exec ollama ollama pull phi3:mini
 ```
 
 Danach läuft die App unter [http://localhost](http://localhost). Ein nginx-Reverse-Proxy
 ist der einzige Einstiegspunkt: `/` → Frontend (SvelteKit-SSR), `/api/*` → Go-Backend
-(das `/api`-Präfix wird entfernt), `/swagger/` → Swagger-UI.
+(das `/api`-Präfix wird entfernt), `/swagger/` → Swagger-UI. Das LLM (`trustai-llm:latest`)
+wird wie im Dev-Setup automatisch beim Start des `ollama`-Containers vom Hugging Face Hub
+geladen (siehe [LLM model configuration](#llm-model-configuration)).
 
 Unterschiede zur Entwicklung:
 

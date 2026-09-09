@@ -27,11 +27,56 @@ services:
         {"user": "user"}
 
   ollama:
-    image: ollama/ollama
-    ports:
-      - "11434:11434"
+    build: ./ollama
+    # Kein Host-Port: fasst nicht mit einem nativen lokal laufenden Ollama
+    # (localhost:11434) zusammen. Erreichbar nur intern als http://ollama:11434.
     volumes:
       - ollama_data:/root/.ollama
+      - llm_models:/models
+    environment:
+      # Quell-Repo auf dem Hugging Face Hub, aus dem das GGUF beim Start geladen wird.
+      HF_MODEL_REPO: ${HF_MODEL_REPO:-leoniejkr/trustai-llm-gguf}
+      HF_GGUF_FILE: ${HF_GGUF_FILE:-llama-3-8b-Instruct.Q4_K_M.gguf}
+      # Modell im Speicher halten (verhindert langsame / fehlschlagende Kaltstarts).
+      OLLAMA_KEEP_ALIVE: -1
+      # Marktfreundliches Fenster fuer langsame Erstladung auf CPU-Maschinen.
+      OLLAMA_LOAD_TIMEOUT: 30m
+    # Beim Start das finetunete GGUF-Modell vom Hugging Face Hub laden (einmalig,
+    # wird im llm_models-Volume gecacht) und in Ollama registrieren, danach den
+    # Ollama-Server starten.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        ollama serve &
+        SERVER_PID=$$!
+        i=0
+        until ollama list >/dev/null 2>&1; do
+          i=$$((i+1))
+          [ "$$i" -gt 120 ] && break
+          sleep 1
+        done
+        MANIFEST=/root/.ollama/models/manifests/registry.ollama.ai/library/trustai-llm
+        if [ ! -d "$$MANIFEST" ]; then
+          mkdir -p /models
+          cd /models
+          if [ ! -f "$${HF_GGUF_FILE}" ]; then
+            echo "Downloading $${HF_GGUF_FILE} from hf.co/$${HF_MODEL_REPO}..."
+            curl -L --fail -C - --retry 5 --retry-delay 5 -o "$${HF_GGUF_FILE}" \
+              "https://huggingface.co/$${HF_MODEL_REPO}/resolve/main/$${HF_GGUF_FILE}"
+          fi
+          printf 'FROM /models/%s\n\n# Konservative Inferenz-Parameter fuer die klinische Analyse.\nPARAMETER temperature 0.3\nPARAMETER num_ctx 2048\nPARAMETER num_predict 200\n\nSYSTEM """You are a medical AI assistant analyzing chest X-ray findings. Provide concise, professional clinical assessments of the detected conditions. Only answer based on the information provided in the prompt. Be accurate and do not invent conditions. Answer in short, focused sentences."""\n' "$${HF_GGUF_FILE}" > Modelfile
+          ollama create trustai-llm -f Modelfile
+        fi
+        # Fallback-Modell phi3:mini sicherstellen (idempotent, nur falls fehlt).
+        if [ ! -d /root/.ollama/models/manifests/registry.ollama.ai/library/phi3 ]; then
+          ollama pull phi3:mini
+        fi
+        kill "$$SERVER_PID" 2>/dev/null || true
+        wait "$$SERVER_PID" 2>/dev/null || true
+        sleep 1
+        exec ollama serve
 
   modelling:
     build: ./modelling
@@ -43,8 +88,8 @@ services:
     environment:
       - USE_MOCK=false
       - CHECKPOINT_PATH=/app/checkpoints/dual_view_checkpoint.pth
-      - OLLAMA_URL=http://ollama:11434
-      - OLLAMA_MODEL=phi3:mini
+      - OLLAMA_URL=${LLM_URL:-http://ollama:11434}
+      - OLLAMA_MODEL=trustai-llm:latest
     depends_on:
       - ollama
 
@@ -68,17 +113,16 @@ services:
       DATABASE_URL: host=db user=trustai_user password=trustai_password dbname=trustai_db port=5432 sslmode=disable TimeZone=Europe/Berlin
       MODELLING_URL: http://modelling:5000
       ORTHANC_URL: http://orthanc:8042
-      OLLAMA_URL: http://ollama:11434
-      OLLAMA_MODEL: phi3:mini
+      OLLAMA_URL: ${LLM_URL:-http://ollama:11434}
+      OLLAMA_MODEL: trustai-llm:latest
       PORT: 8080
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: dev
     ports:
       - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     depends_on:
       backend:
         condition: service_started
@@ -90,3 +134,4 @@ volumes:
   postgres_data:
   orthanc_storage:
   ollama_data:
+  llm_models:

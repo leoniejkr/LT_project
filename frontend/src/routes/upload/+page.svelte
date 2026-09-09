@@ -27,6 +27,7 @@
 		patientMetadata,
 		uploadedFileUrls,
 	} from "$lib/stores.js";
+	import { classifierModel, llmModel } from "$lib/models";
 	import "../../app.css";
 	import {
 		SYMPTOM_TOPICS,
@@ -68,6 +69,9 @@
 	const selectedHistory = $state<Record<string, boolean>>(
 		Object.fromEntries(allHistoryTags.map((tag) => [tag.id, false])),
 	);
+
+	let openSymptoms = $state(false);
+	let openHistory = $state(false);
 
 	// Panel / subtopic folding (topic names are unique across both catalogs)
 	let openTopics = $state<Record<string, boolean>>(
@@ -153,8 +157,13 @@
 		};
 
 		formData.append("formData", JSON.stringify(metadata));
+		formData.append("classifier_model", $classifierModel);
+		formData.append("llm_model", $llmModel);
 
-		console.log("Submitting Case:", metadata);
+		console.log("Submitting Case:", metadata, {
+			classifier: $classifierModel,
+			llm: $llmModel,
+		});
 
 		try {
 			analysisController = new AbortController();
@@ -199,7 +208,7 @@
 	// TODO: required auch required machen
 </script>
 
-<div class="mt-6 mx-auto w-full max-w-5xl flex flex-col gap-6 px-6">
+<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6">
 	<div>
 		<header class="text-2xl font-bold tracking-tight">
 			Case Input & Initialization
@@ -323,7 +332,9 @@
 				topic.groups.flatMap((g) => g.symptoms),
 				selected,
 			)}
-			<div class="rounded-xl border p-4">
+			<div
+				class="rounded-xl border p-4 w-full min-w-0 overflow-hidden break-words"
+			>
 				<button
 					type="button"
 					class="flex w-full items-center justify-between gap-4 text-left"
@@ -410,28 +421,56 @@
 	{/snippet}
 
 	<div class="w-full">
-		<Item.Root variant="outline">
-			<Item.Content class="w-full">
-				<Item.Title class="flex items-center gap-2">
-					<ClipboardCheck size={18} /> Symptom Checklist
-				</Item.Title>
-				<div class="mt-4 flex flex-col gap-3">
+		<Item.Root variant="outline" class="flex-col w-full">
+			<button
+				type="button"
+				class="flex w-full items-center justify-between gap-2 text-left"
+				onclick={() => (openSymptoms = !openSymptoms)}
+			>
+				<Item.Content class="w-full">
+					<Item.Title class="flex items-center gap-2">
+						<ClipboardCheck size={18} /> Symptom Checklist
+					</Item.Title>
+				</Item.Content>
+				<ChevronDown
+					size={18}
+					class="text-muted-foreground shrink-0 transition-transform {openSymptoms
+						? ''
+						: '-rotate-90'}"
+				/>
+			</button>
+			{#if openSymptoms}
+				<div class="mt-4 flex flex-col gap-3 w-full">
 					{@render topicChecklist(SYMPTOM_TOPICS, selectedSymptoms, "symptom")}
 				</div>
-			</Item.Content>
+			{/if}
 		</Item.Root>
 	</div>
 
 	<div class="w-full">
-		<Item.Root variant="outline">
-			<Item.Content class="w-full">
-				<Item.Title class="flex items-center gap-2">
-					<ClipboardList size={18} /> Medical History & Risk Factors
-				</Item.Title>
-				<div class="mt-4 flex flex-col gap-3">
+		<Item.Root variant="outline" class="flex-col w-full">
+			<button
+				type="button"
+				class="flex w-full items-center justify-between gap-2 text-left"
+				onclick={() => (openHistory = !openHistory)}
+			>
+				<Item.Content class="w-full">
+					<Item.Title class="flex items-center gap-2">
+						<ClipboardList size={18} /> Medical History & Risk Factors
+					</Item.Title>
+				</Item.Content>
+				<ChevronDown
+					size={18}
+					class="text-muted-foreground shrink-0 transition-transform {openHistory
+						? ''
+						: '-rotate-90'}"
+				/>
+			</button>
+			{#if openHistory}
+				<div class="mt-4 flex flex-col gap-3 w-full">
 					{@render topicChecklist(HISTORY_TOPICS, selectedHistory, "history")}
 				</div>
-			</Item.Content>
+			{/if}
 		</Item.Root>
 	</div>
 	<Separator orientation="horizontal" class="self-stretch mt-1" />
