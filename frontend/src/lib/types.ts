@@ -1,7 +1,7 @@
 export interface Prediction {
     class: string;
     confidence: number;
-    reason?: string;
+    reason: string;
 }
 
 export interface ImagePrediction {
@@ -21,7 +21,6 @@ export interface AnalysisResponse {
     model_version: string;
     predictions: Prediction[];
     image_results: ImageResult[];
-    is_mock: boolean;
 }
 
 export interface PatientData {
@@ -37,4 +36,9 @@ export interface AnalysisResult {
     status: string;
     patient: PatientData;
     analysis: AnalysisResponse;
+}
+
+export interface CategorizedPrediction {
+    pred: Prediction;
+    rank: number;
 }
