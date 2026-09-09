@@ -111,7 +111,6 @@ else:
             "status": "success",
             "predictions": aggregated_with_reasons,
             "image_results": image_results,
-            "is_mock": False,
         })
 
 
