@@ -60,6 +60,10 @@ func (s *Service) GetPatient(id uint) (*Patient, error) {
 	return s.repo.FindByID(id)
 }
 
+func (s *Service) DeletePatient(id uint) error {
+	return s.repo.DeletePatient(id)
+}
+
 func (s *Service) DeleteAllData() error {
 	if err := s.analysisService.DeletePatientAnalysis(0); err != nil {
 		return err

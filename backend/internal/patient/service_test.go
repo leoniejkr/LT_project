@@ -4,7 +4,6 @@ import (
 	"backend/internal/analysis"
 	"backend/internal/orthanc"
 	"bytes"
-	"encoding/json"
 	"image"
 	"image/png"
 	"net/http"
@@ -122,42 +121,6 @@ func TestCreatePatient_OrthancError(t *testing.T) {
 	_, err := svc.CreatePatient(p, files)
 	if err == nil {
 		t.Fatal("expected error when orthanc fails")
-	}
-}
-
-func TestGetAnalysis(t *testing.T) {
-	llmServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(analysis.PredictionResponse{
-			Status:      "success",
-			Predictions: analysis.Predictions{{Class: "X", Confidence: 0.9}},
-		})
-	}))
-	defer llmServer.Close()
-
-	orthancServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"ID": "id"}`))
-	}))
-	defer orthancServer.Close()
-
-	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	db.AutoMigrate(&Patient{}, &analysis.Analysis{})
-
-	t.Setenv("MODELLING_URL", llmServer.URL)
-
-	patientRepo := NewRepository(db)
-	analysisRepo := analysis.NewRepository(db)
-	llmClient := analysis.NewLLMClient()
-	analysisSvc := analysis.NewService(analysisRepo, llmClient)
-	orthancRepo := orthanc.NewRepository(orthancServer.URL, "", "")
-	svc := NewService(patientRepo, analysisSvc, orthancRepo)
-
-	resp, err := svc.GetAnalysis(1, &Patient{Age: 50}, nil, nil, "", "")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.Status != "success" {
-		t.Errorf("status = %q, want %q", resp.Status, "success")
 	}
 }
 

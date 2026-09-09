@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	httpclient "backend/internal/http"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
@@ -23,7 +24,7 @@ func setupServiceTest(t *testing.T, llmResponse PredictionResponse) (*Service, *
 		json.NewEncoder(w).Encode(llmResponse)
 	}))
 
-	llmClient := &LLMClient{baseURL: server.URL, httpClient: &http.Client{}}
+	llmClient := &LLMClient{client: httpclient.New(server.URL)}
 	repo := NewRepository(db)
 	svc := NewService(repo, llmClient)
 
@@ -144,7 +145,7 @@ func TestGetAnalysis_LLMError(t *testing.T) {
 	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	db.AutoMigrate(&Analysis{})
 
-	llmClient := &LLMClient{baseURL: server.URL, httpClient: &http.Client{}}
+	llmClient := &LLMClient{client: httpclient.New(server.URL)}
 	repo := NewRepository(db)
 	svc := NewService(repo, llmClient)
 

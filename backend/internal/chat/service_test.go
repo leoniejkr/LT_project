@@ -18,7 +18,7 @@ func TestSendMessage_Success(t *testing.T) {
 			t.Errorf("expected /api/chat, got %s", r.URL.Path)
 		}
 
-		var req ollamaChatRequest
+		var req ChatRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			t.Errorf("failed to decode request: %v", err)
 		}
@@ -33,15 +33,15 @@ func TestSendMessage_Success(t *testing.T) {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(ollamaChatResponse{
+		json.NewEncoder(w).Encode(ChatResponse{
 			Message: Message{Role: "assistant", Content: "Hello there"},
 		})
 	}))
 	defer server.Close()
 
-	client := &Client{baseURL: server.URL, model: "test-model", httpClient: &http.Client{Timeout: 5 * time.Second}}
+	service := NewService(server.URL, "test-model", &http.Client{Timeout: 5 * time.Second})
 
-	reply, err := client.SendMessage([]Message{
+	reply, err := service.SendMessage([]Message{
 		{Role: "user", Content: "Hello"},
 		{Role: "user", Content: "How are you?"},
 	}, "")
@@ -60,9 +60,9 @@ func TestSendMessage_ServerError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := &Client{baseURL: server.URL, model: "test-model", httpClient: &http.Client{}}
+	service := NewService(server.URL, "test-model", &http.Client{})
 
-	_, err := client.SendMessage([]Message{{Role: "user", Content: "hi"}}, "")
+	_, err := service.SendMessage([]Message{{Role: "user", Content: "hi"}}, "")
 	if err == nil {
 		t.Fatal("expected error for server error response")
 	}
@@ -78,9 +78,9 @@ func TestSendMessage_InvalidJSON(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := &Client{baseURL: server.URL, model: "test-model", httpClient: &http.Client{}}
+	service := NewService(server.URL, "test-model", &http.Client{})
 
-	_, err := client.SendMessage([]Message{{Role: "user", Content: "hi"}}, "")
+	_, err := service.SendMessage([]Message{{Role: "user", Content: "hi"}}, "")
 	if err == nil {
 		t.Fatal("expected error for invalid JSON response")
 	}
@@ -90,9 +90,9 @@ func TestSendMessage_InvalidJSON(t *testing.T) {
 }
 
 func TestSendMessage_ConnectionRefused(t *testing.T) {
-	client := &Client{baseURL: "http://localhost:1", model: "test-model", httpClient: &http.Client{}}
+	service := NewService("http://localhost:1", "test-model", &http.Client{})
 
-	_, err := client.SendMessage([]Message{{Role: "user", Content: "hi"}}, "")
+	_, err := service.SendMessage([]Message{{Role: "user", Content: "hi"}}, "")
 	if err == nil {
 		t.Fatal("expected error for connection refused")
 	}
