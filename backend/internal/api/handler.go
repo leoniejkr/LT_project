@@ -131,12 +131,12 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 // @Failure      500  {object}  string  "Deletion failed"
 // @Router       /analysis [delete]
 func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
-	if err := h.patientService.DeleteAllData(); err != nil {
+	if err := h.analysisService.DeletePatientAnalysis(0); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.analysisService.DeletePatientAnalysis(0); err != nil {
+	if err := h.patientService.DeleteAll(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

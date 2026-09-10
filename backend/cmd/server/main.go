@@ -49,7 +49,7 @@ func main() {
 	analysisRepo := analysis.NewRepository(db)
 	llmClient := analysis.NewLLMClient()
 	analysisService := analysis.NewService(analysisRepo, llmClient)
-	patientService := patient.NewService(patientRepo, analysisService, orthancStore)
+	patientService := patient.NewService(patientRepo, orthancStore)
 	chatService := chat.NewService(ollamaURL, model, nil)
 	apiHandler := api.NewHandler(patientService, chatService, analysisService)
 	apiHandler.RegisterRoutes(router)

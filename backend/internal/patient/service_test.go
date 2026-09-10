@@ -1,7 +1,6 @@
 package patient
 
 import (
-	"backend/internal/analysis"
 	"backend/internal/orthanc"
 	"bytes"
 	"image"
@@ -24,37 +23,28 @@ func testPNG(t *testing.T) []byte {
 	return buf.Bytes()
 }
 
-func setupServiceDeps(t *testing.T, llmHandler http.HandlerFunc) (*Service, *httptest.Server, *httptest.Server) {
+func setupServiceDeps(t *testing.T) (*Service, *httptest.Server) {
 	t.Helper()
 
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		t.Fatalf("failed to open test db: %v", err)
 	}
-	db.AutoMigrate(&Patient{}, &analysis.Analysis{})
-
-	llmServer := httptest.NewServer(llmHandler)
-	t.Setenv("MODELLING_URL", llmServer.URL)
+	db.AutoMigrate(&Patient{})
 
 	orthancServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"ID": "orthanc-instance-1"}`))
 	}))
 
 	patientRepo := NewRepository(db)
-	analysisRepo := analysis.NewRepository(db)
-	llmClient := analysis.NewLLMClient()
-	analysisSvc := analysis.NewService(analysisRepo, llmClient)
 	orthancRepo := orthanc.NewRepository(orthancServer.URL, "", "")
-	patientSvc := NewService(patientRepo, analysisSvc, orthancRepo)
+	patientSvc := NewService(patientRepo, orthancRepo)
 
-	return patientSvc, llmServer, orthancServer
+	return patientSvc, orthancServer
 }
 
 func TestCreatePatient_NoFiles(t *testing.T) {
-	svc, llmSrv, orthancSrv := setupServiceDeps(t, func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status":"success"}`))
-	})
-	defer llmSrv.Close()
+	svc, orthancSrv := setupServiceDeps(t)
 	defer orthancSrv.Close()
 
 	p := &Patient{Age: 55, Gender: GenderMale}
@@ -71,10 +61,7 @@ func TestCreatePatient_NoFiles(t *testing.T) {
 }
 
 func TestCreatePatient_WithFiles(t *testing.T) {
-	svc, llmSrv, orthancSrv := setupServiceDeps(t, func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status":"success"}`))
-	})
-	defer llmSrv.Close()
+	svc, orthancSrv := setupServiceDeps(t)
 	defer orthancSrv.Close()
 
 	p := &Patient{Age: 30, Gender: GenderFemale}
@@ -93,27 +80,17 @@ func TestCreatePatient_WithFiles(t *testing.T) {
 }
 
 func TestCreatePatient_OrthancError(t *testing.T) {
-	llmServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status":"success"}`))
-	}))
-	defer llmServer.Close()
-
 	orthancServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer orthancServer.Close()
 
 	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	db.AutoMigrate(&Patient{}, &analysis.Analysis{})
-
-	t.Setenv("MODELLING_URL", llmServer.URL)
+	db.AutoMigrate(&Patient{})
 
 	patientRepo := NewRepository(db)
-	analysisRepo := analysis.NewRepository(db)
-	llmClient := analysis.NewLLMClient()
-	analysisSvc := analysis.NewService(analysisRepo, llmClient)
 	orthancRepo := orthanc.NewRepository(orthancServer.URL, "", "")
-	svc := NewService(patientRepo, analysisSvc, orthancRepo)
+	svc := NewService(patientRepo, orthancRepo)
 
 	p := &Patient{Age: 40, Gender: GenderMale}
 	files := []FileInput{{Name: "img.png", Bytes: testPNG(t)}}
@@ -125,10 +102,7 @@ func TestCreatePatient_OrthancError(t *testing.T) {
 }
 
 func TestGetPatient(t *testing.T) {
-	svc, llmSrv, orthancSrv := setupServiceDeps(t, func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status":"success"}`))
-	})
-	defer llmSrv.Close()
+	svc, orthancSrv := setupServiceDeps(t)
 	defer orthancSrv.Close()
 
 	p := &Patient{Age: 70, Gender: GenderDiverse, History: Histories{History("Asthma, COPD, or Emphysema")}}
@@ -146,17 +120,14 @@ func TestGetPatient(t *testing.T) {
 	}
 }
 
-func TestDeleteAllData(t *testing.T) {
-	svc, llmSrv, orthancSrv := setupServiceDeps(t, func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"status":"success"}`))
-	})
-	defer llmSrv.Close()
+func TestServiceDeleteAll(t *testing.T) {
+	svc, orthancSrv := setupServiceDeps(t)
 	defer orthancSrv.Close()
 
 	svc.CreatePatient(&Patient{Age: 20, Gender: GenderMale}, nil)
 	svc.CreatePatient(&Patient{Age: 30, Gender: GenderFemale}, nil)
 
-	if err := svc.DeleteAllData(); err != nil {
+	if err := svc.DeleteAll(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

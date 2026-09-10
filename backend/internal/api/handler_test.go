@@ -51,7 +51,7 @@ func setupHandler(t *testing.T, llmHandler http.HandlerFunc) (*Handler, *httptes
 
 	orthancRepo := orthanc.NewRepository(orthancServer.URL, "", "")
 	patientRepo := patient.NewRepository(db)
-	patientSvc := patient.NewService(patientRepo, analysisSvc, orthancRepo)
+	patientSvc := patient.NewService(patientRepo, orthancRepo)
 	chatSvc := chat.NewService("", "default-model", &http.Client{})
 
 	handler := NewHandler(patientSvc, chatSvc, analysisSvc)

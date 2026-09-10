@@ -1,7 +1,6 @@
 package patient
 
 import (
-	"backend/internal/analysis"
 	"backend/internal/orthanc"
 	"fmt"
 )
@@ -12,16 +11,14 @@ type FileInput struct {
 }
 
 type Service struct {
-	repo            *Repository
-	analysisService *analysis.Service
-	orthancStore    *orthanc.Repository
+	repo         *Repository
+	orthancStore *orthanc.Repository
 }
 
-func NewService(repo *Repository, analysisService *analysis.Service, orthancStore *orthanc.Repository) *Service {
+func NewService(repo *Repository, orthancStore *orthanc.Repository) *Service {
 	return &Service{
-		repo:            repo,
-		analysisService: analysisService,
-		orthancStore:    orthancStore,
+		repo:         repo,
+		orthancStore: orthancStore,
 	}
 }
 
@@ -52,10 +49,6 @@ func (s *Service) CreatePatient(p *Patient, files []FileInput) (*Patient, error)
 	return p, nil
 }
 
-func (s *Service) GetAnalysis(patientID uint, patientData *Patient, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*analysis.PredictionResponse, error) {
-	return s.analysisService.GetAnalysis(patientID, patientData, imageBuffers, imageNames, classifierModel, llmModel)
-}
-
 func (s *Service) GetPatient(id uint) (*Patient, error) {
 	return s.repo.FindByID(id)
 }
@@ -64,9 +57,6 @@ func (s *Service) DeletePatient(id uint) error {
 	return s.repo.DeletePatient(id)
 }
 
-func (s *Service) DeleteAllData() error {
-	if err := s.analysisService.DeletePatientAnalysis(0); err != nil {
-		return err
-	}
+func (s *Service) DeleteAll() error {
 	return s.repo.DeleteAll()
 }
