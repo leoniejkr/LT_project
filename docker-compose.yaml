@@ -129,9 +129,13 @@ services:
     environment:
       - PUBLIC_API_URL=http://localhost:8080
       - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
 
 volumes:
   postgres_data:
   orthanc_storage:
   ollama_data:
   llm_models:
+  frontend_node_modules:
