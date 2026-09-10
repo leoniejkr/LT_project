@@ -1,7 +1,7 @@
 export interface Prediction {
     class: string;
     confidence: number;
-    reason: string;
+    reason?: string;
 }
 
 export interface ImagePrediction {
@@ -23,12 +23,15 @@ export interface AnalysisResponse {
     image_results: ImageResult[];
 }
 
-export interface PatientData {
-    id: number;
+export interface PatientMetadata {
     age: number;
     gender: string;
     symptoms: string[];
     history: string[];
+}
+
+export interface PatientData extends PatientMetadata {
+    id: number;
     orthancIDs: string[];
 }
 

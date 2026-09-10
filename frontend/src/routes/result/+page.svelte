@@ -32,6 +32,7 @@
         Prediction,
         ImageResult,
         CategorizedPrediction,
+        PatientMetadata,
     } from "$lib/types.js";
     import { symptomLabelById } from "$lib/symptoms";
     import { historyLabelById } from "$lib/history";
@@ -47,19 +48,22 @@
     const symptomTag = (id: string): string => symptomLabelById(id) ?? id;
     const historyTag = (id: string): string => historyLabelById(id) ?? id;
 
-    let result = $derived($analysisResult ?? {});
-    let analysis = $derived(result.analysis ?? {});
-    let patient = $derived(result.patient ?? {});
+    let result = $derived($analysisResult);
+    let analysis = $derived(result?.analysis ?? null);
+    let patient = $derived(result?.patient ?? null);
 
-    let metadata = $derived($patientMetadata || patient);
+    let metadata: PatientMetadata | null = $derived(
+        $patientMetadata ?? patient,
+    );
 
-    let predictions: Prediction[] = $derived(analysis.predictions ?? []);
-    let imageResults: ImageResult[] = $derived(analysis.image_results ?? []);
+    let predictions: Prediction[] = $derived(analysis?.predictions ?? []);
+    let imageResults: ImageResult[] = $derived(
+        analysis?.image_results ?? [],
+    );
 
-    let imageIds = $derived(
-        $uploadedFileUrls.length > 0
-            ? $uploadedFileUrls.map((url) => `png:${url}`)
-            : "no images uploaded",
+    let hasImages = $derived($uploadedFileUrls.length > 0);
+    let imageIds: string[] = $derived(
+        hasImages ? $uploadedFileUrls.map((url) => `png:${url}`) : [],
     );
 
     // Confidence threshold is controlled by the unified Decision Mode
@@ -193,19 +197,17 @@
             null,
     );
 
-    let isMockData = $derived(Boolean(analysis.is_mock));
-
     // Context handed to the chat assistant so it knows the patient's
     // checked symptoms, medical history/risk factors and the findings.
     let chatContext = $derived({
         patient: {
-            age: metadata.age,
-            gender: metadata.gender,
-            symptoms: metadata.symptoms ?? [],
-            history: metadata.history ?? [],
+            age: metadata?.age ?? null,
+            gender: metadata?.gender ?? null,
+            symptoms: metadata?.symptoms ?? [],
+            history: metadata?.history ?? [],
         },
         analysis: {
-            model_version: analysis.model_version,
+            model_version: analysis?.model_version ?? null,
             predictions: predictions.map((p) => ({
                 class: p.class,
                 confidence: p.confidence,
@@ -236,19 +238,6 @@
         </Button>
     </div>
 
-    {#if isMockData}
-        <Alert.Root
-            class="border-red-500/60 bg-red-50 text-red-900 dark:border-red-500/40 dark:bg-red-950/60 dark:text-red-200"
-        >
-            <AlertTriangle size={18} class="mt-0.5 shrink-0" />
-            <div>
-                <Alert.Title>Test data, not a real analysis</Alert.Title>
-                <Alert.Description>
-                    Sample demo data. Placeholders only, not for medical use.
-                </Alert.Description>
-            </div>
-        </Alert.Root>
-    {/if}
 
     {#snippet findingCard(entry: CategorizedPrediction)}
         <Tooltip.Root>
@@ -377,8 +366,8 @@
                 </div>
                 <p class="text-xs text-muted-foreground mt-3">
                     Model: {classifierLabel($classifierModel)}
-                    {#if analysis.model_version}
-                        · {analysis.model_version}
+                    {#if analysis?.model_version}
+                        · {analysis?.model_version}
                     {/if}
                 </p>
             </Item.Root>
@@ -403,11 +392,7 @@
                         </Item.Description>
                         <Item.Description class="flex items-center">
                             <Badge variant="outline">
-                                {#if $uploadedFileUrls.length > 0}
-                                    {$uploadedFileUrls.length} File(s) Uploaded
-                                {:else}
-                                    Example Images (Mock)
-                                {/if}
+                                {$uploadedFileUrls.length} File(s) Uploaded
                             </Badge>
                             {#if imageIds.length > 1}
                                 <Separator orientation="vertical" class="h-3" />
@@ -449,13 +434,13 @@
                     </Item.Header>
                     <Item.Content class="flex flex-col gap-1">
                         <span class="text-sm"
-                            ><strong>Patient ID:</strong> {patient.id}</span
+                            ><strong>Patient ID:</strong> {patient?.id}</span
                         >
                         <span class="text-sm"
-                            ><strong>Age:</strong> {patient.age}</span
+                            ><strong>Age:</strong> {patient?.age}</span
                         >
                         <span class="text-sm"
-                            ><strong>Gender:</strong> {patient.gender}</span
+                            ><strong>Gender:</strong> {patient?.gender}</span
                         >
                     </Item.Content>
                 </Item.Root>
@@ -465,7 +450,7 @@
                         <Item.Title>Known Symptoms</Item.Title>
                     </Item.Header>
                     <Item.Content class="flex flex-wrap gap-2">
-                        {#each patient.symptoms ?? metadata.symptoms ?? [] as symptom}
+                        {#each patient?.symptoms ?? metadata?.symptoms ?? [] as symptom}
                             <Badge variant="outline" class="symptom-badge">
                                 {symptom}
                             </Badge>
@@ -478,7 +463,7 @@
                         <Item.Title>Medical History & Risk Factors</Item.Title>
                     </Item.Header>
                     <Item.Content class="flex flex-wrap gap-2">
-                        {#each patient.history ?? metadata.history ?? [] as entry}
+                        {#each patient?.history ?? metadata?.history ?? [] as entry}
                             <Badge variant="outline" class="symptom-badge">
                                 {entry}
                             </Badge>
@@ -490,7 +475,7 @@
         <HeatmapBar {imageIds} imageResults={filteredImageResults} />
         <Chat context={chatContext} />
     {:else}
-        <Item.Root variant="outline" class="bg:primary">
+        <Item.Root variant="outline" class="bg-muted/50">
             <Item.Content
                 class="flex flex-col items-center justify-center p-8 text-center"
             >
@@ -499,16 +484,18 @@
                 >
                     <Stethoscope size={24} class="text-muted-foreground" />
                 </div>
-                <Item.Title class="text-lg">No Results Available</Item.Title>
+                <Item.Title class="text-lg"
+                    >Please start an analysis first</Item.Title
+                >
                 <Item.Description class="max-w-md mt-2">
-                    Please upload an X-Ray file and enter patient metadata to
-                    generate an AI diagnostics report.
+                    Upload an X-Ray file and enter patient metadata, then click
+                    "Start Analysis" to generate an AI diagnostics report.
                 </Item.Description>
                 <Button
                     class="mt-6 flex items-center gap-2"
                     onclick={() => goto("/upload")}
                 >
-                    <Undo2 size={16} /> Back to Upload
+                    <Undo2 size={16} /> Go to Upload
                 </Button>
             </Item.Content>
         </Item.Root>
