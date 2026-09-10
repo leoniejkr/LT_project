@@ -127,7 +127,8 @@ Starts the E2E tests which are implemented using Playwright. Playwright is the d
 
 #### Structure of the backend
 
-The backend is structured as a layered architecture that sends requests in the backend from handler to service to repository / client. The services contain The repositories do not contain any business logic and use GORM, which is an ORM library for Golang. the go file that is named the same as the directory contains types and structs. 
+The backend is structured as a layered architecture that sends requests in the backend from handler to service to repository / client. The services contain business and orchestration logic. The repositories do not contain any business logic and use GORM to communicate with the database, which is an ORM library for Golang. 
+Some directories contain files that are names the same as those directories. These files contain types and structs. 
 
 The main.go is located under /cmd/server and acts as a starting point for the backend that initialises the database, reads configuration files, injects dependencies into the components and starts the HTTP server on the configured port.
 
