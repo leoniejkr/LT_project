@@ -86,10 +86,11 @@ only when you intentionally want to delete these volumes and their data.
 
 ## General Information for Backend and Frontend and how to contribute
 
+The frontend and backend Docker images can be used for development purposes as well since live reloading is integrated into both images. The frontend uses Vite as a build tool and for live reloading and the backend uses Air. The instruction on how to set up Docker and run the images are written in [Starting the application](##starting-the-application). 
+
 ### Frontend
 
-#### Structure of the 
-Frontend
+#### Structure of the Frontend
 The frontend is written in Typescript in combination with Svelte and SvelteKit as a build tool. SvelteKit is powered by Vite. 
 SvelteKit operates on a filesystem based router, which means that routes / URLs are defined by the directories in the frontend codebase. The frontend route/ directory is structured in a way to accomodate this. No manual router setup is needed.
 
@@ -124,6 +125,16 @@ Starts the E2E tests which are implemented using Playwright. Playwright is the d
 
 ### Backend
 
+#### Structure of the backend
+
+The backend is structured as a layered architecture that sends requests in the backend from handler to service to repository / client. The services contain The repositories do not contain any business logic and use GORM, which is an ORM library for Golang. the go file that is named the same as the directory contains types and structs. 
+
+The main.go is located under /cmd/server and acts as a starting point for the backend that initialises the database, reads configuration files, injects dependencies into the components and starts the HTTP server on the configured port.
+
+The rest of the backend code resides in the /internal directory. 
+
+The API is documented in the /docs directory using OpenAPI and Swagger and it is directly used by the frontend. 
+
 #### Contributing
 
 ##### Prerequisites
@@ -136,7 +147,9 @@ go mod tidy
 to install all dependencies
 3. You maybe have to write ``export PATH=$PATH:$(go env GOPATH)/bin`` into your .bashrc
 
-##### Testind the Backend
+##### Testing the Backend
+
+Tests in Go have the "_test" suffix. The general Go convention is to have one test file for every normal Go file that exists but this repository does not follow this convention for the files that are named after the directory they are in as these files only contain types and structs. 
 
 To test the backend move to the backend/internal folder and run
 
