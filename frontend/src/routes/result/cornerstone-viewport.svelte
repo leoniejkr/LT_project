@@ -4,7 +4,7 @@
     import {
         initCornerstone,
         createToolGroup,
-    } from "$lib/components/cornerstone/init";
+    } from "$lib/cornerstone/init";
     import * as cornerstone from "@cornerstonejs/core";
     import { Enums } from "@cornerstonejs/core";
 
