@@ -6,17 +6,27 @@
 
 TrustAI is a Medical Prediction AI platform created to support clinicians in assessing chest X-ray images. Its main feature is a deep learning model that analyzes uploaded medical images uploaded in .png format, to detect potential abnormalities, diseases, and other visual findings.
 
-Users can upload one or multiple X-ray images and patient information. The model then generates predictions for possible conditions and also gives a certainty estimation for each result (confidence scores).
+Users can upload one or multiple X-ray images and patient information. The model then generates predictions for possible conditions based on the images and also gives a certainty estimation for each result, which we call confidence scores.
 
-On the results page, the dashboard displays heatmaps which highlight the image regions that have contributed to each prediction. For more information, the user can use a medical viewport to take a closer look at the X-Rays or interact with an integrated chatbot. The chatbot has knowledge about the supported diseases and can use the patient context and model findings.
+On the results page, the dashboard displays heatmaps which highlight the image regions that have contributed to each prediction. For more information, the user can use a medical viewport to take a closer look at the X-Rays or interact with an integrated chatbot. The chatbot has knowledge about the supported diseases and has access to the patient metadata and model findings.
 
 ### Workflow of the application
 
-The application is build as a web app. It is divided into a frontend, which is built with Typescript and SvelteKit (on top of Vite), a backend, which is built with Golang, and a separate modelling service. The user starts by uploading one or more chest X-Ray .png images and entering patient information such as age, gender, symptoms, and medical history via the upload page through the web interface. The application does not support the upload of .dcm images.
+The application is build as a web app without any authentication. We decided not to implement authentication services such as Keycloak because we do not plan on hosting this application ourself, but to make it available for private and local use via Docker.
+It is divided into a frontend, which is built with Typescript and SvelteKit (on top of Vite), a backend, which is built with Golang, and a separate modelling service. 
 
-The frontend sends the images and patient metadata to the Go backend via REST. The backend then coordinates the analysis workflow: it stores the uploaded images, creates the patient record, and forwards the images to the deep learning modelling service. The modelling service preprocesses the images and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. The confidence store is a certainty estimation showing how certain the model is for each prediction. It also generates heatmaps that indicate which image regions influenced the model's decision.
+The user starts by uploading one or more chest X-Ray .png images and entering patient information such as age, gender, symptoms, and medical history via the upload page through the web interface. The application does not support the upload of .dcm images.
 
-All analysis results are returned to the backend and saved together with the patient data. The frontend then presents them in the results page, where users can see the original images through a CornerstoneJS medical viewer. Furthermore the predictions, confidence scores and corresponding heatmaps can be reviewed.
+The frontend sends the images and patient metadata to the Go backend. For this, the frontend builds the form data, which consists of the image files, the JSON string with the metadata, the classifier model and the llm model and sends this as a POST request to the backend via the /api/analysis REST endpoint. 
+
+The backend then coordinates the analysis workflow. It reads the request and checks if the request size is under 50 MiB and if the request is valid. if the request is not valid a 400 error is returned to the frontend.
+If the request is valid, the backend then stores the uploaded images into the Orthanc database via a POST request to the Orthanc endpoint /tools/create-dicom and creates a patient record in Postgresql, where the Orthanc instance IDs of the images are subsequently added into the patient row. Moreover, the images are forwarded to the deep learning modelling service via a POST request to the /predict endpoint of the model. 
+
+The modelling service parses the data and loads the classifier, which is currently densenet121. Then it preprocesses the images by resizing every image to 224x224, and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. The confidence store is a certainty estimation showing how certain the model is for each prediction. It also generates heatmaps in png format that indicate which image regions influenced the model's decision. 
+
+The patient metadata is not used for the model classification but is instead forwarded to the LLM as metadata. The LLM can help the user better regarding possible questions with the metadata. 
+
+All analysis results and heatmap images are returned to the backend. The analysis results are saved in Postgresql and the heatmaps are saved in th Orthanc database. When the results from the POST request are received by the frontend, the frontend automatically navigates to the result page, where users can see the original images through a CornerstoneJS medical viewer. Furthermore, the analysis results such as the predictions, confidence scores and corresponding heatmaps can be reviewed.
 
 The application presents two types of prediction results. Aggregated results and individual results, which are both accompanied with confidence scores that are measured in percentages. The aggregated results are located at the top and show the aggregated, calculated classifications over all the uploaded X-Ray images, while the individual results at the bottom show the calculated classifications for each individual X-Ray image with their respective corresponding heatmaps. The classifications are ranked according to their confidence scores. The confidence threshold for shown classifications can be modified in the GUI with a slider in the results page after the calculation. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
 
@@ -26,6 +36,7 @@ OpenAPI in combination with Swagger are used to construct the REST API and its s
 
 Right now, patient data and analysis results are deleted after every new analysis to comply with regulations. But the repository lays the ground work for future contributors to implement persistent databases, as they are already included as Dockerfiles and implementations exist in the backend.
 
+For more precise information about the frontend and backend workflow see [Frontend](#frontend) and [Backend](#backend).
 
 ### What did we do with which data
 
@@ -84,7 +95,7 @@ docker compose down -v
 ``` 
 only when you intentionally want to delete these volumes and their data.
 
-## General Information for Backend and Frontend and how to contribute
+## General Information for backend and brontend and how to contribute
 
 The frontend and backend Docker images can be used for development purposes as well since live reloading is integrated into both images. The frontend uses Vite as a build tool and for live reloading and the backend uses Air. The instruction on how to set up Docker and run the images are written in [Starting the application](##starting-the-application). 
 
@@ -127,14 +138,14 @@ Starts the E2E tests which are implemented using Playwright. Playwright is the d
 
 #### Structure of the backend
 
-The backend is structured as a layered architecture that sends requests in the backend from handler to service to repository / client. The handlers are the HTTP layer that translate HTTP requests into service calls that can be understood by by the backend. The services contain business and orchestration logic. The repositories do not contain any business logic and use GORM to communicate with the database, which is an ORM library for Golang. 
+The backend is structured as a layered architecture that sends requests in the backend from handler to service to a repository or client. The handlers are the HTTP layer that translate HTTP requests into service calls that can be understood by the backend. The services contain business and orchestration logic. The repositories do not contain any business logic and instead communicate with the database. For this they use GORM, which is an ORM library for Golang. For more information about ORM, see [ORM](ORM).
 Some directories contain files that are named the same as those directories. These files contain types and structs. 
 
 The main.go is located under /cmd/server and acts as a starting point for the backend that initialises the database, reads configuration files, injects dependencies into the components and starts the HTTP server on the configured port.
 
 The rest of the backend code resides in the /internal directory. 
 
-The API is documented in the /docs directory using OpenAPI and Swagger and it is directly used by the frontend. 
+The Rest API is documented in the /docs directory using the OpenAPI standard and Swagger and it is directly used by the frontend. 
 
 #### Contributing
 
@@ -146,7 +157,7 @@ The API is documented in the /docs directory using OpenAPI and Swagger and it is
 go mod tidy
 ```
 to install all dependencies
-3. You maybe have to write ``export PATH=$PATH:$(go env GOPATH)/bin`` into your .bashrc
+3. You may have to write ``export PATH=$PATH:$(go env GOPATH)/bin`` into your .bashrc
 
 ##### Testing the Backend
 
@@ -392,3 +403,8 @@ umbauen und die Secrets `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` anlegen.
 Danach kann der Stack statt mit den `build:`-Blöcken mit den veröffentlichten `image:`-Namen
 ausgerollt werden.
 
+## Concepts
+
+### ORM
+
+Object relational mapping is a strategy with which one can map object oriented programming structures into relational database structures. This has to be done, because relational databases store object information in data tables and Go stores object information in structs which can not be automatically mapped into data tables. 
