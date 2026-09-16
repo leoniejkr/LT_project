@@ -1,16 +1,23 @@
 package analysis
 
-import "log"
+import (
+	"backend/internal/orthanc"
+	"encoding/base64"
+	"fmt"
+	"log"
+)
 
 type Service struct {
-	repo      *Repository
-	llmClient *LLMClient
+	repo         *Repository
+	llmClient    *LLMClient
+	orthancStore *orthanc.Repository
 }
 
-func NewService(repo *Repository, llmClient *LLMClient) *Service {
+func NewService(repo *Repository, llmClient *LLMClient, orthancStore *orthanc.Repository) *Service {
 	return &Service{
-		repo:      repo,
-		llmClient: llmClient,
+		repo:         repo,
+		llmClient:    llmClient,
+		orthancStore: orthancStore,
 	}
 }
 
@@ -20,11 +27,40 @@ func (s *Service) GetAnalysis(patientID uint, patientData any, imageBuffers [][]
 		return nil, err
 	}
 
+	s.storeHeatmaps(patientID, resp)
+
 	if err := s.persistAnalysis(patientID, resp); err != nil {
 		log.Printf("WARNING: Analysis succeeded but persistence failed: %v", err)
 	}
 
 	return resp, nil
+}
+
+func (s *Service) storeHeatmaps(patientID uint, resp *PredictionResponse) {
+	patientName := fmt.Sprintf("Patient_%d", patientID)
+	patientIDStr := fmt.Sprintf("%d", patientID)
+
+	for i := range resp.ImageResults {
+		for j := range resp.ImageResults[i].Predictions {
+			pred := &resp.ImageResults[i].Predictions[j]
+			if pred.Heatmap == "" {
+				continue
+			}
+
+			data, err := base64.StdEncoding.DecodeString(pred.Heatmap)
+			if err != nil {
+				log.Printf("WARNING: failed to decode heatmap for %s: %v", pred.Class, err)
+				continue
+			}
+
+			instanceID, err := s.orthancStore.StoreHeatmap(patientName, patientIDStr, data)
+			if err != nil {
+				log.Printf("WARNING: failed to store heatmap for %s in orthanc: %v", pred.Class, err)
+				continue
+			}
+			pred.OrthancID = instanceID
+		}
+	}
 }
 
 func (s *Service) persistAnalysis(patientID uint, resp *PredictionResponse) error {
@@ -46,9 +82,33 @@ func (s *Service) persistAnalysis(patientID uint, resp *PredictionResponse) erro
 		Status:           resp.Status,
 		ModelVersion:     resp.ModelVersion,
 		Predictions:      resp.Predictions,
-		ImageResults:     resp.ImageResults,
+		ImageResults:     withoutHeatmaps(resp.ImageResults),
 	}
 	return s.repo.Create(a)
+}
+
+// withoutHeatmaps returns a deep copy of the image results where the base64
+// heatmap payload is removed for every prediction that was stored in Orthanc.
+// Predictions without an Orthanc reference keep their base64 payload as a
+// fallback.
+func withoutHeatmaps(results ImageResults) ImageResults {
+	out := make(ImageResults, len(results))
+	for i, img := range results {
+		preds := make(ImagePredictions, len(img.Predictions))
+		for j, p := range img.Predictions {
+			cp := p
+			if cp.OrthancID != "" {
+				cp.Heatmap = ""
+			}
+			preds[j] = cp
+		}
+		out[i] = ImageResult{
+			Index:       img.Index,
+			Filename:    img.Filename,
+			Predictions: preds,
+		}
+	}
+	return out
 }
 
 func (s *Service) DeletePatientAnalysis(patientID uint) error {

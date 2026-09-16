@@ -45,6 +45,14 @@ func normalizeImage(data []byte) ([]byte, error) {
 }
 
 func (r *Repository) StoreXRays(patientName, patientID string, pngBytes []byte) (string, error) {
+	return r.storeImage(patientName, patientID, "Uploaded XRays", "", "XC", pngBytes)
+}
+
+func (r *Repository) StoreHeatmap(patientName, patientID string, pngBytes []byte) (string, error) {
+	return r.storeImage(patientName, patientID, "GradCAM Heatmaps", "GradCAM", "SC", pngBytes)
+}
+.
+func (r *Repository) storeImage(patientName, patientID, studyDescription, seriesDescription, modality string, pngBytes []byte) (string, error) {
 	pngBytes, err := normalizeImage(pngBytes)
 	if err != nil {
 		return "", fmt.Errorf("failed to process uploaded image: %w", err)
@@ -52,14 +60,19 @@ func (r *Repository) StoreXRays(patientName, patientID string, pngBytes []byte) 
 
 	encoded := base64.StdEncoding.EncodeToString(pngBytes)
 
+	tags := map[string]string{
+		"PatientName":      patientName,
+		"PatientID":        patientID,
+		"StudyDescription": studyDescription,
+		"Modality":         modality,
+	}
+	if seriesDescription != "" {
+		tags["SeriesDescription"] = seriesDescription
+	}
+
 	body := map[string]any{
 		"Content": "data:image/png;base64," + encoded,
-		"Tags": map[string]string{
-			"PatientName":      patientName,
-			"PatientID":        patientID,
-			"StudyDescription": "Uploaded XRays",
-			"Modality":         "XC",
-		},
+		"Tags":    tags,
 	}
 
 	var result struct {

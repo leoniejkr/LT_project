@@ -29,7 +29,8 @@ func (p Predictions) Value() (driver.Value, error) {
 type ImagePrediction struct {
 	Class      string  `json:"class"`
 	Confidence float64 `json:"confidence"`
-	Heatmap    string  `json:"heatmap"`
+	Heatmap    string  `json:"heatmap,omitempty"`
+	OrthancID  string  `json:"orthancId,omitempty"`
 }
 
 type ImagePredictions []ImagePrediction

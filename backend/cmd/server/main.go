@@ -48,7 +48,7 @@ func main() {
 	patientRepo := patient.NewRepository(db)
 	analysisRepo := analysis.NewRepository(db)
 	llmClient := analysis.NewLLMClient()
-	analysisService := analysis.NewService(analysisRepo, llmClient)
+	analysisService := analysis.NewService(analysisRepo, llmClient, orthancStore)
 	patientService := patient.NewService(patientRepo, orthancStore)
 	chatService := chat.NewService(ollamaURL, model, nil)
 	apiHandler := api.NewHandler(patientService, chatService, analysisService)

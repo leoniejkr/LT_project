@@ -1,15 +1,31 @@
 package analysis
 
 import (
+	"backend/internal/orthanc"
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"image"
+	"image/png"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	httpclient "backend/internal/http"
+
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
+
+func testHeatmapPNG(t *testing.T) []byte {
+	t.Helper()
+	img := image.NewNRGBA(image.Rect(0, 0, 4, 4))
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, img); err != nil {
+		t.Fatalf("failed to create test png: %v", err)
+	}
+	return buf.Bytes()
+}
 
 func setupServiceTest(t *testing.T, llmResponse PredictionResponse) (*Service, *httptest.Server) {
 	t.Helper()
@@ -24,9 +40,16 @@ func setupServiceTest(t *testing.T, llmResponse PredictionResponse) (*Service, *
 		json.NewEncoder(w).Encode(llmResponse)
 	}))
 
+	orthancServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"ID": "orthanc-heatmap-1"}`))
+	}))
+
 	llmClient := &LLMClient{client: httpclient.New(server.URL)}
 	repo := NewRepository(db)
-	svc := NewService(repo, llmClient)
+	orthancStore := orthanc.NewRepository(orthancServer.URL, "", "")
+	svc := NewService(repo, llmClient, orthancStore)
+
+	t.Cleanup(orthancServer.Close)
 
 	return svc, server
 }
@@ -91,7 +114,7 @@ func TestGetAnalysis_PersistsToDB(t *testing.T) {
 
 func TestGetAnalysis_PersistsTopPrediction(t *testing.T) {
 	llmResp := PredictionResponse{
-		Status:      "success",
+		Status: "success",
 		Predictions: Predictions{
 			{Class: "First", Confidence: 0.95, Reason: "Top prediction"},
 			{Class: "Second", Confidence: 0.70, Reason: "Second"},
@@ -145,9 +168,10 @@ func TestGetAnalysis_LLMError(t *testing.T) {
 	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	db.AutoMigrate(&Analysis{})
 
+	orthancStore := orthanc.NewRepository("http://localhost:1", "", "")
 	llmClient := &LLMClient{client: httpclient.New(server.URL)}
 	repo := NewRepository(db)
-	svc := NewService(repo, llmClient)
+	svc := NewService(repo, llmClient, orthancStore)
 
 	_, err := svc.GetAnalysis(1, map[string]string{}, nil, nil, "", "")
 	if err == nil {
@@ -211,5 +235,48 @@ func TestPersistAnalysis_PreservesAllFields(t *testing.T) {
 	}
 	if a.ImageResults[0].Filename != "scan.png" {
 		t.Errorf("filename = %q, want %q", a.ImageResults[0].Filename, "scan.png")
+	}
+}
+
+func TestGetAnalysis_StoresHeatmapsInOrthanc(t *testing.T) {
+	heatmapPNG := testHeatmapPNG(t)
+	llmResp := PredictionResponse{
+		Status: "success",
+		Predictions: Predictions{
+			{Class: "Pneumonia", Confidence: 0.92},
+		},
+		ImageResults: ImageResults{
+			{
+				Index:    0,
+				Filename: "scan.png",
+				Predictions: ImagePredictions{
+					{Class: "Pneumonia", Confidence: 0.92, Heatmap: base64.StdEncoding.EncodeToString(heatmapPNG)},
+				},
+			},
+		},
+	}
+
+	svc, server := setupServiceTest(t, llmResp)
+	defer server.Close()
+
+	result, err := svc.GetAnalysis(7, map[string]string{}, nil, nil, "", "")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if got := result.ImageResults[0].Predictions[0].Heatmap; got == "" {
+		t.Error("response should keep the base64 heatmap")
+	}
+
+	a, err := svc.repo.FindByPatientID(7)
+	if err != nil {
+		t.Fatalf("failed to find persisted analysis: %v", err)
+	}
+	pred := a.ImageResults[0].Predictions[0]
+	if pred.OrthancID != "orthanc-heatmap-1" {
+		t.Errorf("orthanc_id = %q, want %q", pred.OrthancID, "orthanc-heatmap-1")
+	}
+	if pred.Heatmap != "" {
+		t.Error("persisted analysis should not keep the base64 heatmap when stored in orthanc")
 	}
 }
