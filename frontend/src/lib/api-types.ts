@@ -4,25 +4,266 @@
  */
 
 export interface paths {
-  "/patients": {
-    /** Creates new patient with the provided metadata and image files */
+  "/analysis": {
+    /** Upload patient data and X-Ray pictures and get analysis results back */
     post: {
       parameters: {
         formData: {
-          /** Patienten-Metadata as JSON-String */
+          /** Patient data as JSON (age, gender, symptoms, history) */
           formData: string;
-          /** The image picture data */
-          image_file: unknown;
+          /** X-Ray PNG images */
+          image_files: unknown[];
         };
       };
       responses: {
-        /** Accepted */
-        202: {
+        /** Successful analysis */
+        200: {
+          schema: { [key: string]: unknown };
+        };
+        /** Invalid request */
+        400: {
+          schema: string;
+        };
+        /** Analysis or server error */
+        500: {
+          schema: { [key: string]: unknown };
+        };
+      };
+    };
+    /** Deletes all patient data and analysis results from the database */
+    delete: {
+      responses: {
+        /** Deletion successful */
+        200: {
+          schema: { [key: string]: string };
+        };
+        /** Deletion failed */
+        500: {
           schema: string;
         };
       };
     };
   };
+  "/chat": {
+    /** Send a message to the medical AI assistant with patient context */
+    post: {
+      parameters: {
+        body: {
+          /** Chat request with message, history, and context */
+          request: definitions["chat.UserChatRequest"];
+        };
+      };
+      responses: {
+        /** AI reply */
+        200: {
+          schema: { [key: string]: string };
+        };
+        /** Invalid request or missing message */
+        400: {
+          schema: string;
+        };
+        /** Chat service error */
+        502: {
+          schema: { [key: string]: string };
+        };
+      };
+    };
+  };
+  "/patients": {
+    /** Returns the patients with a persisted, completed analysis, newest first. */
+    get: {
+      responses: {
+        /** Completed analysis history */
+        200: {
+          schema: definitions["api.PatientSummary"][];
+        };
+        /** Unable to load history */
+        500: {
+          schema: string;
+        };
+      };
+    };
+  };
+  "/patients/{id}/analysis": {
+    /** Returns a patient and their persisted analysis for the history dashboard. */
+    get: {
+      parameters: {
+        path: {
+          /** Patient ID */
+          id: number;
+        };
+      };
+      responses: {
+        /** Saved analysis */
+        200: {
+          schema: definitions["api.PatientAnalysisResponse"];
+        };
+        /** Invalid patient ID */
+        400: {
+          schema: string;
+        };
+        /** Patient or analysis not found */
+        404: {
+          schema: string;
+        };
+      };
+    };
+  };
+  "/patients/{id}/images/{imageID}": {
+    /** Proxies an original X-Ray or Grad-CAM heatmap from Orthanc after verifying it belongs to the patient. */
+    get: {
+      parameters: {
+        path: {
+          /** Patient ID */
+          id: number;
+          /** Orthanc instance ID */
+          imageID: string;
+        };
+      };
+      responses: {
+        /** Original X-Ray or Grad-CAM heatmap */
+        200: {
+          schema: unknown;
+        };
+        /** Invalid patient or image ID */
+        400: {
+          schema: string;
+        };
+        /** Patient or image not found */
+        404: {
+          schema: string;
+        };
+        /** Unable to retrieve image from Orthanc */
+        502: {
+          schema: string;
+        };
+      };
+    };
+  };
+}
+
+export interface definitions {
+  "analysis.ImagePrediction": {
+    class?: string;
+    confidence?: number;
+    heatmap?: string;
+    orthancId?: string;
+  };
+  "analysis.ImageResult": {
+    filename?: string;
+    index?: number;
+    predictions?: definitions["analysis.ImagePrediction"][];
+  };
+  "analysis.Prediction": {
+    class?: string;
+    confidence?: number;
+    reason?: string;
+  };
+  "analysis.PredictionResponse": {
+    image_results?: definitions["analysis.ImageResult"][];
+    model_version?: string;
+    predictions?: definitions["analysis.Prediction"][];
+    status?: string;
+  };
+  "api.PatientAnalysisResponse": {
+    analysis?: definitions["analysis.PredictionResponse"];
+    patient?: definitions["patient.Patient"];
+    status?: string;
+  };
+  "api.PatientSummary": {
+    age?: number;
+    gender?: definitions["patient.Gender"];
+    id?: number;
+  };
+  "chat.Message": {
+    content?: string;
+    role?: definitions["chat.Role"];
+  };
+  /** @enum {string} */
+  "chat.Role": "user" | "assistant" | "system";
+  "chat.UserChatRequest": {
+    context?: { [key: string]: unknown };
+    history?: definitions["chat.Message"][];
+    message?: string;
+    model?: string;
+  };
+  /** @enum {string} */
+  "patient.Gender": "Female" | "Male" | "Diverse";
+  "patient.Patient": {
+    age?: number;
+    gender?: definitions["patient.Gender"];
+    history?: string[];
+    id?: number;
+    orthancIDs?: string[];
+    symptoms?: definitions["patient.Symptom"][];
+  };
+  /** @enum {string} */
+  "patient.Symptom":
+    | "Pauses in breathing (apnea)"
+    | "Grunting"
+    | "Shallow breathing"
+    | "Shortness of breath (dyspnea)"
+    | "Difficulty catching breath"
+    | "Inability to take a deep breath"
+    | "Constant feeling of not getting enough air"
+    | "Feeling like suffocating / gasping for air"
+    | "Breathlessness that awakens you from sleep"
+    | "Orthopnea (difficulty breathing unless sitting upright)"
+    | "Rapid breathing (tachypnea)"
+    | "Increased work of breathing (retractions)"
+    | "Wheezing"
+    | "Stridor"
+    | "Crepitus (crackling under the skin)"
+    | "Rattling noises (rales/rhonchi)"
+    | "Bronchial breathing (increased peripheral breath sounds)"
+    | "Noisy / funny-sounding breathing"
+    | "Dry cough (persistent / chronic)"
+    | "Cough worse in the morning"
+    | "Cough with yellow, green, thick, or bloody mucus"
+    | "Coughing up frothy mucus"
+    | "Coughing up blood (hemoptysis)"
+    | "Sore throat"
+    | "Nasal congestion"
+    | "Runny nose"
+    | "Hoarseness"
+    | "Difficulty swallowing (dysphagia)"
+    | "Loss of / altered smell or taste (anosmia/dysgeusia)"
+    | "Recurring respiratory infections (bronchitis, pneumonia)"
+    | "Chest pain, pressure, tightness, or heaviness"
+    | "Pain on one side of the chest"
+    | "Back pain associated with breathing"
+    | "Rapid heart rate (tachycardia)"
+    | "Heart palpitations / fluttering"
+    | "Loud heartbeat sound (pulmonary hypertension)"
+    | "Bluish, gray, or white skin, lips, or nails (cyanosis)"
+    | "Swelling in legs, feet, belly, or skin (edema)"
+    | "Anxiety"
+    | "Confusion / altered mental state"
+    | "Depression"
+    | "Difficulty sleeping (insomnia)"
+    | "Dizziness"
+    | "Fainting (syncope)"
+    | "Headaches"
+    | "Inability to wake up or stay awake"
+    | 'Trouble thinking or focusing ("brain fog")'
+    | "Fatigue"
+    | "Fever (up to 105°F / 40°C)"
+    | "Low body temperature (hypothermia)"
+    | "Chills / sweating"
+    | "Muscle pain / body aches"
+    | "Unexplained weight loss"
+    | "Clubbed fingers"
+    | "Barrel-shaped chest"
+    | "Irritability"
+    | "Listlessness / lethargy"
+    | 'Low muscle tone ("floppy")'
+    | "Refusal to feed or drink"
+    | "Abdominal pain / belly aches"
+    | "Gas / bloating"
+    | "Loss of appetite"
+    | "Nausea and vomiting"
+    | "Diarrhea"
+    | "Visible lump or bulge (hernia signs)";
 }
 
 export interface operations {}

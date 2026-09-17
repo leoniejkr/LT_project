@@ -29,6 +29,7 @@
     function originalImageIdFor(index: number): string | undefined {
         return imageIds[index];
     }
+
 </script>
 
 {#if imageResults.length > 0}
@@ -116,7 +117,7 @@
                                     </div>
                                     <div class="relative">
                                         <img
-                                            src="data:image/png;base64,{pred.heatmap}"
+                                            src={pred.heatmap}
                                             alt="Grad-CAM: {pred.class} {index + 1}"
                                             class="w-full h-40 rounded border object-cover"
                                         />

@@ -53,10 +53,31 @@ func (s *Service) GetPatient(id uint) (*Patient, error) {
 	return s.repo.FindByID(id)
 }
 
+func (s *Service) GetPatients() ([]Patient, error) {
+	return s.repo.FindAll()
+}
+
 func (s *Service) DeletePatient(id uint) error {
 	return s.repo.DeletePatient(id)
 }
 
 func (s *Service) DeleteAll() error {
 	return s.repo.DeleteAll()
+}
+
+func (s *Service) HasImage(id uint, orthancID string) (bool, error) {
+	p, err := s.repo.FindByID(id)
+	if err != nil {
+		return false, err
+	}
+	for _, imageID := range p.OrthancIDs {
+		if imageID == orthancID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (s *Service) GetImagePreview(orthancID string) ([]byte, string, error) {
+	return s.orthancStore.GetPreview(orthancID)
 }

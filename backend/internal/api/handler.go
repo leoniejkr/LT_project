@@ -27,6 +27,9 @@ func NewHandler(patientService *patient.Service, chatService *chat.Service, anal
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /analysis", h.GetAnalysis)
 	router.HandleFunc("DELETE /analysis", h.DeleteAnalysis)
+	router.HandleFunc("GET /patients", h.ListPatients)
+	router.HandleFunc("GET /patients/{id}/analysis", h.GetPatientAnalysis)
+	router.HandleFunc("GET /patients/{id}/images/{imageID}", h.GetPatientImage)
 	router.HandleFunc("POST /chat", h.Chat)
 }
 
@@ -168,7 +171,7 @@ func buildContextMessage(context map[string]any) (chat.Message, bool) {
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        request  body  ChatRequest  true  "Chat request with message, history, and context"
+// @Param        request  body  chat.UserChatRequest  true  "Chat request with message, history, and context"
 // @Success      200  {object}  map[string]string  "AI reply"
 // @Failure      400  {object}  string  "Invalid request or missing message"
 // @Failure      502  {object}  map[string]string  "Chat service error"

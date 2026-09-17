@@ -7,7 +7,8 @@ export interface Prediction {
 export interface ImagePrediction {
     class: string;
     confidence: number;
-    heatmap: string;
+    heatmap?: string;
+    orthancId?: string;
 }
 
 export interface ImageResult {
@@ -33,6 +34,12 @@ export interface PatientMetadata {
 export interface PatientData extends PatientMetadata {
     id: number;
     orthancIDs: string[];
+}
+
+export interface PatientSummary {
+    id: number;
+    age: number;
+    gender: string;
 }
 
 export interface AnalysisResult {

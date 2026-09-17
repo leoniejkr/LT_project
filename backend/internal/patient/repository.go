@@ -29,6 +29,14 @@ func (r *Repository) FindByID(patientID uint) (*Patient, error) {
 	return &p, nil
 }
 
+func (r *Repository) FindAll() ([]Patient, error) {
+	var patients []Patient
+	if err := r.db.Order("id DESC").Find(&patients).Error; err != nil {
+		return nil, fmt.Errorf("failed to list patients: %w", err)
+	}
+	return patients, nil
+}
+
 func (r *Repository) Update(p *Patient) error {
 	return r.db.Save(p).Error
 }

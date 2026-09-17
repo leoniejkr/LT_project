@@ -13,6 +13,7 @@
         { name: "Home", href: "/" },
         { name: "Upload", href: "/upload" },
         { name: "Result", href: "/result" },
+        { name: "History", href: "/history" },
     ];
 
     // Hilfsfunktion für aktive Links (ähnlich wie NavigationMenu.Link)

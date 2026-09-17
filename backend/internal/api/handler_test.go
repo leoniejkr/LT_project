@@ -42,6 +42,11 @@ func setupHandler(t *testing.T, llmHandler http.HandlerFunc) (*Handler, *httptes
 	t.Setenv("MODELLING_URL", llmServer.URL)
 
 	orthancServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/instances/") {
+			w.Header().Set("Content-Type", "image/png")
+			w.Write([]byte("preview-image"))
+			return
+		}
 		w.Write([]byte(`{"ID": "orthanc-1"}`))
 	}))
 
@@ -381,6 +386,89 @@ func TestDeleteAnalysis_CleansUpData(t *testing.T) {
 
 	if deleteW.Code != http.StatusOK {
 		t.Errorf("delete status = %d, want %d", deleteW.Code, http.StatusOK)
+	}
+}
+
+func TestHistoryEndpoints_ReturnPersistedAnalysis(t *testing.T) {
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+
+	// Create a completed analysis first, just as the upload page does.
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	writer.WriteField("formData", `{"age":55,"gender":"Male"}`)
+	part, _ := writer.CreateFormFile("image_files", "xray.png")
+	part.Write(testPNG(t))
+	writer.Close()
+	postReq := httptest.NewRequest(http.MethodPost, "/analysis", body)
+	postReq.Header.Set("Content-Type", writer.FormDataContentType())
+	postW := httptest.NewRecorder()
+	handler.GetAnalysis(postW, postReq)
+	if postW.Code != http.StatusOK {
+		t.Fatalf("analysis status = %d, want 200", postW.Code)
+	}
+
+	router := http.NewServeMux()
+	handler.RegisterRoutes(router)
+
+	listW := httptest.NewRecorder()
+	router.ServeHTTP(listW, httptest.NewRequest(http.MethodGet, "/patients", nil))
+	if listW.Code != http.StatusOK {
+		t.Fatalf("history status = %d, want 200", listW.Code)
+	}
+	var patients []struct {
+		ID     uint   `json:"id"`
+		Age    uint   `json:"age"`
+		Gender string `json:"gender"`
+	}
+	if err := json.NewDecoder(listW.Body).Decode(&patients); err != nil {
+		t.Fatalf("decode history: %v", err)
+	}
+	if len(patients) != 1 || patients[0].Age != 55 || patients[0].Gender != "Male" {
+		t.Errorf("history = %#v, want one completed patient", patients)
+	}
+
+	detailW := httptest.NewRecorder()
+	router.ServeHTTP(detailW, httptest.NewRequest(http.MethodGet, "/patients/1/analysis", nil))
+	if detailW.Code != http.StatusOK {
+		t.Fatalf("detail status = %d, want 200", detailW.Code)
+	}
+	var detail struct {
+		Patient  patient.Patient             `json:"patient"`
+		Analysis analysis.PredictionResponse `json:"analysis"`
+	}
+	if err := json.NewDecoder(detailW.Body).Decode(&detail); err != nil {
+		t.Fatalf("decode detail: %v", err)
+	}
+	if detail.Patient.ID != 1 || len(detail.Analysis.Predictions) != 1 {
+		t.Errorf("unexpected historic detail: %#v", detail)
+	}
+
+	imageW := httptest.NewRecorder()
+	router.ServeHTTP(imageW, httptest.NewRequest(http.MethodGet, "/patients/1/images/orthanc-1", nil))
+	if imageW.Code != http.StatusOK {
+		t.Fatalf("image status = %d, want 200", imageW.Code)
+	}
+	if imageW.Header().Get("Content-Type") != "image/png" {
+		t.Errorf("content type = %q, want image/png", imageW.Header().Get("Content-Type"))
+	}
+	if imageW.Body.String() != "preview-image" {
+		t.Errorf("image body = %q, want preview-image", imageW.Body.String())
+	}
+}
+
+func TestHistoryEndpoints_RejectUnknownPatient(t *testing.T) {
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+	router := http.NewServeMux()
+	handler.RegisterRoutes(router)
+
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/patients/999/analysis", nil))
+	if w.Code != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", w.Code)
 	}
 }
 

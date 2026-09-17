@@ -51,7 +51,11 @@ func (r *Repository) StoreXRays(patientName, patientID string, pngBytes []byte) 
 func (r *Repository) StoreHeatmap(patientName, patientID string, pngBytes []byte) (string, error) {
 	return r.storeImage(patientName, patientID, "GradCAM Heatmaps", "GradCAM", "SC", pngBytes)
 }
-.
+
+// GetPreview returns Orthanc's rendered preview for an instance.
+func (r *Repository) GetPreview(instanceID string) ([]byte, string, error) {
+	return r.client.GetBytes("/instances/" + instanceID + "/preview")
+}
 func (r *Repository) storeImage(patientName, patientID, studyDescription, seriesDescription, modality string, pngBytes []byte) (string, error) {
 	pngBytes, err := normalizeImage(pngBytes)
 	if err != nil {

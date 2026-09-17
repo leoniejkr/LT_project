@@ -72,6 +72,24 @@ func TestFindByID_NotFound(t *testing.T) {
 	}
 }
 
+func TestFindAll_NewestFirst(t *testing.T) {
+	db := setupPatientDB(t)
+	repo := NewRepository(db)
+	repo.Create(&Patient{Age: 20, Gender: GenderMale})
+	repo.Create(&Patient{Age: 30, Gender: GenderFemale})
+
+	patients, err := repo.FindAll()
+	if err != nil {
+		t.Fatalf("FindAll returned error: %v", err)
+	}
+	if len(patients) != 2 {
+		t.Fatalf("got %d patients, want 2", len(patients))
+	}
+	if patients[0].Age != 30 || patients[1].Age != 20 {
+		t.Errorf("patients are not ordered newest first: %#v", patients)
+	}
+}
+
 func TestUpdate(t *testing.T) {
 	db := setupPatientDB(t)
 	repo := NewRepository(db)
