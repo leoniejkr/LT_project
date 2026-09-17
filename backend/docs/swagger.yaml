@@ -1,6 +1,87 @@
 basePath: /
 definitions:
-  api.ChatRequest:
+  analysis.ImagePrediction:
+    properties:
+      class:
+        type: string
+      confidence:
+        type: number
+      heatmap:
+        type: string
+      orthancId:
+        type: string
+    type: object
+  analysis.ImageResult:
+    properties:
+      filename:
+        type: string
+      index:
+        type: integer
+      predictions:
+        items:
+          $ref: '#/definitions/analysis.ImagePrediction'
+        type: array
+    type: object
+  analysis.Prediction:
+    properties:
+      class:
+        type: string
+      confidence:
+        type: number
+      reason:
+        type: string
+    type: object
+  analysis.PredictionResponse:
+    properties:
+      image_results:
+        items:
+          $ref: '#/definitions/analysis.ImageResult'
+        type: array
+      model_version:
+        type: string
+      predictions:
+        items:
+          $ref: '#/definitions/analysis.Prediction'
+        type: array
+      status:
+        type: string
+    type: object
+  api.PatientAnalysisResponse:
+    properties:
+      analysis:
+        $ref: '#/definitions/analysis.PredictionResponse'
+      patient:
+        $ref: '#/definitions/patient.Patient'
+      status:
+        type: string
+    type: object
+  api.PatientSummary:
+    properties:
+      age:
+        type: integer
+      gender:
+        $ref: '#/definitions/patient.Gender'
+      id:
+        type: integer
+    type: object
+  chat.Message:
+    properties:
+      content:
+        type: string
+      role:
+        $ref: '#/definitions/chat.Role'
+    type: object
+  chat.Role:
+    enum:
+    - user
+    - assistant
+    - system
+    type: string
+    x-enum-varnames:
+    - UserRole
+    - AssistantRole
+    - SystemRole
+  chat.UserChatRequest:
     properties:
       context:
         additionalProperties: {}
@@ -11,14 +92,174 @@ definitions:
         type: array
       message:
         type: string
+      model:
+        type: string
     type: object
-  chat.Message:
+  patient.Gender:
+    enum:
+    - Female
+    - Male
+    - Diverse
+    type: string
+    x-enum-varnames:
+    - GenderFemale
+    - GenderMale
+    - GenderDiverse
+  patient.Patient:
     properties:
-      content:
-        type: string
-      role:
-        type: string
+      age:
+        type: integer
+      gender:
+        $ref: '#/definitions/patient.Gender'
+      history:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      orthancIDs:
+        items:
+          type: string
+        type: array
+      symptoms:
+        items:
+          $ref: '#/definitions/patient.Symptom'
+        type: array
     type: object
+  patient.Symptom:
+    enum:
+    - Pauses in breathing (apnea)
+    - Grunting
+    - Shallow breathing
+    - Shortness of breath (dyspnea)
+    - Difficulty catching breath
+    - Inability to take a deep breath
+    - Constant feeling of not getting enough air
+    - Feeling like suffocating / gasping for air
+    - Breathlessness that awakens you from sleep
+    - Orthopnea (difficulty breathing unless sitting upright)
+    - Rapid breathing (tachypnea)
+    - Increased work of breathing (retractions)
+    - Wheezing
+    - Stridor
+    - Crepitus (crackling under the skin)
+    - Rattling noises (rales/rhonchi)
+    - Bronchial breathing (increased peripheral breath sounds)
+    - Noisy / funny-sounding breathing
+    - Dry cough (persistent / chronic)
+    - Cough worse in the morning
+    - Cough with yellow, green, thick, or bloody mucus
+    - Coughing up frothy mucus
+    - Coughing up blood (hemoptysis)
+    - Sore throat
+    - Nasal congestion
+    - Runny nose
+    - Hoarseness
+    - Difficulty swallowing (dysphagia)
+    - Loss of / altered smell or taste (anosmia/dysgeusia)
+    - Recurring respiratory infections (bronchitis, pneumonia)
+    - Chest pain, pressure, tightness, or heaviness
+    - Pain on one side of the chest
+    - Back pain associated with breathing
+    - Rapid heart rate (tachycardia)
+    - Heart palpitations / fluttering
+    - Loud heartbeat sound (pulmonary hypertension)
+    - Bluish, gray, or white skin, lips, or nails (cyanosis)
+    - Swelling in legs, feet, belly, or skin (edema)
+    - Anxiety
+    - Confusion / altered mental state
+    - Depression
+    - Difficulty sleeping (insomnia)
+    - Dizziness
+    - Fainting (syncope)
+    - Headaches
+    - Inability to wake up or stay awake
+    - Trouble thinking or focusing ("brain fog")
+    - Fatigue
+    - Fever (up to 105°F / 40°C)
+    - Low body temperature (hypothermia)
+    - Chills / sweating
+    - Muscle pain / body aches
+    - Unexplained weight loss
+    - Clubbed fingers
+    - Barrel-shaped chest
+    - Irritability
+    - Listlessness / lethargy
+    - Low muscle tone ("floppy")
+    - Refusal to feed or drink
+    - Abdominal pain / belly aches
+    - Gas / bloating
+    - Loss of appetite
+    - Nausea and vomiting
+    - Diarrhea
+    - Visible lump or bulge (hernia signs)
+    type: string
+    x-enum-varnames:
+    - SymptomApnea
+    - SymptomGrunting
+    - SymptomShallowBreathing
+    - SymptomShortnessOfBreath
+    - SymptomCatchingBreath
+    - SymptomDeepBreath
+    - SymptomAirHunger
+    - SymptomSuffocation
+    - SymptomNocturnalDyspnea
+    - SymptomOrthopnea
+    - SymptomTachypnea
+    - SymptomRetractions
+    - SymptomWheezing
+    - SymptomStridor
+    - SymptomCrepitus
+    - SymptomRalesRhonchi
+    - SymptomBronchialBreathing
+    - SymptomNoisyBreathing
+    - SymptomDryCough
+    - SymptomMorningCough
+    - SymptomProductiveCough
+    - SymptomFrothyMucus
+    - SymptomHemoptysis
+    - SymptomSoreThroat
+    - SymptomNasalCongestion
+    - SymptomRunnyNose
+    - SymptomHoarseness
+    - SymptomDysphagia
+    - SymptomAnosmiaDysgeusia
+    - SymptomRecurrentInfections
+    - SymptomChestPain
+    - SymptomUnilateralPain
+    - SymptomBackPain
+    - SymptomTachycardia
+    - SymptomPalpitations
+    - SymptomLoudHeartbeat
+    - SymptomCyanosis
+    - SymptomEdema
+    - SymptomAnxiety
+    - SymptomConfusion
+    - SymptomDepression
+    - SymptomInsomnia
+    - SymptomDizziness
+    - SymptomSyncope
+    - SymptomHeadaches
+    - SymptomUnableToWake
+    - SymptomBrainFog
+    - SymptomFatigue
+    - SymptomFever
+    - SymptomHypothermia
+    - SymptomChills
+    - SymptomMuscleAches
+    - SymptomWeightLoss
+    - SymptomClubbedFingers
+    - SymptomBarrelChest
+    - SymptomIrritability
+    - SymptomLethargy
+    - SymptomHypotonia
+    - SymptomPoorFeeding
+    - SymptomAbdominalPain
+    - SymptomGasBloating
+    - SymptomAppetiteLoss
+    - SymptomNauseaVomiting
+    - SymptomDiarrhea
+    - SymptomHerniaBulge
 host: localhost:8080
 info:
   contact: {}
@@ -88,15 +329,14 @@ paths:
     post:
       consumes:
       - application/json
-      description: Send a message to the medical AI assistant with optional conversation
-        history and patient context
+      description: Send a message to the medical AI assistant with patient context
       parameters:
-      - description: Chat request with message, history, and optional context
+      - description: Chat request with message, history, and context
         in: body
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api.ChatRequest'
+          $ref: '#/definitions/chat.UserChatRequest'
       produces:
       - application/json
       responses:
@@ -119,4 +359,89 @@ paths:
       summary: Chat with medical AI
       tags:
       - chat
+  /patients:
+    get:
+      description: Returns the patients with a persisted, completed analysis, newest
+        first.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Completed analysis history
+          schema:
+            items:
+              $ref: '#/definitions/api.PatientSummary'
+            type: array
+        "500":
+          description: Unable to load history
+          schema:
+            type: string
+      summary: List completed analyses
+      tags:
+      - history
+  /patients/{id}/analysis:
+    get:
+      description: Returns a patient and their persisted analysis for the history
+        dashboard.
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Saved analysis
+          schema:
+            $ref: '#/definitions/api.PatientAnalysisResponse'
+        "400":
+          description: Invalid patient ID
+          schema:
+            type: string
+        "404":
+          description: Patient or analysis not found
+          schema:
+            type: string
+      summary: Get a saved analysis
+      tags:
+      - history
+  /patients/{id}/images/{imageID}:
+    get:
+      description: Proxies an original X-Ray or Grad-CAM heatmap from Orthanc after
+        verifying it belongs to the patient.
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Orthanc instance ID
+        in: path
+        name: imageID
+        required: true
+        type: string
+      produces:
+      - image/png
+      responses:
+        "200":
+          description: Original X-Ray or Grad-CAM heatmap
+          schema:
+            type: file
+        "400":
+          description: Invalid patient or image ID
+          schema:
+            type: string
+        "404":
+          description: Patient or image not found
+          schema:
+            type: string
+        "502":
+          description: Unable to retrieve image from Orthanc
+          schema:
+            type: string
+      summary: Get a saved patient image
+      tags:
+      - history
 swagger: "2.0"

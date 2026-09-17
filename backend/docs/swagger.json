@@ -95,7 +95,7 @@
         },
         "/chat": {
             "post": {
-                "description": "Send a message to the medical AI assistant with optional conversation history and patient context",
+                "description": "Send a message to the medical AI assistant with patient context",
                 "consumes": [
                     "application/json"
                 ],
@@ -108,12 +108,12 @@
                 "summary": "Chat with medical AI",
                 "parameters": [
                     {
-                        "description": "Chat request with message, history, and optional context",
+                        "description": "Chat request with message, history, and context",
                         "name": "request",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api.ChatRequest"
+                            "$ref": "#/definitions/chat.UserChatRequest"
                         }
                     }
                 ],
@@ -144,10 +144,257 @@
                     }
                 }
             }
+        },
+        "/patients": {
+            "get": {
+                "description": "Returns the patients with a persisted, completed analysis, newest first.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "history"
+                ],
+                "summary": "List completed analyses",
+                "responses": {
+                    "200": {
+                        "description": "Completed analysis history",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PatientSummary"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unable to load history",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/patients/{id}/analysis": {
+            "get": {
+                "description": "Returns a patient and their persisted analysis for the history dashboard.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "history"
+                ],
+                "summary": "Get a saved analysis",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Patient ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Saved analysis",
+                        "schema": {
+                            "$ref": "#/definitions/api.PatientAnalysisResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid patient ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Patient or analysis not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/patients/{id}/images/{imageID}": {
+            "get": {
+                "description": "Proxies an original X-Ray or Grad-CAM heatmap from Orthanc after verifying it belongs to the patient.",
+                "produces": [
+                    "image/png"
+                ],
+                "tags": [
+                    "history"
+                ],
+                "summary": "Get a saved patient image",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Patient ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Orthanc instance ID",
+                        "name": "imageID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Original X-Ray or Grad-CAM heatmap",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid patient or image ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Patient or image not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "502": {
+                        "description": "Unable to retrieve image from Orthanc",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
-        "api.ChatRequest": {
+        "analysis.ImagePrediction": {
+            "type": "object",
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "heatmap": {
+                    "type": "string"
+                },
+                "orthancId": {
+                    "type": "string"
+                }
+            }
+        },
+        "analysis.ImageResult": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string"
+                },
+                "index": {
+                    "type": "integer"
+                },
+                "predictions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/analysis.ImagePrediction"
+                    }
+                }
+            }
+        },
+        "analysis.Prediction": {
+            "type": "object",
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "analysis.PredictionResponse": {
+            "type": "object",
+            "properties": {
+                "image_results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/analysis.ImageResult"
+                    }
+                },
+                "model_version": {
+                    "type": "string"
+                },
+                "predictions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/analysis.Prediction"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PatientAnalysisResponse": {
+            "type": "object",
+            "properties": {
+                "analysis": {
+                    "$ref": "#/definitions/analysis.PredictionResponse"
+                },
+                "patient": {
+                    "$ref": "#/definitions/patient.Patient"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PatientSummary": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "gender": {
+                    "$ref": "#/definitions/patient.Gender"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "chat.Message": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/chat.Role"
+                }
+            }
+        },
+        "chat.Role": {
+            "type": "string",
+            "enum": [
+                "user",
+                "assistant",
+                "system"
+            ],
+            "x-enum-varnames": [
+                "UserRole",
+                "AssistantRole",
+                "SystemRole"
+            ]
+        },
+        "chat.UserChatRequest": {
             "type": "object",
             "properties": {
                 "context": {
@@ -162,19 +409,193 @@
                 },
                 "message": {
                     "type": "string"
+                },
+                "model": {
+                    "type": "string"
                 }
             }
         },
-        "chat.Message": {
+        "patient.Gender": {
+            "type": "string",
+            "enum": [
+                "Female",
+                "Male",
+                "Diverse"
+            ],
+            "x-enum-varnames": [
+                "GenderFemale",
+                "GenderMale",
+                "GenderDiverse"
+            ]
+        },
+        "patient.Patient": {
             "type": "object",
             "properties": {
-                "content": {
-                    "type": "string"
+                "age": {
+                    "type": "integer"
                 },
-                "role": {
-                    "type": "string"
+                "gender": {
+                    "$ref": "#/definitions/patient.Gender"
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "orthancIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "symptoms": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/patient.Symptom"
+                    }
                 }
             }
+        },
+        "patient.Symptom": {
+            "type": "string",
+            "enum": [
+                "Pauses in breathing (apnea)",
+                "Grunting",
+                "Shallow breathing",
+                "Shortness of breath (dyspnea)",
+                "Difficulty catching breath",
+                "Inability to take a deep breath",
+                "Constant feeling of not getting enough air",
+                "Feeling like suffocating / gasping for air",
+                "Breathlessness that awakens you from sleep",
+                "Orthopnea (difficulty breathing unless sitting upright)",
+                "Rapid breathing (tachypnea)",
+                "Increased work of breathing (retractions)",
+                "Wheezing",
+                "Stridor",
+                "Crepitus (crackling under the skin)",
+                "Rattling noises (rales/rhonchi)",
+                "Bronchial breathing (increased peripheral breath sounds)",
+                "Noisy / funny-sounding breathing",
+                "Dry cough (persistent / chronic)",
+                "Cough worse in the morning",
+                "Cough with yellow, green, thick, or bloody mucus",
+                "Coughing up frothy mucus",
+                "Coughing up blood (hemoptysis)",
+                "Sore throat",
+                "Nasal congestion",
+                "Runny nose",
+                "Hoarseness",
+                "Difficulty swallowing (dysphagia)",
+                "Loss of / altered smell or taste (anosmia/dysgeusia)",
+                "Recurring respiratory infections (bronchitis, pneumonia)",
+                "Chest pain, pressure, tightness, or heaviness",
+                "Pain on one side of the chest",
+                "Back pain associated with breathing",
+                "Rapid heart rate (tachycardia)",
+                "Heart palpitations / fluttering",
+                "Loud heartbeat sound (pulmonary hypertension)",
+                "Bluish, gray, or white skin, lips, or nails (cyanosis)",
+                "Swelling in legs, feet, belly, or skin (edema)",
+                "Anxiety",
+                "Confusion / altered mental state",
+                "Depression",
+                "Difficulty sleeping (insomnia)",
+                "Dizziness",
+                "Fainting (syncope)",
+                "Headaches",
+                "Inability to wake up or stay awake",
+                "Trouble thinking or focusing (\"brain fog\")",
+                "Fatigue",
+                "Fever (up to 105°F / 40°C)",
+                "Low body temperature (hypothermia)",
+                "Chills / sweating",
+                "Muscle pain / body aches",
+                "Unexplained weight loss",
+                "Clubbed fingers",
+                "Barrel-shaped chest",
+                "Irritability",
+                "Listlessness / lethargy",
+                "Low muscle tone (\"floppy\")",
+                "Refusal to feed or drink",
+                "Abdominal pain / belly aches",
+                "Gas / bloating",
+                "Loss of appetite",
+                "Nausea and vomiting",
+                "Diarrhea",
+                "Visible lump or bulge (hernia signs)"
+            ],
+            "x-enum-varnames": [
+                "SymptomApnea",
+                "SymptomGrunting",
+                "SymptomShallowBreathing",
+                "SymptomShortnessOfBreath",
+                "SymptomCatchingBreath",
+                "SymptomDeepBreath",
+                "SymptomAirHunger",
+                "SymptomSuffocation",
+                "SymptomNocturnalDyspnea",
+                "SymptomOrthopnea",
+                "SymptomTachypnea",
+                "SymptomRetractions",
+                "SymptomWheezing",
+                "SymptomStridor",
+                "SymptomCrepitus",
+                "SymptomRalesRhonchi",
+                "SymptomBronchialBreathing",
+                "SymptomNoisyBreathing",
+                "SymptomDryCough",
+                "SymptomMorningCough",
+                "SymptomProductiveCough",
+                "SymptomFrothyMucus",
+                "SymptomHemoptysis",
+                "SymptomSoreThroat",
+                "SymptomNasalCongestion",
+                "SymptomRunnyNose",
+                "SymptomHoarseness",
+                "SymptomDysphagia",
+                "SymptomAnosmiaDysgeusia",
+                "SymptomRecurrentInfections",
+                "SymptomChestPain",
+                "SymptomUnilateralPain",
+                "SymptomBackPain",
+                "SymptomTachycardia",
+                "SymptomPalpitations",
+                "SymptomLoudHeartbeat",
+                "SymptomCyanosis",
+                "SymptomEdema",
+                "SymptomAnxiety",
+                "SymptomConfusion",
+                "SymptomDepression",
+                "SymptomInsomnia",
+                "SymptomDizziness",
+                "SymptomSyncope",
+                "SymptomHeadaches",
+                "SymptomUnableToWake",
+                "SymptomBrainFog",
+                "SymptomFatigue",
+                "SymptomFever",
+                "SymptomHypothermia",
+                "SymptomChills",
+                "SymptomMuscleAches",
+                "SymptomWeightLoss",
+                "SymptomClubbedFingers",
+                "SymptomBarrelChest",
+                "SymptomIrritability",
+                "SymptomLethargy",
+                "SymptomHypotonia",
+                "SymptomPoorFeeding",
+                "SymptomAbdominalPain",
+                "SymptomGasBloating",
+                "SymptomAppetiteLoss",
+                "SymptomNauseaVomiting",
+                "SymptomDiarrhea",
+                "SymptomHerniaBulge"
+            ]
         }
     }
 }
