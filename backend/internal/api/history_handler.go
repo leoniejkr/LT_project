@@ -1,7 +1,6 @@
 package api
 
 import (
-	"backend/internal/analysis"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -25,7 +24,7 @@ func (h *Handler) ListPatients(w http.ResponseWriter, r *http.Request) {
 	result := make([]PatientSummary, 0, len(patients))
 	for _, p := range patients {
 		if _, err := h.analysisService.GetPatientAnalysis(p.ID); err == nil {
-			result = append(result, PatientSummary{ID: p.ID, Age: p.Age, Gender: p.Gender})
+			result = append(result, PatientSummary{ID: p.ID, Age: p.Age, Gender: string(p.Gender)})
 		}
 	}
 	json.NewEncoder(w).Encode(result)
@@ -57,10 +56,9 @@ func (h *Handler) GetPatientAnalysis(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Analysis not found", http.StatusNotFound)
 		return
 	}
-	response := analysis.PredictionResponse{
-		Status: a.Status, ModelVersion: a.ModelVersion, Predictions: a.Predictions, ImageResults: a.ImageResults,
-	}
-	json.NewEncoder(w).Encode(PatientAnalysisResponse{Status: "success", Patient: p, Analysis: &response})
+	json.NewEncoder(w).Encode(PatientAnalysisResponse{
+		Status: "success", Patient: newPatientResponse(p), Analysis: newAnalysisResponseFromStored(a),
+	})
 }
 
 // GetPatientImage godoc

@@ -41,7 +41,7 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 // @Produce      json
 // @Param        formData  formData  string  true  "Patient data as JSON (age, gender, symptoms, history)"
 // @Param        image_files  formData  []file  true  "X-Ray PNG images"
-// @Success      200  {object}  map[string]interface{}  "Successful analysis"
+// @Success      200  {object}  AnalysisResultResponse  "Successful analysis"
 // @Failure      400  {object}  string  "Invalid request"
 // @Failure      500  {object}  map[string]interface{}  "Analysis or server error"
 // @Router       /analysis [post]
@@ -118,10 +118,8 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{
-		"status":   "success",
-		"patient":  createdPatient,
-		"analysis": analysisResp,
+	json.NewEncoder(w).Encode(AnalysisResultResponse{
+		Status: "success", Patient: newPatientResponse(createdPatient), Analysis: newAnalysisResponseFromModel(analysisResp),
 	})
 }
 
@@ -171,13 +169,13 @@ func buildContextMessage(context map[string]any) (chat.Message, bool) {
 // @Tags         chat
 // @Accept       json
 // @Produce      json
-// @Param        request  body  chat.UserChatRequest  true  "Chat request with message, history, and context"
+// @Param        request  body  ChatRequest  true  "Chat request with message, history, and context"
 // @Success      200  {object}  map[string]string  "AI reply"
 // @Failure      400  {object}  string  "Invalid request or missing message"
 // @Failure      502  {object}  map[string]string  "Chat service error"
 // @Router       /chat [post]
 func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
-	var req chat.UserChatRequest
+	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
 		return
