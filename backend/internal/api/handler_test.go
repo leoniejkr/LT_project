@@ -67,7 +67,7 @@ func setupHandler(t *testing.T, llmHandler http.HandlerFunc) (*Handler, *httptes
 func defaultLLMHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(analysis.PredictionResponse{
+		json.NewEncoder(w).Encode(analysis.ModelPredictionResponse{
 			Status:       "success",
 			ModelVersion: "v1.0",
 			Predictions: analysis.Predictions{
@@ -435,8 +435,8 @@ func TestHistoryEndpoints_ReturnPersistedAnalysis(t *testing.T) {
 		t.Fatalf("detail status = %d, want 200", detailW.Code)
 	}
 	var detail struct {
-		Patient  patient.Patient             `json:"patient"`
-		Analysis analysis.PredictionResponse `json:"analysis"`
+		Patient  patient.Patient  `json:"patient"`
+		Analysis AnalysisResponse `json:"analysis"`
 	}
 	if err := json.NewDecoder(detailW.Body).Decode(&detail); err != nil {
 		t.Fatalf("decode detail: %v", err)

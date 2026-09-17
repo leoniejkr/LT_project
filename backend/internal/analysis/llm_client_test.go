@@ -11,8 +11,8 @@ import (
 )
 
 func TestGetPrediction_Success(t *testing.T) {
-	expected := PredictionResponse{
-		Status:      "success",
+	expected := ModelPredictionResponse{
+		Status:       "success",
 		ModelVersion: "v1.0",
 		Predictions: Predictions{
 			{Class: "Pneumonia", Confidence: 0.92, Reason: "Test reason"},
@@ -65,7 +65,7 @@ func TestGetPrediction_Success(t *testing.T) {
 func TestGetPrediction_NoImages(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(PredictionResponse{Status: "success"})
+		json.NewEncoder(w).Encode(ModelPredictionResponse{Status: "success"})
 	}))
 	defer server.Close()
 
@@ -151,7 +151,7 @@ func TestGetPrediction_MultipleImages(t *testing.T) {
 			t.Errorf("expected 2 files, got %d", len(files))
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(PredictionResponse{Status: "success"})
+		json.NewEncoder(w).Encode(ModelPredictionResponse{Status: "success"})
 	}))
 	defer server.Close()
 

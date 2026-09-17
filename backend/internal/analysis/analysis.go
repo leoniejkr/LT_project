@@ -79,7 +79,9 @@ type Analysis struct {
 	ImageResults     ImageResults `gorm:"type:jsonb" json:"imageResults"`
 }
 
-type PredictionResponse struct {
+// ModelPredictionResponse is the response contract of the modelling service.
+// API handlers map it to their own response DTOs before sending it to clients.
+type ModelPredictionResponse struct {
 	Status       string       `json:"status"`
 	ModelVersion string       `json:"model_version"`
 	Predictions  Predictions  `json:"predictions"`

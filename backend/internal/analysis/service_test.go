@@ -27,7 +27,7 @@ func testHeatmapPNG(t *testing.T) []byte {
 	return buf.Bytes()
 }
 
-func setupServiceTest(t *testing.T, llmResponse PredictionResponse) (*Service, *httptest.Server) {
+func setupServiceTest(t *testing.T, llmResponse ModelPredictionResponse) (*Service, *httptest.Server) {
 	t.Helper()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
@@ -55,7 +55,7 @@ func setupServiceTest(t *testing.T, llmResponse PredictionResponse) (*Service, *
 }
 
 func TestGetAnalysis_Success(t *testing.T) {
-	llmResp := PredictionResponse{
+	llmResp := ModelPredictionResponse{
 		Status:       "success",
 		ModelVersion: "v1.0",
 		Predictions: Predictions{
@@ -80,7 +80,7 @@ func TestGetAnalysis_Success(t *testing.T) {
 }
 
 func TestGetAnalysis_PersistsToDB(t *testing.T) {
-	llmResp := PredictionResponse{
+	llmResp := ModelPredictionResponse{
 		Status:       "success",
 		ModelVersion: "v1.0",
 		Predictions: Predictions{
@@ -113,7 +113,7 @@ func TestGetAnalysis_PersistsToDB(t *testing.T) {
 }
 
 func TestGetAnalysis_PersistsTopPrediction(t *testing.T) {
-	llmResp := PredictionResponse{
+	llmResp := ModelPredictionResponse{
 		Status: "success",
 		Predictions: Predictions{
 			{Class: "First", Confidence: 0.95, Reason: "Top prediction"},
@@ -139,7 +139,7 @@ func TestGetAnalysis_PersistsTopPrediction(t *testing.T) {
 }
 
 func TestGetAnalysis_EmptyPredictions(t *testing.T) {
-	llmResp := PredictionResponse{
+	llmResp := ModelPredictionResponse{
 		Status:      "success",
 		Predictions: Predictions{},
 	}
@@ -180,7 +180,7 @@ func TestGetAnalysis_LLMError(t *testing.T) {
 }
 
 func TestServiceDeletePatientAnalysis(t *testing.T) {
-	llmResp := PredictionResponse{
+	llmResp := ModelPredictionResponse{
 		Status:      "success",
 		Predictions: Predictions{{Class: "X", Confidence: 0.9}},
 	}
@@ -201,7 +201,7 @@ func TestServiceDeletePatientAnalysis(t *testing.T) {
 }
 
 func TestPersistAnalysis_PreservesAllFields(t *testing.T) {
-	llmResp := PredictionResponse{
+	llmResp := ModelPredictionResponse{
 		Status:       "success",
 		ModelVersion: "v2.0",
 		Predictions: Predictions{
@@ -240,7 +240,7 @@ func TestPersistAnalysis_PreservesAllFields(t *testing.T) {
 
 func TestGetAnalysis_StoresHeatmapsInOrthanc(t *testing.T) {
 	heatmapPNG := testHeatmapPNG(t)
-	llmResp := PredictionResponse{
+	llmResp := ModelPredictionResponse{
 		Status: "success",
 		Predictions: Predictions{
 			{Class: "Pneumonia", Confidence: 0.92},

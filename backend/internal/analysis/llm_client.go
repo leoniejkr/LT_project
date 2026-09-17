@@ -22,7 +22,7 @@ func NewLLMClient() *LLMClient {
 	return &LLMClient{client: httpclient.New(baseURL)}
 }
 
-func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*PredictionResponse, error) {
+func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*ModelPredictionResponse, error) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
@@ -61,7 +61,7 @@ func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageN
 		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
-	var result PredictionResponse
+	var result ModelPredictionResponse
 	if err := c.client.Post("/predict", writer.FormDataContentType(), &body, &result); err != nil {
 		return nil, fmt.Errorf("failed to call modelling service: %w", err)
 	}

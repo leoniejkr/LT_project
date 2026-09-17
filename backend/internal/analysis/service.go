@@ -21,7 +21,7 @@ func NewService(repo *Repository, llmClient *LLMClient, orthancStore *orthanc.Re
 	}
 }
 
-func (s *Service) GetAnalysis(patientID uint, patientData any, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*PredictionResponse, error) {
+func (s *Service) GetAnalysis(patientID uint, patientData any, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*ModelPredictionResponse, error) {
 	resp, err := s.llmClient.GetPrediction(patientData, imageBuffers, imageNames, classifierModel, llmModel)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func (s *Service) GetAnalysis(patientID uint, patientData any, imageBuffers [][]
 	return resp, nil
 }
 
-func (s *Service) storeHeatmaps(patientID uint, resp *PredictionResponse) {
+func (s *Service) storeHeatmaps(patientID uint, resp *ModelPredictionResponse) {
 	patientName := fmt.Sprintf("Patient_%d", patientID)
 	patientIDStr := fmt.Sprintf("%d", patientID)
 
@@ -63,7 +63,7 @@ func (s *Service) storeHeatmaps(patientID uint, resp *PredictionResponse) {
 	}
 }
 
-func (s *Service) persistAnalysis(patientID uint, resp *PredictionResponse) error {
+func (s *Service) persistAnalysis(patientID uint, resp *ModelPredictionResponse) error {
 	var prediction string
 	var confidence float64
 	var confidenceReason string
