@@ -166,8 +166,16 @@ class SingleViewXRayDataset(Dataset):
 
 
 if __name__ == '__main__':
-    os.environ["WANDB_RETRY_MAX_TIMEOUT"] = "7200"
-    
+    # ── wandb reconnect hardening ──────────────────────────────────────────
+    # wandb pushes metrics through a background thread that retries network
+    # sends with exponential backoff when the connection drops. The defaults
+    # give up quickly; raise them so a multi-hour training keeps reconnecting
+    # (up to 2h delay between attempts, effectively never exhausting retries)
+    # instead of silently dropping the run after a short network blip.
+    os.environ.setdefault("WANDB_RETRY_MIN_TIMEOUT", "10")
+    os.environ.setdefault("WANDB_RETRY_MAX_TIMEOUT", "7200")
+    os.environ.setdefault("WANDB_RETRY_NUMBER", "99999")
+
     wandb.init(
         project="hybrid-xray-covid", 
         name="convnext-384px", 
@@ -390,8 +398,15 @@ if __name__ == '__main__':
         except Exception as e:
             print(f"[WandB Warning] Failed to log metrics due to network issue: {e}")
             print("Training will continue locally; wandb will attempt background reconnection.")
+            print("If the connection is back, the next epoch's log will flush the queue.")
 
     torch.save(model.state_dict(), "checkpoint.pth")
     print("Model weights successfully saved locally to checkpoint.pth!")
 
-    wandb.finish()
+    try:
+        wandb.finish()
+    except Exception as e:
+        # Trained weights are saved above; never let a wandb teardown failure
+        # mask a completed training run.
+        print(f"[WandB Warning] finish() failed (likely connectivity): {e}")
+        print("Metrics may sync later via `wandb sync`.")
