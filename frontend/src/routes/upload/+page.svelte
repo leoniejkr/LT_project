@@ -25,8 +25,9 @@
 	import {
 		analysisResult,
 		patientMetadata,
-		uploadedFileUrls,
+		imageUrls,
 	} from "$lib/stores.js";
+	import { patientImageUrl, withPersistedImageUrls } from "$lib/persisted-images";
 	import { classifierModel, llmModel } from "$lib/models";
 	import "../../app.css";
 	import {
@@ -120,9 +121,6 @@
 		analysisController?.abort();
 		analysisController = null;
 		showAnalysisPanel = false;
-		fetch("/api/analysis", { method: "DELETE" }).catch((e) =>
-			console.error("Failed to clean up data after abort:", e),
-		);
 	}
 
 	async function startAnalysis() {
@@ -135,12 +133,6 @@
 			dialogMessage = "Please fill in age and gender.";
 			showDialog = true;
 			return;
-		}
-
-		try {
-			await fetch("/api/analysis", { method: "DELETE" });
-		} catch (e) {
-			console.error("Failed to delete previous data:", e);
 		}
 
 		const formData = new FormData();
@@ -182,10 +174,13 @@
 				return;
 			}
 
-			analysisResult.set(result);
-			patientMetadata.set(result.patient ?? metadata);
-			uploadedFileUrls.set(
-				Array.from(files ?? []).map((f) => URL.createObjectURL(f)),
+			const persistedResult = withPersistedImageUrls(result);
+			analysisResult.set(persistedResult);
+			patientMetadata.set(persistedResult.patient ?? metadata);
+			imageUrls.set(
+				(persistedResult.patient?.orthancIDs ?? []).map((imageId) =>
+					patientImageUrl(persistedResult.patient.id, imageId),
+				),
 			);
 			goto("/result");
 		} catch (error) {
