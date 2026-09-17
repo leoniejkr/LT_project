@@ -1,6 +1,44 @@
 basePath: /
 definitions:
-  analysis.ImagePrediction:
+  api.AnalysisResponse:
+    properties:
+      image_results:
+        items:
+          $ref: '#/definitions/api.ImageResult'
+        type: array
+      model_version:
+        type: string
+      predictions:
+        items:
+          $ref: '#/definitions/api.Prediction'
+        type: array
+      status:
+        type: string
+    type: object
+  api.AnalysisResultResponse:
+    properties:
+      analysis:
+        $ref: '#/definitions/api.AnalysisResponse'
+      patient:
+        $ref: '#/definitions/api.PatientResponse'
+      status:
+        type: string
+    type: object
+  api.ChatRequest:
+    properties:
+      context:
+        additionalProperties: {}
+        type: object
+      history:
+        items:
+          $ref: '#/definitions/chat.Message'
+        type: array
+      message:
+        type: string
+      model:
+        type: string
+    type: object
+  api.ImagePrediction:
     properties:
       class:
         type: string
@@ -11,7 +49,7 @@ definitions:
       orthancId:
         type: string
     type: object
-  analysis.ImageResult:
+  api.ImageResult:
     properties:
       filename:
         type: string
@@ -19,10 +57,49 @@ definitions:
         type: integer
       predictions:
         items:
-          $ref: '#/definitions/analysis.ImagePrediction'
+          $ref: '#/definitions/api.ImagePrediction'
         type: array
     type: object
-  analysis.Prediction:
+  api.PatientAnalysisResponse:
+    properties:
+      analysis:
+        $ref: '#/definitions/api.AnalysisResponse'
+      patient:
+        $ref: '#/definitions/api.PatientResponse'
+      status:
+        type: string
+    type: object
+  api.PatientResponse:
+    properties:
+      age:
+        type: integer
+      gender:
+        type: string
+      history:
+        items:
+          type: string
+        type: array
+      id:
+        type: integer
+      orthancIDs:
+        items:
+          type: string
+        type: array
+      symptoms:
+        items:
+          type: string
+        type: array
+    type: object
+  api.PatientSummary:
+    properties:
+      age:
+        type: integer
+      gender:
+        type: string
+      id:
+        type: integer
+    type: object
+  api.Prediction:
     properties:
       class:
         type: string
@@ -30,39 +107,6 @@ definitions:
         type: number
       reason:
         type: string
-    type: object
-  analysis.PredictionResponse:
-    properties:
-      image_results:
-        items:
-          $ref: '#/definitions/analysis.ImageResult'
-        type: array
-      model_version:
-        type: string
-      predictions:
-        items:
-          $ref: '#/definitions/analysis.Prediction'
-        type: array
-      status:
-        type: string
-    type: object
-  api.PatientAnalysisResponse:
-    properties:
-      analysis:
-        $ref: '#/definitions/analysis.PredictionResponse'
-      patient:
-        $ref: '#/definitions/patient.Patient'
-      status:
-        type: string
-    type: object
-  api.PatientSummary:
-    properties:
-      age:
-        type: integer
-      gender:
-        $ref: '#/definitions/patient.Gender'
-      id:
-        type: integer
     type: object
   chat.Message:
     properties:
@@ -81,185 +125,6 @@ definitions:
     - UserRole
     - AssistantRole
     - SystemRole
-  chat.UserChatRequest:
-    properties:
-      context:
-        additionalProperties: {}
-        type: object
-      history:
-        items:
-          $ref: '#/definitions/chat.Message'
-        type: array
-      message:
-        type: string
-      model:
-        type: string
-    type: object
-  patient.Gender:
-    enum:
-    - Female
-    - Male
-    - Diverse
-    type: string
-    x-enum-varnames:
-    - GenderFemale
-    - GenderMale
-    - GenderDiverse
-  patient.Patient:
-    properties:
-      age:
-        type: integer
-      gender:
-        $ref: '#/definitions/patient.Gender'
-      history:
-        items:
-          type: string
-        type: array
-      id:
-        type: integer
-      orthancIDs:
-        items:
-          type: string
-        type: array
-      symptoms:
-        items:
-          $ref: '#/definitions/patient.Symptom'
-        type: array
-    type: object
-  patient.Symptom:
-    enum:
-    - Pauses in breathing (apnea)
-    - Grunting
-    - Shallow breathing
-    - Shortness of breath (dyspnea)
-    - Difficulty catching breath
-    - Inability to take a deep breath
-    - Constant feeling of not getting enough air
-    - Feeling like suffocating / gasping for air
-    - Breathlessness that awakens you from sleep
-    - Orthopnea (difficulty breathing unless sitting upright)
-    - Rapid breathing (tachypnea)
-    - Increased work of breathing (retractions)
-    - Wheezing
-    - Stridor
-    - Crepitus (crackling under the skin)
-    - Rattling noises (rales/rhonchi)
-    - Bronchial breathing (increased peripheral breath sounds)
-    - Noisy / funny-sounding breathing
-    - Dry cough (persistent / chronic)
-    - Cough worse in the morning
-    - Cough with yellow, green, thick, or bloody mucus
-    - Coughing up frothy mucus
-    - Coughing up blood (hemoptysis)
-    - Sore throat
-    - Nasal congestion
-    - Runny nose
-    - Hoarseness
-    - Difficulty swallowing (dysphagia)
-    - Loss of / altered smell or taste (anosmia/dysgeusia)
-    - Recurring respiratory infections (bronchitis, pneumonia)
-    - Chest pain, pressure, tightness, or heaviness
-    - Pain on one side of the chest
-    - Back pain associated with breathing
-    - Rapid heart rate (tachycardia)
-    - Heart palpitations / fluttering
-    - Loud heartbeat sound (pulmonary hypertension)
-    - Bluish, gray, or white skin, lips, or nails (cyanosis)
-    - Swelling in legs, feet, belly, or skin (edema)
-    - Anxiety
-    - Confusion / altered mental state
-    - Depression
-    - Difficulty sleeping (insomnia)
-    - Dizziness
-    - Fainting (syncope)
-    - Headaches
-    - Inability to wake up or stay awake
-    - Trouble thinking or focusing ("brain fog")
-    - Fatigue
-    - Fever (up to 105°F / 40°C)
-    - Low body temperature (hypothermia)
-    - Chills / sweating
-    - Muscle pain / body aches
-    - Unexplained weight loss
-    - Clubbed fingers
-    - Barrel-shaped chest
-    - Irritability
-    - Listlessness / lethargy
-    - Low muscle tone ("floppy")
-    - Refusal to feed or drink
-    - Abdominal pain / belly aches
-    - Gas / bloating
-    - Loss of appetite
-    - Nausea and vomiting
-    - Diarrhea
-    - Visible lump or bulge (hernia signs)
-    type: string
-    x-enum-varnames:
-    - SymptomApnea
-    - SymptomGrunting
-    - SymptomShallowBreathing
-    - SymptomShortnessOfBreath
-    - SymptomCatchingBreath
-    - SymptomDeepBreath
-    - SymptomAirHunger
-    - SymptomSuffocation
-    - SymptomNocturnalDyspnea
-    - SymptomOrthopnea
-    - SymptomTachypnea
-    - SymptomRetractions
-    - SymptomWheezing
-    - SymptomStridor
-    - SymptomCrepitus
-    - SymptomRalesRhonchi
-    - SymptomBronchialBreathing
-    - SymptomNoisyBreathing
-    - SymptomDryCough
-    - SymptomMorningCough
-    - SymptomProductiveCough
-    - SymptomFrothyMucus
-    - SymptomHemoptysis
-    - SymptomSoreThroat
-    - SymptomNasalCongestion
-    - SymptomRunnyNose
-    - SymptomHoarseness
-    - SymptomDysphagia
-    - SymptomAnosmiaDysgeusia
-    - SymptomRecurrentInfections
-    - SymptomChestPain
-    - SymptomUnilateralPain
-    - SymptomBackPain
-    - SymptomTachycardia
-    - SymptomPalpitations
-    - SymptomLoudHeartbeat
-    - SymptomCyanosis
-    - SymptomEdema
-    - SymptomAnxiety
-    - SymptomConfusion
-    - SymptomDepression
-    - SymptomInsomnia
-    - SymptomDizziness
-    - SymptomSyncope
-    - SymptomHeadaches
-    - SymptomUnableToWake
-    - SymptomBrainFog
-    - SymptomFatigue
-    - SymptomFever
-    - SymptomHypothermia
-    - SymptomChills
-    - SymptomMuscleAches
-    - SymptomWeightLoss
-    - SymptomClubbedFingers
-    - SymptomBarrelChest
-    - SymptomIrritability
-    - SymptomLethargy
-    - SymptomHypotonia
-    - SymptomPoorFeeding
-    - SymptomAbdominalPain
-    - SymptomGasBloating
-    - SymptomAppetiteLoss
-    - SymptomNauseaVomiting
-    - SymptomDiarrhea
-    - SymptomHerniaBulge
 host: localhost:8080
 info:
   contact: {}
@@ -311,8 +176,7 @@ paths:
         "200":
           description: Successful analysis
           schema:
-            additionalProperties: true
-            type: object
+            $ref: '#/definitions/api.AnalysisResultResponse'
         "400":
           description: Invalid request
           schema:
@@ -336,7 +200,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/chat.UserChatRequest'
+          $ref: '#/definitions/api.ChatRequest'
       produces:
       - application/json
       responses:

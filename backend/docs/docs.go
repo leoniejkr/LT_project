@@ -52,8 +52,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Successful analysis",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "$ref": "#/definitions/api.AnalysisResultResponse"
                         }
                     },
                     "400": {
@@ -119,7 +118,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/chat.UserChatRequest"
+                            "$ref": "#/definitions/api.ChatRequest"
                         }
                     }
                 ],
@@ -277,7 +276,65 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "analysis.ImagePrediction": {
+        "api.AnalysisResponse": {
+            "type": "object",
+            "properties": {
+                "image_results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ImageResult"
+                    }
+                },
+                "model_version": {
+                    "type": "string"
+                },
+                "predictions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.Prediction"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.AnalysisResultResponse": {
+            "type": "object",
+            "properties": {
+                "analysis": {
+                    "$ref": "#/definitions/api.AnalysisResponse"
+                },
+                "patient": {
+                    "$ref": "#/definitions/api.PatientResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ChatRequest": {
+            "type": "object",
+            "properties": {
+                "context": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/chat.Message"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ImagePrediction": {
             "type": "object",
             "properties": {
                 "class": {
@@ -294,7 +351,7 @@ const docTemplate = `{
                 }
             }
         },
-        "analysis.ImageResult": {
+        "api.ImageResult": {
             "type": "object",
             "properties": {
                 "filename": {
@@ -306,45 +363,8 @@ const docTemplate = `{
                 "predictions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/analysis.ImagePrediction"
+                        "$ref": "#/definitions/api.ImagePrediction"
                     }
-                }
-            }
-        },
-        "analysis.Prediction": {
-            "type": "object",
-            "properties": {
-                "class": {
-                    "type": "string"
-                },
-                "confidence": {
-                    "type": "number"
-                },
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "analysis.PredictionResponse": {
-            "type": "object",
-            "properties": {
-                "image_results": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/analysis.ImageResult"
-                    }
-                },
-                "model_version": {
-                    "type": "string"
-                },
-                "predictions": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/analysis.Prediction"
-                    }
-                },
-                "status": {
-                    "type": "string"
                 }
             }
         },
@@ -352,13 +372,45 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "analysis": {
-                    "$ref": "#/definitions/analysis.PredictionResponse"
+                    "$ref": "#/definitions/api.AnalysisResponse"
                 },
                 "patient": {
-                    "$ref": "#/definitions/patient.Patient"
+                    "$ref": "#/definitions/api.PatientResponse"
                 },
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "api.PatientResponse": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "orthancIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "symptoms": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -369,10 +421,24 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "gender": {
-                    "$ref": "#/definitions/patient.Gender"
+                    "type": "string"
                 },
                 "id": {
                     "type": "integer"
+                }
+            }
+        },
+        "api.Prediction": {
+            "type": "object",
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "reason": {
+                    "type": "string"
                 }
             }
         },
@@ -398,209 +464,6 @@ const docTemplate = `{
                 "UserRole",
                 "AssistantRole",
                 "SystemRole"
-            ]
-        },
-        "chat.UserChatRequest": {
-            "type": "object",
-            "properties": {
-                "context": {
-                    "type": "object",
-                    "additionalProperties": {}
-                },
-                "history": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/chat.Message"
-                    }
-                },
-                "message": {
-                    "type": "string"
-                },
-                "model": {
-                    "type": "string"
-                }
-            }
-        },
-        "patient.Gender": {
-            "type": "string",
-            "enum": [
-                "Female",
-                "Male",
-                "Diverse"
-            ],
-            "x-enum-varnames": [
-                "GenderFemale",
-                "GenderMale",
-                "GenderDiverse"
-            ]
-        },
-        "patient.Patient": {
-            "type": "object",
-            "properties": {
-                "age": {
-                    "type": "integer"
-                },
-                "gender": {
-                    "$ref": "#/definitions/patient.Gender"
-                },
-                "history": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "orthancIDs": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "symptoms": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/patient.Symptom"
-                    }
-                }
-            }
-        },
-        "patient.Symptom": {
-            "type": "string",
-            "enum": [
-                "Pauses in breathing (apnea)",
-                "Grunting",
-                "Shallow breathing",
-                "Shortness of breath (dyspnea)",
-                "Difficulty catching breath",
-                "Inability to take a deep breath",
-                "Constant feeling of not getting enough air",
-                "Feeling like suffocating / gasping for air",
-                "Breathlessness that awakens you from sleep",
-                "Orthopnea (difficulty breathing unless sitting upright)",
-                "Rapid breathing (tachypnea)",
-                "Increased work of breathing (retractions)",
-                "Wheezing",
-                "Stridor",
-                "Crepitus (crackling under the skin)",
-                "Rattling noises (rales/rhonchi)",
-                "Bronchial breathing (increased peripheral breath sounds)",
-                "Noisy / funny-sounding breathing",
-                "Dry cough (persistent / chronic)",
-                "Cough worse in the morning",
-                "Cough with yellow, green, thick, or bloody mucus",
-                "Coughing up frothy mucus",
-                "Coughing up blood (hemoptysis)",
-                "Sore throat",
-                "Nasal congestion",
-                "Runny nose",
-                "Hoarseness",
-                "Difficulty swallowing (dysphagia)",
-                "Loss of / altered smell or taste (anosmia/dysgeusia)",
-                "Recurring respiratory infections (bronchitis, pneumonia)",
-                "Chest pain, pressure, tightness, or heaviness",
-                "Pain on one side of the chest",
-                "Back pain associated with breathing",
-                "Rapid heart rate (tachycardia)",
-                "Heart palpitations / fluttering",
-                "Loud heartbeat sound (pulmonary hypertension)",
-                "Bluish, gray, or white skin, lips, or nails (cyanosis)",
-                "Swelling in legs, feet, belly, or skin (edema)",
-                "Anxiety",
-                "Confusion / altered mental state",
-                "Depression",
-                "Difficulty sleeping (insomnia)",
-                "Dizziness",
-                "Fainting (syncope)",
-                "Headaches",
-                "Inability to wake up or stay awake",
-                "Trouble thinking or focusing (\"brain fog\")",
-                "Fatigue",
-                "Fever (up to 105°F / 40°C)",
-                "Low body temperature (hypothermia)",
-                "Chills / sweating",
-                "Muscle pain / body aches",
-                "Unexplained weight loss",
-                "Clubbed fingers",
-                "Barrel-shaped chest",
-                "Irritability",
-                "Listlessness / lethargy",
-                "Low muscle tone (\"floppy\")",
-                "Refusal to feed or drink",
-                "Abdominal pain / belly aches",
-                "Gas / bloating",
-                "Loss of appetite",
-                "Nausea and vomiting",
-                "Diarrhea",
-                "Visible lump or bulge (hernia signs)"
-            ],
-            "x-enum-varnames": [
-                "SymptomApnea",
-                "SymptomGrunting",
-                "SymptomShallowBreathing",
-                "SymptomShortnessOfBreath",
-                "SymptomCatchingBreath",
-                "SymptomDeepBreath",
-                "SymptomAirHunger",
-                "SymptomSuffocation",
-                "SymptomNocturnalDyspnea",
-                "SymptomOrthopnea",
-                "SymptomTachypnea",
-                "SymptomRetractions",
-                "SymptomWheezing",
-                "SymptomStridor",
-                "SymptomCrepitus",
-                "SymptomRalesRhonchi",
-                "SymptomBronchialBreathing",
-                "SymptomNoisyBreathing",
-                "SymptomDryCough",
-                "SymptomMorningCough",
-                "SymptomProductiveCough",
-                "SymptomFrothyMucus",
-                "SymptomHemoptysis",
-                "SymptomSoreThroat",
-                "SymptomNasalCongestion",
-                "SymptomRunnyNose",
-                "SymptomHoarseness",
-                "SymptomDysphagia",
-                "SymptomAnosmiaDysgeusia",
-                "SymptomRecurrentInfections",
-                "SymptomChestPain",
-                "SymptomUnilateralPain",
-                "SymptomBackPain",
-                "SymptomTachycardia",
-                "SymptomPalpitations",
-                "SymptomLoudHeartbeat",
-                "SymptomCyanosis",
-                "SymptomEdema",
-                "SymptomAnxiety",
-                "SymptomConfusion",
-                "SymptomDepression",
-                "SymptomInsomnia",
-                "SymptomDizziness",
-                "SymptomSyncope",
-                "SymptomHeadaches",
-                "SymptomUnableToWake",
-                "SymptomBrainFog",
-                "SymptomFatigue",
-                "SymptomFever",
-                "SymptomHypothermia",
-                "SymptomChills",
-                "SymptomMuscleAches",
-                "SymptomWeightLoss",
-                "SymptomClubbedFingers",
-                "SymptomBarrelChest",
-                "SymptomIrritability",
-                "SymptomLethargy",
-                "SymptomHypotonia",
-                "SymptomPoorFeeding",
-                "SymptomAbdominalPain",
-                "SymptomGasBloating",
-                "SymptomAppetiteLoss",
-                "SymptomNauseaVomiting",
-                "SymptomDiarrhea",
-                "SymptomHerniaBulge"
             ]
         }
     }
