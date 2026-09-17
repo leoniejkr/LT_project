@@ -139,6 +139,13 @@ func (p ImagePaths) Value() (driver.Value, error) {
 	return json.Marshal(p)
 }
 
+// FileInput is the binary input accepted by the patient service when a case
+// is created. HTTP multipart parsing remains an API concern.
+type FileInput struct {
+	Name  string
+	Bytes []byte
+}
+
 type Patient struct {
 	ID         uint       `gorm:"primaryKey" json:"id"`
 	Age        uint       `gorm:"not null" json:"age"`

@@ -5,11 +5,6 @@ import (
 	"fmt"
 )
 
-type FileInput struct {
-	Name  string
-	Bytes []byte
-}
-
 type Service struct {
 	repo         *Repository
 	orthancStore *orthanc.Repository
