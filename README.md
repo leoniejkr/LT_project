@@ -12,8 +12,13 @@ On the results page, the dashboard displays heatmaps which highlight the image r
 
 ### Workflow of the application
 
+#### General information
+
 The application is build as a web app without any authentication. We decided not to implement authentication services such as Keycloak because we do not plan on hosting this application ourself, but to make it available for private and local use via Docker.
-It is divided into a frontend, which is built with Typescript and SvelteKit (on top of Vite), a backend, which is built with Golang, and a separate modelling service. 
+It is divided into a frontend, which is built with Typescript and SvelteKit (on top of Vite), a backend, which is built with Golang, and a separate modelling service. The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for medical image storage
+The OpenAPI standard in combination with Swagger are used to construct the REST API and its specification.
+
+#### User centric workflow 
 
 The user starts by uploading one or more chest X-Ray .png images and entering patient information such as age, gender, symptoms, and medical history via the upload page through the web interface. The application does not support the upload of .dcm images.
 
@@ -30,9 +35,7 @@ All analysis results and heatmap images are returned to the backend. The analysi
 
 The application presents two types of prediction results. Aggregated results and individual results, which are both accompanied with confidence scores that are measured in percentages. The aggregated results are located at the top and show the aggregated, calculated classifications over all the uploaded X-Ray images, while the individual results at the bottom show the calculated classifications for each individual X-Ray image with their respective corresponding heatmaps. The classifications are ranked according to their confidence scores. The confidence threshold for shown classifications can be modified in the GUI with a slider in the results page after the calculation. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
 
-The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for medical image storage. The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.
-
-OpenAPI in combination with Swagger are used to construct the REST API and its specification.
+The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.
 
 Right now, patient data and analysis results are deleted after every new analysis to comply with regulations. But the repository lays the ground work for future contributors to implement persistent databases, as they are already included as Dockerfiles and implementations exist in the backend.
 
