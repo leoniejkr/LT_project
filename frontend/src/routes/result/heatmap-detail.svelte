@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { browser } from "$app/environment";
     import { Badge } from "$lib/components/ui/badge/index.js";
     import { Button } from "$lib/components/ui/button/index.js";
     import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-svelte";
@@ -33,17 +32,11 @@
 
     $effect(() => {
         if (heatmapIdsByIndex.length > 0 || activePredictionIndex !== 0) return;
-        if (!browser || !open) return;
+        if (!open) return;
 
-        const ids = imageResult.predictions.map((p) => {
-            const bytes = atob(p.heatmap);
-            const arr = new Uint8Array(bytes.length);
-            for (let i = 0; i < bytes.length; i++) {
-                arr[i] = bytes.charCodeAt(i);
-            }
-            const blob = new Blob([arr], { type: "image/png" });
-            return `png:${URL.createObjectURL(blob)}`;
-        });
+        const ids = imageResult.predictions.map((p) =>
+            p.heatmap ? `png:${p.heatmap}` : "",
+        );
         heatmapIdsByIndex = ids;
     });
 </script>
