@@ -2,8 +2,9 @@
     import {
         analysisResult,
         patientMetadata,
-        uploadedFileUrls,
+        imageUrls,
     } from "$lib/stores.js";
+    import { patientImageUrl, withPersistedImageUrls } from "$lib/persisted-images";
     import { Button } from "$lib/components/ui/button/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
     import { Separator } from "$lib/components/ui/separator/index.js";
@@ -16,6 +17,8 @@
     import { Chat } from "$lib/components/ui/chat/index.js";
 
     import { goto } from "$app/navigation";
+    import { page } from "$app/state";
+    import { onMount } from "svelte";
     import {
         Stethoscope,
         FileDigit,
@@ -61,9 +64,9 @@
         analysis?.image_results ?? [],
     );
 
-    let hasImages = $derived($uploadedFileUrls.length > 0);
+    let hasImages = $derived($imageUrls.length > 0);
     let imageIds: string[] = $derived(
-        hasImages ? $uploadedFileUrls.map((url) => `png:${url}`) : [],
+        hasImages ? $imageUrls.map((url) => `png:${url}`) : [],
     );
 
     // Confidence threshold is controlled by the unified Decision Mode
@@ -181,16 +184,31 @@
     }
 
     async function startNewAnalysis() {
-        try {
-            await fetch("/api/analysis", { method: "DELETE" });
-        } catch (e) {
-            console.error("Failed to delete previous data:", e);
-        }
         analysisResult.set(null);
         patientMetadata.set(null);
-        uploadedFileUrls.set([]);
+        imageUrls.set([]);
         goto("/upload");
     }
+
+    onMount(async () => {
+        const patientId = page.url.searchParams.get("patientId");
+        if (!patientId) return;
+
+        try {
+            const response = await fetch(`/api/patients/${patientId}/analysis`);
+            if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+            const historicResult = withPersistedImageUrls(await response.json());
+            analysisResult.set(historicResult);
+            patientMetadata.set(historicResult.patient);
+            imageUrls.set(
+                (historicResult.patient?.orthancIDs ?? []).map(
+                    (imageId: string) => patientImageUrl(historicResult.patient.id, imageId),
+                ),
+            );
+        } catch (error) {
+            console.error("Failed to load historic analysis:", error);
+        }
+    });
 
     let activeImageResult = $derived(
         filteredImageResults.find((r) => r.index === activeHeatmapIndex) ??
@@ -392,7 +410,7 @@
                         </Item.Description>
                         <Item.Description class="flex items-center">
                             <Badge variant="outline">
-                                {$uploadedFileUrls.length} File(s) Uploaded
+                                {$imageUrls.length} File(s) Uploaded
                             </Badge>
                             {#if imageIds.length > 1}
                                 <Separator orientation="vertical" class="h-3" />
