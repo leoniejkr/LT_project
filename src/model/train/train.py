@@ -190,6 +190,16 @@ if __name__ == '__main__':
     df = pd.read_csv("data_hybrid/combined_master.csv", low_memory=False)
     df['patient_id'] = df['patient_id'].astype(str)
 
+    # 4a. Drop known-corrupt/truncated images (produced by verify_images.py).
+    # A single truncated PNG previously crashed a DataLoader worker and killed
+    # the whole run mid-epoch.
+    bad_images_file = "data_hybrid/bad_images.tsv"
+    if os.path.exists(bad_images_file):
+        bad = pd.read_csv(bad_images_file, sep="\t", header=None, usecols=[0])[0].tolist()
+        n_bad = len(bad)
+        df = df[~df['img_path'].isin(bad)].reset_index(drop=True)
+        print(f"Excluding {n_bad} known-corrupt images from dataset ({len(df)} remaining).")
+
     # 4b. Partial-label (loss) masks.
     # MIDRC rows only carry a Covid annotation; the other 14 findings were never
     # extracted, so 0 is "unknown", NOT a verified negative. Masking these classes
@@ -310,7 +320,18 @@ if __name__ == '__main__':
                 optimizer.zero_grad()
                 outputs = model(images)
                 loss = model.masked_loss_fn(outputs, labels, masks)
+
+                # A NaN/Inf loss (possible on MPS under memory pressure or on a
+                # corrupt sample) must never poison the model: skip the update.
+                if not torch.isfinite(loss):
+                    print(f"[Warning] Non-finite loss ({loss.item()}) at "
+                          f"epoch {epoch}; skipping weight update for this batch.")
+                    continue
+
                 loss.backward()
+                # Grad clipping: cheap insurance against one exploding gradient
+                # wiping out the whole run.
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 optimizer.step()
                 
                 running_train_loss += loss.item() * images.size(0)
