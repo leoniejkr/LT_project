@@ -1,18 +1,13 @@
 package api
 
-import (
-	"backend/internal/analysis"
-	"backend/internal/patient"
-)
-
 type PatientSummary struct {
-	ID     uint           `json:"id"`
-	Age    uint           `json:"age"`
-	Gender patient.Gender `json:"gender"`
+	ID     uint   `json:"id"`
+	Age    uint   `json:"age"`
+	Gender string `json:"gender"`
 }
 
 type PatientAnalysisResponse struct {
-	Status   string                       `json:"status"`
-	Patient  *patient.Patient             `json:"patient"`
-	Analysis *analysis.PredictionResponse `json:"analysis"`
+	Status   string           `json:"status"`
+	Patient  *PatientResponse `json:"patient"`
+	Analysis AnalysisResponse `json:"analysis"`
 }

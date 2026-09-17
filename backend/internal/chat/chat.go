@@ -13,13 +13,6 @@ type Message struct {
 	Content string `json:"content"`
 }
 
-type UserChatRequest struct {
-	Message string         `json:"message"`
-	History []Message      `json:"history"`
-	Context map[string]any `json:"context,omitempty"`
-	Model   string         `json:"model,omitempty"`
-}
-
 type ChatRequest struct {
 	Model    string    `json:"model"`
 	Messages []Message `json:"messages"`
