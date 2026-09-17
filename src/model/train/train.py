@@ -194,7 +194,7 @@ if __name__ == '__main__':
     # A single truncated PNG previously crashed a DataLoader worker and killed
     # the whole run mid-epoch.
     bad_images_file = "data_hybrid/bad_images.tsv"
-    if os.path.exists(bad_images_file):
+    if os.path.exists(bad_images_file) and os.path.getsize(bad_images_file) > 0:
         bad = pd.read_csv(bad_images_file, sep="\t", header=None, usecols=[0])[0].tolist()
         n_bad = len(bad)
         df = df[~df['img_path'].isin(bad)].reset_index(drop=True)
