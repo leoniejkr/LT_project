@@ -103,41 +103,41 @@ def load_dataset_stats(stats_path="src/model/train/dataset_stats.json"):
         return [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
 
-# 2. Patient Context Multi-Image Dataset
-class PatientContextMultiViewDataset(Dataset):
-    def __init__(self, dataframe, class_list, transform=None):
-        self.df = dataframe.reset_index(drop=True)
-        self.class_list = class_list
-        self.transform = transform
+# # 2. Patient Context Multi-Image Dataset
+# class PatientContextMultiViewDataset(Dataset):
+#     def __init__(self, dataframe, class_list, transform=None):
+#         self.df = dataframe.reset_index(drop=True)
+#         self.class_list = class_list
+#         self.transform = transform
         
-        self.patient_image_groups = self.df.groupby('patient_id')['img_path'].apply(list).to_dict()
+#         self.patient_image_groups = self.df.groupby('patient_id')['img_path'].apply(list).to_dict()
 
-    def __len__(self):
-        return len(self.df)
+#     def __len__(self):
+#         return len(self.df)
 
-    def __getitem__(self, idx):
-        row = self.df.iloc[idx]
-        pid = str(row['patient_id'])
-        primary_path = row['img_path']
+#     def __getitem__(self, idx):
+#         row = self.df.iloc[idx]
+#         pid = str(row['patient_id'])
+#         primary_path = row['img_path']
         
-        img_primary = Image.open(primary_path).convert('RGB')
+#         img_primary = Image.open(primary_path).convert('RGB')
         
-        all_patient_images = self.patient_image_groups.get(pid, [primary_path])
-        alternative_images = [path for path in all_patient_images if path != primary_path]
+#         all_patient_images = self.patient_image_groups.get(pid, [primary_path])
+#         alternative_images = [path for path in all_patient_images if path != primary_path]
         
-        if len(alternative_images) > 0:
-            context_path = alternative_images[0]
-            img_context = Image.open(context_path).convert('RGB')
-        else:
-            img_context = Image.new('RGB', img_primary.size, (0, 0, 0))
+#         if len(alternative_images) > 0:
+#             context_path = alternative_images[0]
+#             img_context = Image.open(context_path).convert('RGB')
+#         else:
+#             img_context = Image.new('RGB', img_primary.size, (0, 0, 0))
             
-        labels = torch.tensor(row[self.class_list].values.astype('float32'), dtype=torch.float32)
+#         labels = torch.tensor(row[self.class_list].values.astype('float32'), dtype=torch.float32)
         
-        if self.transform:
-            img_primary = self.transform(img_primary)
-            img_context = self.transform(img_context)
+#         if self.transform:
+#             img_primary = self.transform(img_primary)
+#             img_context = self.transform(img_context)
             
-        return img_primary, img_context, labels
+#         return img_primary, img_context, labels
 
 # 3. Simplified Single-View Dataset
 class SingleViewXRayDataset(Dataset):
