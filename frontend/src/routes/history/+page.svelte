@@ -159,7 +159,7 @@
                                                 {#snippet child({ props })}
                                                     <Button
                                                         {...props}
-                                                        variant="ghost"
+                                                        variant="outline"
                                                         size="sm"
                                                         href={`/result?patientId=${patient.id}`}
                                                         aria-label="Open analysis for patient {patient.id}"
