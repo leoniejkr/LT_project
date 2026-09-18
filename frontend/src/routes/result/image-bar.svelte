@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount, tick } from "svelte";
+    import { onMount } from "svelte";
     import { browser } from "$app/environment";
     import { generateThumbnail } from "$lib/cornerstone/thumbnail";
     import { Button } from "$lib/components/ui/button/index.js";
@@ -20,6 +20,7 @@
     let stripElement: HTMLDivElement | undefined;
     let canScrollLeft = $state(false);
     let canScrollRight = $state(false);
+    let thumbnailRequestId = 0;
 
     function updateScrollState() {
         if (!stripElement) return;
@@ -39,11 +40,23 @@
     }
 
     $effect(() => {
-        if (imageIds.length > 0) {
-            loadThumbnails();
+        const requestedImageIds = [...imageIds];
+        const requestId = ++thumbnailRequestId;
+
+        updateScrollState();
+
+        if (requestedImageIds.length > 0) {
+            void loadThumbnails(requestedImageIds, requestId);
+        } else {
+            thumbnails = new Map();
+            loading = false;
         }
 
-        void tick().then(updateScrollState);
+        return () => {
+            if (requestId === thumbnailRequestId) {
+                thumbnailRequestId += 1;
+            }
+        };
     });
 
     onMount(() => {
@@ -56,16 +69,18 @@
         return () => resizeObserver.disconnect();
     });
 
-    async function loadThumbnails() {
-        if (!browser || imageIds.length === 0) return;
+    async function loadThumbnails(requestedImageIds: string[], requestId: number) {
+        if (!browser || requestedImageIds.length === 0) return;
         loading = true;
 
         const results = await Promise.all(
-            imageIds.map(async (id) => ({
+            requestedImageIds.map(async (id) => ({
                 id,
                 dataUrl: await generateThumbnail(id, 160),
             })),
         );
+
+        if (requestId !== thumbnailRequestId) return;
 
         const map = new Map<string, string>();
         for (const r of results) {
