@@ -192,13 +192,17 @@
         goto("/upload");
     }
 
-    async function loadHistoricAnalysis(patientId: string) {
+    async function loadHistoricAnalysis(patientId: string, signal?: AbortSignal) {
         historicLoading = true;
         historicError = "";
         try {
-            const response = await fetch(`/api/patients/${patientId}/analysis`);
+            const response = await fetch(`/api/patients/${patientId}/analysis`, {
+                signal,
+            });
             if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
             const historicResult = withPersistedImageUrls(await response.json());
+            if (signal?.aborted) return;
+
             analysisResult.set(historicResult);
             patientMetadata.set(historicResult.patient);
             imageUrls.set(
@@ -207,17 +211,21 @@
                 ),
             );
         } catch (error) {
+            if (error instanceof Error && error.name === "AbortError") return;
             console.error("Failed to load historic analysis:", error);
             historicError = "The selected analysis could not be loaded.";
         } finally {
-            historicLoading = false;
+            if (!signal?.aborted) historicLoading = false;
         }
     }
 
     onMount(() => {
-        if (historicPatientId) {
-            void loadHistoricAnalysis(historicPatientId);
-        }
+        if (!historicPatientId) return;
+
+        const controller = new AbortController();
+        void loadHistoricAnalysis(historicPatientId, controller.signal);
+
+        return () => controller.abort();
     });
 
     let activeImageResult = $derived(
@@ -362,7 +370,7 @@
                             <Button
                                 variant="destructive"
                                 size="sm"
-                                onclick={() => loadHistoricAnalysis(historicPatientId)}
+                                onclick={() => void loadHistoricAnalysis(historicPatientId)}
                             >
                                 Try again
                             </Button>

@@ -19,24 +19,28 @@
     let loading = $state(true);
     let error = $state("");
 
-    async function loadPatients() {
+    async function loadPatients(signal?: AbortSignal) {
         loading = true;
         error = "";
 
         try {
-            const response = await fetch("/api/patients");
+            const response = await fetch("/api/patients", { signal });
             if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
             patients = await response.json();
         } catch (cause) {
+            if (cause instanceof Error && cause.name === "AbortError") return;
             console.error("Failed to load analysis history:", cause);
             error = "The analysis history could not be loaded.";
         } finally {
-            loading = false;
+            if (!signal?.aborted) loading = false;
         }
     }
 
     onMount(() => {
-        void loadPatients();
+        const controller = new AbortController();
+        void loadPatients(controller.signal);
+
+        return () => controller.abort();
     });
 </script>
 
@@ -109,7 +113,11 @@
                     <Alert.Title>Unable to load analysis history</Alert.Title>
                     <Alert.Description>{error}</Alert.Description>
                     <Alert.Action>
-                        <Button variant="destructive" size="sm" onclick={loadPatients}>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onclick={() => void loadPatients()}
+                        >
                             Try again
                         </Button>
                     </Alert.Action>
