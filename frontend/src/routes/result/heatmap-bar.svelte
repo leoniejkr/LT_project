@@ -48,9 +48,9 @@
         </Card.Header>
 
         <Card.Content>
-            <!-- big fixed-size panel: images stacked under each other -->
+            <!-- compact panel that only scrolls once several images exceed its maximum height -->
             <div
-                class="h-[340px] overflow-y-auto panel-scroll min-w-0 py-1 pl-1 pr-8"
+                class="panel-scroll max-h-[340px] min-w-0 overflow-y-auto py-1 pr-8 pl-1"
             >
                 {#each imageResults as imgResult}
                     <!-- per-image panel: max 85% of the SURROUNDING panel's width -->
