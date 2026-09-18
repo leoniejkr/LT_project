@@ -522,7 +522,7 @@
 		<AlertDialog.Footer>
 			<Button
 				variant="destructive"
-				class="w-full"
+				class="col-span-full w-full justify-center"
 				onclick={abortAnalysis}
 			>
 				<X /> Abort Analysis
