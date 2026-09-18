@@ -27,11 +27,14 @@
     let element: HTMLDivElement | undefined;
     let renderingEngine: cornerstone.RenderingEngine | undefined;
     let viewportReady = $state(false);
+    let renderRequestId = 0;
 
     onMount(() => {
         if (!browser) return;
 
+        let disposed = false;
         let resizeObserver: ResizeObserver | undefined;
+        let cleanupSetup: (() => void) | undefined;
 
         const setup = async () => {
             try {
@@ -43,6 +46,7 @@
                 );
                 return;
             }
+            if (disposed) return;
             if (!element) {
                 console.error("[CornerstoneViewport] element not bound");
                 return;
@@ -101,13 +105,14 @@
                 imageChangeHandler,
             );
 
-            return () => {
+            cleanupSetup = () => {
                 el.removeEventListener("contextmenu", preventContextMenu);
                 el.removeEventListener("mousedown", preventMiddleClick);
                 el.removeEventListener(
                     "CORNERSTONE_STACK_NEW_IMAGE",
                     imageChangeHandler,
                 );
+                toolGroup?.removeViewports(renderingEngineId, viewportId);
             };
         };
 
@@ -116,10 +121,17 @@
         );
 
         return () => {
-            if (resizeObserver) resizeObserver.disconnect();
-            if (renderingEngine) {
-                renderingEngine.disableElement(viewportId);
+            disposed = true;
+            viewportReady = false;
+            renderRequestId += 1;
+            cleanupSetup?.();
+            resizeObserver?.disconnect();
+
+            const engine = renderingEngine;
+            if (engine?.getViewport(viewportId)) {
+                engine.disableElement(viewportId);
             }
+            renderingEngine = undefined;
         };
     });
 
@@ -138,16 +150,30 @@
         const isNewStack = idsKey !== prevImageIdsKey;
         prevImageIdsKey = idsKey;
 
+        const requestId = ++renderRequestId;
+        const renderWhenReady = (operation: Promise<unknown>) => {
+            operation
+                .then(() => {
+                    if (requestId === renderRequestId && viewportReady) {
+                        viewport.render();
+                    }
+                })
+                .catch((error) => {
+                    if (requestId === renderRequestId && viewportReady) {
+                        console.error(
+                            "[CornerstoneViewport] image rendering failed:",
+                            error,
+                        );
+                    }
+                });
+        };
+
         if (isNewStack) {
-            viewport.setStack(imageIds, activeImageIndex).then(() => {
-                viewport.render();
-            });
+            renderWhenReady(viewport.setStack(imageIds, activeImageIndex));
         } else {
             const currentIndex = viewport.getCurrentImageIdIndex();
             if (currentIndex !== activeImageIndex) {
-                viewport.setImageIdIndex(activeImageIndex).then(() => {
-                    viewport.render();
-                });
+                renderWhenReady(viewport.setImageIdIndex(activeImageIndex));
             }
         }
     });
