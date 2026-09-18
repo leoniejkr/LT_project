@@ -8,8 +8,10 @@ export async function generateThumbnail(
     imageId: string,
     size = 120,
 ): Promise<string | null> {
-    if (cache.has(imageId)) {
-        return cache.get(imageId)!;
+    const cacheKey = `${size}:${imageId}`;
+
+    if (cache.has(cacheKey)) {
+        return cache.get(cacheKey)!;
     }
 
     if (!browser) return null;
@@ -29,7 +31,7 @@ export async function generateThumbnail(
         });
 
         const dataUrl = canvas.toDataURL();
-        cache.set(imageId, dataUrl);
+        cache.set(cacheKey, dataUrl);
         return dataUrl;
     } catch (e) {
         console.error('[Thumbnail] Failed for', imageId, e);
