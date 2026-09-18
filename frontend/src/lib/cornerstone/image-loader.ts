@@ -84,6 +84,7 @@ function loadImage(
                 color: true,
                 rgba: false,
                 numberOfComponents: 3,
+                photometricInterpretation: 'RGB',
                 columnPixelSpacing: 1,
                 rowPixelSpacing: 1,
                 invert: false,
@@ -112,9 +113,9 @@ export function registerMetaDataProvider() {
         if (type === 'imagePixelModule') {
             return {
                 pixelRepresentation: 0,
-                bitsAllocated: 24,
-                bitsStored: 24,
-                highBit: 24,
+                bitsAllocated: 8,
+                bitsStored: 8,
+                highBit: 7,
                 photometricInterpretation: 'RGB',
                 samplesPerPixel: 3,
             };
