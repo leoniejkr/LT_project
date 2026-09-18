@@ -373,104 +373,115 @@
         </Card.Root>
     {:else if $analysisResult}
         {#if predictions.length > 0}
-            <Item.Root variant="outline" class="flex-col items-stretch p-4">
-                <Item.Header class="mb-2">
-                    <Item.Title class="text-lg">
-                        <h2>AI Diagnosis Ranking</h2>
-                        <Badge variant="secondary" class="text-xs">
+            <Card.Root>
+                <Card.Header>
+                    <Card.Title><h2>AI Diagnosis Ranking</h2></Card.Title>
+                    <Card.Description>
+                        Findings that meet the selected confidence threshold.
+                    </Card.Description>
+                    <Card.Action>
+                        <Badge variant="secondary">
                             {filteredPredictions.length} detected
                         </Badge>
-                    </Item.Title>
-                </Item.Header>
-                <Item.Content class="flex items-center gap-3 mb-4">
-                    <Label class="whitespace-nowrap">
-                        Confidence threshold
-                    </Label>
-                    <Slider.Root
-                        type="single"
-                        bind:value={threshold}
-                        min={0}
-                        max={100}
-                        step={1}
-                        onValueChange={updateThreshold}
-                        class="flex-1 slider-thick"
-                    />
-                    <Label class="min-w-8 text-right">
-                        {threshold}%
-                    </Label>
-                </Item.Content>
+                    </Card.Action>
+                </Card.Header>
+                <Card.Content>
+                    <div class="flex items-center gap-3 mb-4">
+                        <Label class="whitespace-nowrap">
+                            Confidence threshold
+                        </Label>
+                        <Slider.Root
+                            type="single"
+                            bind:value={threshold}
+                            min={0}
+                            max={100}
+                            step={1}
+                            onValueChange={updateThreshold}
+                            class="flex-1 slider-thick"
+                        />
+                        <Label class="min-w-8 text-right">
+                            {threshold}%
+                        </Label>
+                    </div>
 
-                <!-- three distinct category panels under the AI diagnosis section -->
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 min-w-0">
-                    {#each categoryPanels as panel}
-                        <div
-                            class="flex flex-col rounded-xl border overflow-hidden min-w-0"
-                        >
-                            <div
-                                class="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 shrink-0"
-                            >
-                                <div class="min-w-0">
-                                    <h3 class="text-sm font-semibold truncate">
-                                        {panel.title}
-                                    </h3>
-                                    <p
-                                        class="text-xs text-muted-foreground truncate"
-                                    >
+                    <!-- three distinct category panels under the AI diagnosis section -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 min-w-0">
+                        {#each categoryPanels as panel}
+                            <Card.Root size="sm" class="min-w-0">
+                                <Card.Header class="border-b">
+                                    <Card.Title>
+                                        <h3 class="truncate">{panel.title}</h3>
+                                    </Card.Title>
+                                    <Card.Description class="truncate">
                                         {panel.subtitle}
-                                    </p>
-                                </div>
-                                <Badge
-                                    variant="outline"
-                                    class="ml-auto shrink-0 text-xs"
+                                    </Card.Description>
+                                    <Card.Action>
+                                        <Badge variant="outline">
+                                            {panel.items.length}
+                                        </Badge>
+                                    </Card.Action>
+                                </Card.Header>
+                                <Card.Content
+                                    class="findings-scroll flex h-[340px] min-w-0 flex-col gap-3 overflow-y-auto pr-3"
                                 >
-                                    {panel.items.length}
-                                </Badge>
-                            </div>
-                            <div
-                                class="findings-scroll flex flex-col gap-3 h-[340px] overflow-y-auto min-w-0 p-2 pr-3"
-                            >
-                                {#if panel.items.length > 0}
-                                    {#each panel.items as entry (entry.rank)}
-                                        {@render findingCard(entry)}
-                                    {/each}
-                                {:else}
-                                    <p
-                                        class="text-xs text-muted-foreground italic px-2 py-3"
-                                    >
-                                        No findings in this category
-                                    </p>
-                                {/if}
-                            </div>
-                        </div>
-                    {/each}
-                </div>
-                <p class="text-xs text-muted-foreground mt-3">
+                                    {#if panel.items.length > 0}
+                                        {#each panel.items as entry (entry.rank)}
+                                            {@render findingCard(entry)}
+                                        {/each}
+                                    {:else}
+                                        <p
+                                            class="text-xs text-muted-foreground italic px-2 py-3"
+                                        >
+                                            No findings in this category
+                                        </p>
+                                    {/if}
+                                </Card.Content>
+                            </Card.Root>
+                        {/each}
+                    </div>
+                </Card.Content>
+                <Card.Footer class="border-t text-xs text-muted-foreground">
                     Model: {classifierLabel($classifierModel)}
                     {#if analysis?.model_version}
                         · {analysis?.model_version}
                     {/if}
-                </p>
-            </Item.Root>
+                </Card.Footer>
+            </Card.Root>
         {:else}
-            <Item.Root
-                variant="outline"
-                class="flex-col items-center justify-center p-6 text-muted-foreground"
-            >
-                <Stethoscope size={24} class="mx-auto mb-2 opacity-50" />
-                <p>No significant findings detected.</p>
-            </Item.Root>
+            <Card.Root>
+                <Card.Header>
+                    <Card.Title><h2>AI Diagnosis Ranking</h2></Card.Title>
+                    <Card.Description>
+                        Findings that meet the selected confidence threshold.
+                    </Card.Description>
+                </Card.Header>
+                <Card.Content>
+                    <Empty.Root class="p-6">
+                        <Empty.Header>
+                            <Empty.Media variant="icon"><Stethoscope /></Empty.Media>
+                            <Empty.Title>No significant findings</Empty.Title>
+                            <Empty.Description>
+                                The analysis did not detect findings above the current threshold.
+                            </Empty.Description>
+                        </Empty.Header>
+                    </Empty.Root>
+                </Card.Content>
+            </Card.Root>
         {/if}
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div class="lg:col-span-2 flex flex-col">
-                <div
-                    class="border rounded-xl flex flex-col relative overflow-hidden"
-                >
-                    <Item.Root>
-                        <Item.Description class="flex items-center gap-1.5">
-                            <FileDigit size={14} /> PNG Medical Viewport
-                        </Item.Description>
-                        <Item.Description class="flex items-center">
+                <Card.Root class="relative">
+                    <Card.Header>
+                        <Card.Title>
+                            <h2 class="flex items-center gap-2">
+                                <FileDigit size={18} /> PNG Medical Viewport
+                            </h2>
+                        </Card.Title>
+                        <Card.Description>
+                            Inspect the uploaded X-Ray images interactively.
+                        </Card.Description>
+                        <Card.Action class="flex items-center gap-2">
                             <Badge variant="outline">
                                 {$imageUrls.length} File(s) Uploaded
                             </Badge>
@@ -480,9 +491,9 @@
                                     {activeImageIndex + 1} / {imageIds.length}
                                 </Badge>
                             {/if}
-                        </Item.Description>
-                    </Item.Root>
-                    <Item.Media>
+                        </Card.Action>
+                    </Card.Header>
+                    <Card.Content class="px-0">
                         {#if imageIds.length > 0}
                             <CornerstoneViewport
                                 {imageIds}
@@ -490,29 +501,29 @@
                                 bind:activeImageIndex
                             />
                         {/if}
-                    </Item.Media>
+                    </Card.Content>
                     {#if imageIds.length >= 1}
-                        <Item.Footer class="bg-card border-t">
+                        <Card.Footer class="bg-card border-t px-0">
                             <ImageBar
                                 {imageIds}
                                 activeIndex={activeImageIndex}
                                 onselect={(i) => (activeImageIndex = i)}
                             />
-                        </Item.Footer>
+                        </Card.Footer>
                     {/if}
-                </div>
-                <Item.Description class="italic px-2 text-xs">
+                </Card.Root>
+                <p class="italic px-2 pt-2 text-xs text-muted-foreground">
                     * Viewport: left-click = window/contrast, right-click =
                     zoom, wheel = scroll stack.
-                </Item.Description>
+                </p>
             </div>
 
-            <div class="flex flex-col gap-4">
-                <Item.Root variant="outline">
-                    <Item.Header>
-                        <Item.Title><h2>Patient Information</h2></Item.Title>
-                    </Item.Header>
-                    <Item.Content class="flex flex-col gap-1">
+            <div class="flex flex-col gap-6">
+                <Card.Root size="sm">
+                    <Card.Header>
+                        <Card.Title><h2>Patient Information</h2></Card.Title>
+                    </Card.Header>
+                    <Card.Content class="flex flex-col gap-1">
                         <span class="text-sm"
                             ><strong>Patient ID:</strong> {patient?.id}</span
                         >
@@ -522,34 +533,34 @@
                         <span class="text-sm"
                             ><strong>Gender:</strong> {patient?.gender}</span
                         >
-                    </Item.Content>
-                </Item.Root>
+                    </Card.Content>
+                </Card.Root>
 
-                <Item.Root variant="outline">
-                    <Item.Header>
-                        <Item.Title><h2>Known Symptoms</h2></Item.Title>
-                    </Item.Header>
-                    <Item.Content class="flex flex-wrap gap-2">
+                <Card.Root size="sm">
+                    <Card.Header>
+                        <Card.Title><h2>Known Symptoms</h2></Card.Title>
+                    </Card.Header>
+                    <Card.Content class="flex flex-wrap gap-2">
                         {#each patient?.symptoms ?? metadata?.symptoms ?? [] as symptom}
                             <Badge variant="outline" class="symptom-badge">
                                 {symptom}
                             </Badge>
                         {/each}
-                    </Item.Content>
-                </Item.Root>
+                    </Card.Content>
+                </Card.Root>
 
-                <Item.Root variant="outline">
-                    <Item.Header>
-                        <Item.Title><h2>Medical History & Risk Factors</h2></Item.Title>
-                    </Item.Header>
-                    <Item.Content class="flex flex-wrap gap-2">
+                <Card.Root size="sm">
+                    <Card.Header>
+                        <Card.Title><h2>Medical History & Risk Factors</h2></Card.Title>
+                    </Card.Header>
+                    <Card.Content class="flex flex-wrap gap-2">
                         {#each patient?.history ?? metadata?.history ?? [] as entry}
                             <Badge variant="outline" class="symptom-badge">
                                 {entry}
                             </Badge>
                         {/each}
-                    </Item.Content>
-                </Item.Root>
+                    </Card.Content>
+                </Card.Root>
             </div>
         </div>
         <HeatmapBar {imageIds} imageResults={filteredImageResults} />
@@ -587,20 +598,20 @@
     /* findings list inside AI Diagnosis Ranking: vertical scroll in a
        constrained inner panel — same scrollbar styling as the
        heatmap panel */
-    .findings-scroll {
+    :global(.findings-scroll) {
         min-width: 0;
         overscroll-behavior-y: contain;
         scrollbar-width: auto;
         scrollbar-color: var(--muted-foreground) var(--muted);
     }
-    .findings-scroll::-webkit-scrollbar {
+    :global(.findings-scroll)::-webkit-scrollbar {
         width: 10px;
         -webkit-appearance: none;
     }
-    .findings-scroll::-webkit-scrollbar-track {
+    :global(.findings-scroll)::-webkit-scrollbar-track {
         background: var(--muted);
     }
-    .findings-scroll::-webkit-scrollbar-thumb {
+    :global(.findings-scroll)::-webkit-scrollbar-thumb {
         background: var(--muted-foreground);
         border-radius: 8px;
     }

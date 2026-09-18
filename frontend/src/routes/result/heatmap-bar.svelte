@@ -1,5 +1,6 @@
 <script lang="ts">
-    import * as Item from "$lib/components/ui/item/index.js";
+    import * as Card from "$lib/components/ui/card/index.js";
+    import * as Empty from "$lib/components/ui/empty/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
     import { Button } from "$lib/components/ui/button/index.js";
     import * as Tooltip from "$lib/components/ui/tooltip/index.js";
@@ -34,124 +35,126 @@
 </script>
 
 {#if imageResults.length > 0}
-    <Item.Root
-        variant="outline"
-        class="flex-col items-stretch p-4 overflow-hidden heatmap-root"
-    >
-        <div class="flex items-center justify-between mb-4 shrink-0 pr-3">
-            <h2 class="text-lg font-semibold">Per-Image Heatmap Analysis</h2>
-            <span class="hidden text-xs text-muted-foreground whitespace-nowrap sm:block">
+    <Card.Root class="heatmap-root">
+        <Card.Header>
+            <Card.Title><h2>Per-Image Heatmap Analysis</h2></Card.Title>
+            <Card.Description>
+                Review localized model findings for each uploaded image.
+            </Card.Description>
+            <Card.Action class="hidden text-xs text-muted-foreground whitespace-nowrap sm:block">
                 {imageResults.length} image(s), use the bar or arrows in each
                 panel to see all findings
-            </span>
-        </div>
+            </Card.Action>
+        </Card.Header>
 
-        <!-- big fixed-size panel: images stacked under each other -->
-        <div
-            class="h-[340px] overflow-y-auto panel-scroll min-w-0 py-1 pl-1 pr-8"
-        >
-            {#each imageResults as imgResult}
-                <!-- per-image panel: max 85% of the SURROUNDING panel's width -->
-                <div
-                    class="heatmap-image-panel min-w-0 mb-4 last:mb-0 border rounded-xl bg-card overflow-hidden flex flex-col"
-                >
+        <Card.Content>
+            <!-- big fixed-size panel: images stacked under each other -->
+            <div
+                class="h-[340px] overflow-y-auto panel-scroll min-w-0 py-1 pl-1 pr-8"
+            >
+                {#each imageResults as imgResult}
+                    <!-- per-image panel: max 85% of the SURROUNDING panel's width -->
                     <div
-                        class="flex items-center gap-2 text-sm px-3 py-2 border-b shrink-0 min-w-0"
+                        class="heatmap-image-panel min-w-0 mb-4 last:mb-0 border rounded-xl bg-card overflow-hidden flex flex-col"
                     >
-                        <Badge variant="outline">{imgResult.index + 1}</Badge>
-                        <span class="font-medium truncate min-w-0 flex-1">
-                            {imgResult.filename}
-                        </span>
-                        <span
-                            class="hidden text-xs text-muted-foreground shrink-0 lg:inline"
+                        <div
+                            class="flex items-center gap-2 text-sm px-3 py-2 border-b shrink-0 min-w-0"
                         >
-                            {imgResult.predictions.length} finding(s)
-                        </span>
-                        <Tooltip.Root>
-                            <Tooltip.Trigger>
-                                {#snippet child({ props })}
-                                    <Button
-                                        {...props}
-                                        variant="default"
-                                        size="default"
-                                        class="shrink-0 shadow-md ring-2 ring-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:ring-primary/40"
-                                        aria-label="Open interactive detail view for {imgResult.filename}"
-                                        onclick={() => (openDetailIndex = imgResult.index)}
-                                    >
-                                        <Search class="size-5" />
-                                        Explore
-                                    </Button>
-                                {/snippet}
-                            </Tooltip.Trigger>
-                            <Tooltip.Content>
-                                Open the interactive original and heatmap comparison
-                            </Tooltip.Content>
-                        </Tooltip.Root>
-                        {#if imgResult.predictions.length > 1}
-                            <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                aria-label="Scroll heatmaps left"
-                                onclick={() => scrollStrip(imgResult.index, -1)}
+                            <Badge variant="outline">{imgResult.index + 1}</Badge>
+                            <span class="font-medium truncate min-w-0 flex-1">
+                                {imgResult.filename}
+                            </span>
+                            <span
+                                class="hidden text-xs text-muted-foreground shrink-0 lg:inline"
                             >
-                                <ChevronLeft size={14} />
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                aria-label="Scroll heatmaps right"
-                                onclick={() => scrollStrip(imgResult.index, 1)}
+                                {imgResult.predictions.length} finding(s)
+                            </span>
+                            <Tooltip.Root>
+                                <Tooltip.Trigger>
+                                    {#snippet child({ props })}
+                                        <Button
+                                            {...props}
+                                            variant="default"
+                                            size="default"
+                                            class="shrink-0 shadow-md ring-2 ring-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:ring-primary/40"
+                                            aria-label="Open interactive detail view for {imgResult.filename}"
+                                            onclick={() => (openDetailIndex = imgResult.index)}
+                                        >
+                                            <Search class="size-5" />
+                                            Explore
+                                        </Button>
+                                    {/snippet}
+                                </Tooltip.Trigger>
+                                <Tooltip.Content>
+                                    Open the interactive original and heatmap comparison
+                                </Tooltip.Content>
+                            </Tooltip.Root>
+                            {#if imgResult.predictions.length > 1}
+                                <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    aria-label="Scroll heatmaps left"
+                                    onclick={() => scrollStrip(imgResult.index, -1)}
+                                >
+                                    <ChevronLeft size={14} />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    aria-label="Scroll heatmaps right"
+                                    onclick={() => scrollStrip(imgResult.index, 1)}
+                                >
+                                    <ChevronRight size={14} />
+                                </Button>
+                            {/if}
+                        </div>
+
+                        {#if imgResult.predictions.length > 0}
+                            <!-- internal left/right scroll through heatmaps -->
+                            <div
+                                class="heatmap-strip flex items-start gap-3 p-3 min-w-0 max-w-full overflow-x-auto overflow-y-hidden"
+                                bind:this={stripEls[imgResult.index]}
                             >
-                                <ChevronRight size={14} />
-                            </Button>
+                                {#each imgResult.predictions as pred, index}
+                                    <div class="flex flex-col gap-1 w-52 shrink-0">
+                                        <div
+                                            class="flex items-center justify-between gap-2 text-sm"
+                                        >
+                                            <span class="font-medium truncate">
+                                                {pred.class}
+                                            </span>
+                                            <span
+                                                class="text-xs font-bold shrink-0"
+                                            >
+                                                {(pred.confidence * 100).toFixed(1)}%
+                                            </span>
+                                        </div>
+                                        <div class="relative">
+                                            <img
+                                                src={pred.heatmap}
+                                                alt="Grad-CAM: {pred.class} {index + 1}"
+                                                class="w-full h-40 rounded border object-cover"
+                                            />
+                                            <Badge
+                                                variant="secondary"
+                                                class="absolute bottom-1 right-1 text-xs h-4 min-w-4 px-1"
+                                            >
+                                                {index + 1}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                {/each}
+                            </div>
+                        {:else}
+                            <p class="text-xs text-muted-foreground italic px-3 py-3">
+                                No significant findings for this image
+                            </p>
                         {/if}
                     </div>
-
-                    {#if imgResult.predictions.length > 0}
-                        <!-- internal left/right scroll through heatmaps -->
-                        <div
-                            class="heatmap-strip flex items-start gap-3 p-3 min-w-0 max-w-full overflow-x-auto overflow-y-hidden"
-                            bind:this={stripEls[imgResult.index]}
-                        >
-                            {#each imgResult.predictions as pred, index}
-                                <div class="flex flex-col gap-1 w-52 shrink-0">
-                                    <div
-                                        class="flex items-center justify-between gap-2 text-sm"
-                                    >
-                                        <span class="font-medium truncate">
-                                            {pred.class}
-                                        </span>
-                                        <span
-                                            class="text-xs font-bold shrink-0"
-                                        >
-                                            {(pred.confidence * 100).toFixed(1)}%
-                                        </span>
-                                    </div>
-                                    <div class="relative">
-                                        <img
-                                            src={pred.heatmap}
-                                            alt="Grad-CAM: {pred.class} {index + 1}"
-                                            class="w-full h-40 rounded border object-cover"
-                                        />
-                                        <Badge
-                                            variant="secondary"
-                                            class="absolute bottom-1 right-1 text-xs h-4 min-w-4 px-1"
-                                        >
-                                            {index + 1}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            {/each}
-                        </div>
-                    {:else}
-                        <p class="text-xs text-muted-foreground italic px-3 py-3">
-                            No significant findings for this image
-                        </p>
-                    {/if}
-                </div>
-            {/each}
-        </div>
-    </Item.Root>
+                {/each}
+            </div>
+        </Card.Content>
+    </Card.Root>
 
     {#if openDetailIndex !== null}
         {@const detail = imageResults.find(
@@ -167,14 +170,30 @@
         {/if}
     {/if}
 {:else}
-    <Item.Description class="p-3 text-center">
-        No significant findings
-    </Item.Description>
+    <Card.Root>
+        <Card.Header>
+            <Card.Title><h2>Per-Image Heatmap Analysis</h2></Card.Title>
+            <Card.Description>
+                Review localized model findings for each uploaded image.
+            </Card.Description>
+        </Card.Header>
+        <Card.Content>
+            <Empty.Root class="p-6">
+                <Empty.Header>
+                    <Empty.Media variant="icon"><Search /></Empty.Media>
+                    <Empty.Title>No heatmaps available</Empty.Title>
+                    <Empty.Description>
+                        No significant image findings meet the current threshold.
+                    </Empty.Description>
+                </Empty.Header>
+            </Empty.Root>
+        </Card.Content>
+    </Card.Root>
 {/if}
 
 <style>
     /* the surrounding panel is the size reference for the inner panels
-       (:global because the class goes through Item.Root's class prop,
+       (:global because the class goes through Card.Root's class prop,
        so Svelte would otherwise strip the rule as "unused") */
     :global(.heatmap-root) {
         container-type: inline-size;
