@@ -2,6 +2,9 @@
 	import { Bot, Send, User, X } from "lucide-svelte";
 	import { Button } from "$lib/components/ui/button/index.js";
 	import { Input } from "$lib/components/ui/input/index.js";
+	import { Label } from "$lib/components/ui/label/index.js";
+	import { Skeleton } from "$lib/components/ui/skeleton/index.js";
+	import * as Empty from "$lib/components/ui/empty/index.js";
 	import * as Item from "$lib/components/ui/item/index.js";
 	import { cn } from "$lib/utils.js";
 	import { llmModel } from "$lib/models";
@@ -96,11 +99,14 @@
 	}
 </script>
 
-<div class={cn("fixed bottom-6 right-6 z-50 grid", className)}>
+<div class={cn("fixed bottom-4 right-4 z-50 grid sm:bottom-6 sm:right-6", className)}>
 	<Button
 		size="icon-lg"
 		variant="default"
 		onclick={toggle}
+		aria-label={open ? "Close AI assistant" : "Open AI assistant"}
+		aria-expanded={open}
+		aria-controls="analysis-chat"
 		class="col-start-1 row-start-1 size-14 shadow-primary/30 rounded-full shadow-lg transition-transform hover:scale-110 active:scale-95"
 	>
 		{#if open}
@@ -112,7 +118,10 @@
 
 	{#if open}
 		<div
-			class="bg-card border-border col-start-1 row-start-1 z-10 flex w-80 flex-col overflow-hidden rounded-xl border shadow-lg sm:w-96"
+			id="analysis-chat"
+			role="region"
+			aria-label="AI assistant"
+			class="bg-card border-border col-start-1 row-start-1 z-10 flex w-72 flex-col overflow-hidden rounded-xl border shadow-lg sm:w-96"
 		>
 			<Item.Root
 				variant="muted"
@@ -131,6 +140,7 @@
 						variant="ghost"
 						size="icon-xs"
 						onclick={toggle}
+						aria-label="Close AI assistant"
 						class="text-primary-foreground hover:bg-primary-foreground/20 hover:text-primary-foreground"
 					>
 						<X class="size-4" />
@@ -140,14 +150,21 @@
 
 			<div
 				bind:this={chatWindowRef}
+				role="log"
+				aria-live="polite"
+				aria-label="Conversation"
 				class="bg-background/50 flex h-80 flex-col overflow-y-auto p-2"
 			>
 				{#if messages.length === 0}
-					<div
-						class="text-muted-foreground flex flex-1 items-center justify-center text-sm"
-					>
-						Ask me anything about the analysis results...
-					</div>
+					<Empty.Root class="border-0 p-4">
+						<Empty.Header>
+							<Empty.Media variant="icon"><Bot /></Empty.Media>
+							<Empty.Title class="text-base">AI Assistant</Empty.Title>
+							<Empty.Description>
+								Ask a question about the analysis results.
+							</Empty.Description>
+						</Empty.Header>
+					</Empty.Root>
 				{:else}
 					<Item.Group class="gap-1">
 						{#each messages as msg, i}
@@ -191,16 +208,17 @@
 						{/each}
 						{#if loading}
 							<Item.Separator />
-							<Item.Root size="sm" class="rounded-lg bg-muted/50">
+							<Item.Root
+								size="sm"
+								class="rounded-lg bg-muted/50"
+								aria-label="Assistant is writing"
+								aria-busy="true"
+							>
 								<Item.Media variant="icon">
 									<Bot class="text-muted-foreground size-4" />
 								</Item.Media>
 								<Item.Content>
-									<Item.Description>
-										<span class="animate-pulse"
-											>Writing...</span
-										>
-									</Item.Description>
+									<Skeleton class="h-4 w-28" />
 								</Item.Content>
 							</Item.Root>
 						{/if}
@@ -212,7 +230,9 @@
 				class="border-border bg-background rounded-none border-t px-3 py-3"
 			>
 				<Item.Content>
+					<Label for="chat-message" class="sr-only">Message</Label>
 					<Input
+						id="chat-message"
 						data-chat-input
 						bind:value={input}
 						onkeydown={handleKeydown}
@@ -226,6 +246,7 @@
 						size="icon"
 						onclick={sendMessage}
 						disabled={loading || !input.trim()}
+						aria-label="Send message"
 					>
 						<Send class="size-4" />
 					</Button>

@@ -3,6 +3,7 @@
     import { generateThumbnail } from "$lib/cornerstone/thumbnail";
     import { Button } from "$lib/components/ui/button/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
+    import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 
     interface Props {
         imageIds: string[];
@@ -50,6 +51,8 @@
                 ? 'border-primary ring-2 ring-primary/30'
                 : 'hover:border-muted-foreground/50'}"
             onclick={() => onselect(index)}
+            aria-label="Show image {index + 1}"
+            aria-pressed={index === activeIndex}
         >
             {#if thumbnails.get(imageId)}
                 <img
@@ -63,9 +66,11 @@
                 >
                     {index + 1}
                 </Badge>
+            {:else if loading}
+                <Skeleton class="size-8" />
             {:else}
                 <span class="text-xs text-muted-foreground">
-                    {loading ? "..." : index + 1}
+                    {index + 1}
                 </span>
             {/if}
         </Button>

@@ -153,4 +153,9 @@
     });
 </script>
 
-<div bind:this={element} class="viewport-container"></div>
+<div
+    bind:this={element}
+    class="viewport-container"
+    role="region"
+    aria-label="Interactive medical image viewport"
+></div>

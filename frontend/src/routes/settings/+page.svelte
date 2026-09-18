@@ -60,18 +60,18 @@
 	});
 </script>
 
-	<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
+	<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-4 sm:px-6 pb-12">
 	<div class="flex items-center justify-between border-b pb-4">
 		<div>
-			<header
+			<h1
 				class="text-2xl font-bold tracking-tight flex items-center gap-2"
 			>
 				<SlidersHorizontal size={22} />
 				Settings
-			</header>
-			<h2 class="text-muted-foreground mt-1">
+			</h1>
+			<p class="text-muted-foreground mt-1">
 				Controls which classifier findings are accepted.
-			</h2>
+			</p>
 		</div>
 	</div>
 
@@ -79,7 +79,7 @@
 		<div class="flex items-start gap-6">
 			<Item.Header class="mb-2 flex-1 min-w-0">
 				<Item.Title class="text-lg flex items-center gap-2">
-					Decision Mode
+					<h2>Decision Mode</h2>
 					<Badge variant="secondary" class="text-xs">
 						{$effectiveThreshold}% threshold
 					</Badge>
@@ -167,7 +167,7 @@
 		<div class="flex items-start gap-6">
 			<Item.Header class="mb-4 flex-1 min-w-0">
 				<Item.Title class="text-lg flex items-center gap-2">
-					Model Selection / Architecture
+					<h2>Model Selection / Architecture</h2>
 				</Item.Title>
 				<Item.Description class="text-sm">
 					Select the image classifier and report-writing LLM.

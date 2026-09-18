@@ -31,14 +31,16 @@
   ];
 </script>
 
-<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
+<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-4 pb-12 sm:px-6">
   <Card.Root class="overflow-hidden p-0">
     <div class="grid gap-0 md:grid-cols-2">
       <Card.Content class="flex flex-col justify-center p-6 md:p-8 lg:p-10">
         <Badge variant="secondary" class="mb-4 w-fit">TrustAI</Badge>
         <Card.Header class="p-0">
-          <Card.Title class="text-3xl font-bold tracking-tight md:text-5xl">
-            Medical image analysis and Risk Assessment AI
+          <Card.Title>
+            <h1 class="text-3xl font-bold tracking-tight md:text-5xl">
+              Medical image analysis and Risk Assessment AI
+            </h1>
           </Card.Title>
           <Card.Description class="mt-4 max-w-xl text-base md:text-lg">
             This project was made to help clinicians with reviewing chest X-rays
@@ -79,7 +81,9 @@
           >
             <Icon size={18} />
           </div>
-          <Card.Title class="text-lg font-semibold">{i + 1}. {step.title}</Card.Title>
+          <Card.Title class="text-lg font-semibold">
+            <h2>{i + 1}. {step.title}</h2>
+          </Card.Title>
           <Card.Description class="mt-2">
             {step.description}
           </Card.Description>

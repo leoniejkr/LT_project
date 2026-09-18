@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { goto } from "$app/navigation";
     import { Button } from "$lib/components/ui/button/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
+    import { Skeleton } from "$lib/components/ui/skeleton/index.js";
     import * as Card from "$lib/components/ui/card/index.js";
     import * as Empty from "$lib/components/ui/empty/index.js";
     import * as Table from "$lib/components/ui/table/index.js";
@@ -11,7 +11,6 @@
     import {
         ClipboardList,
         ChevronRight,
-        LoaderCircle,
         TriangleAlert,
     } from "lucide-svelte";
     import type { PatientSummary } from "$lib/types";
@@ -39,17 +38,13 @@
     onMount(() => {
         void loadPatients();
     });
-
-    function openAnalysis(id: number) {
-        goto(`/result?patientId=${id}`);
-    }
 </script>
 
-<div class="mt-6 mx-auto w-full max-w-6xl px-6 pb-12">
+<div class="mt-6 mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6">
     <div class="mb-6">
-        <header class="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
             <ClipboardList size={24} /> Analysis History
-        </header>
+        </h1>
         <p class="text-muted-foreground mt-1">
             Open a completed case to review its complete diagnostic report.
         </p>
@@ -57,9 +52,9 @@
 
     <Card.Root>
         <Card.Header>
-            <Card.Title>Previous Analyses</Card.Title>
+            <Card.Title><h2>Previous Analyses</h2></Card.Title>
             <Card.Description>
-                Select a patient row to open the original analysis dashboard.
+                Open a patient analysis to view its original dashboard.
             </Card.Description>
             {#if !loading && !error && patients.length > 0}
                 <Card.Action>
@@ -71,17 +66,43 @@
         </Card.Header>
         <Card.Content>
             {#if loading}
-                <Empty.Root>
-                    <Empty.Header>
-                        <Empty.Media variant="icon">
-                            <LoaderCircle class="animate-spin" />
-                        </Empty.Media>
-                        <Empty.Title>Loading history…</Empty.Title>
-                        <Empty.Description>
-                            Your previous analyses are being retrieved.
-                        </Empty.Description>
-                    </Empty.Header>
-                </Empty.Root>
+                <div
+                    class="overflow-hidden rounded-lg border"
+                    role="status"
+                    aria-label="Loading analysis history"
+                    aria-busy="true"
+                >
+                    <Table.Root>
+                        <Table.Header class="bg-muted/50">
+                            <Table.Row>
+                                <Table.Head class="px-4">ID</Table.Head>
+                                <Table.Head class="px-4">Age</Table.Head>
+                                <Table.Head class="px-4">Gender</Table.Head>
+                                <Table.Head class="px-4">
+                                    <span class="sr-only">Open</span>
+                                </Table.Head>
+                            </Table.Row>
+                        </Table.Header>
+                        <Table.Body>
+                            {#each Array(3) as _}
+                                <Table.Row>
+                                    <Table.Cell class="p-4">
+                                        <Skeleton class="h-5 w-14" />
+                                    </Table.Cell>
+                                    <Table.Cell class="p-4">
+                                        <Skeleton class="h-4 w-10" />
+                                    </Table.Cell>
+                                    <Table.Cell class="p-4">
+                                        <Skeleton class="h-5 w-20" />
+                                    </Table.Cell>
+                                    <Table.Cell class="p-4">
+                                        <Skeleton class="ml-auto size-8" />
+                                    </Table.Cell>
+                                </Table.Row>
+                            {/each}
+                        </Table.Body>
+                    </Table.Root>
+                </div>
             {:else if error}
                 <Alert.Root variant="destructive">
                     <TriangleAlert />
@@ -124,16 +145,7 @@
                         </Table.Header>
                         <Table.Body>
                             {#each patients as patient (patient.id)}
-                                <Table.Row
-                                    class="cursor-pointer focus-visible:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-                                    role="link"
-                                    tabindex={0}
-                                    aria-label="Open analysis for patient {patient.id}"
-                                    onclick={() => openAnalysis(patient.id)}
-                                    onkeydown={(event) => {
-                                        if (event.key === "Enter" || event.key === " ") openAnalysis(patient.id);
-                                    }}
-                                >
+                                <Table.Row>
                                     <Table.Cell class="p-4 font-medium">
                                         <Badge variant="outline">#{patient.id}</Badge>
                                     </Table.Cell>
@@ -148,13 +160,11 @@
                                                     <Button
                                                         {...props}
                                                         variant="ghost"
-                                                        size="icon-sm"
+                                                        size="sm"
+                                                        href={`/result?patientId=${patient.id}`}
                                                         aria-label="Open analysis for patient {patient.id}"
-                                                        onclick={(event) => {
-                                                            event.stopPropagation();
-                                                            openAnalysis(patient.id);
-                                                        }}
                                                     >
+                                                        Open
                                                         <ChevronRight />
                                                     </Button>
                                                 {/snippet}

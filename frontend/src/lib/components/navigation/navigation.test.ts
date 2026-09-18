@@ -6,7 +6,6 @@ import navigation from './navigation.svelte';
 const { holder } = vi.hoisted(() => ({
 	holder: {
 		pathname: '/',
-		goto: vi.fn(),
 		toggleMode: vi.fn(),
 	},
 }));
@@ -17,71 +16,63 @@ vi.mock('$app/state', () => ({
 	},
 }));
 
-vi.mock('$app/navigation', () => ({
-	get goto() {
-		return holder.goto;
-	},
-}));
-
 vi.mock('mode-watcher', () => ({
 	toggleMode: () => holder.toggleMode(),
 }));
 
 beforeEach(() => {
 	holder.pathname = '/';
-	holder.goto.mockClear();
 	holder.toggleMode.mockClear();
 });
 
 describe('navigation.svelte', () => {
-	test('renders all three links', () => {
+	test('renders all primary links', () => {
 		render(navigation);
-		expect(screen.getByText('Home')).toBeTruthy();
-		expect(screen.getByText('Upload')).toBeTruthy();
-		expect(screen.getByText('Result')).toBeTruthy();
+		for (const name of ['Home', 'Upload', 'Result', 'History']) {
+			expect(screen.getByRole('link', { name })).toBeTruthy();
+		}
 	});
 
 	test('marks Home as active only on the root path', () => {
 		holder.pathname = '/';
-		const { container } = render(navigation);
-		const home = (container.querySelector('button[aria-label]') ??
-			screen.getByText('Home').closest('button')) as HTMLButtonElement;
+		render(navigation);
+		const home = screen.getByRole('link', { name: 'Home' });
 		expect(home.className).toContain('bg-muted');
+		expect(home.getAttribute('aria-current')).toBe('page');
 	});
 
 	test('marks Upload as active on an upload path', () => {
 		holder.pathname = '/upload';
 		render(navigation);
-		const upload = screen.getByText('Upload').closest('button') as HTMLButtonElement;
+		const upload = screen.getByRole('link', { name: 'Upload' });
 		expect(upload.className).toContain('bg-muted');
+		expect(upload.getAttribute('aria-current')).toBe('page');
 	});
 
 	test('does not mark Home active on subpaths', () => {
 		holder.pathname = '/result';
 		render(navigation);
-		const home = screen.getByText('Home').closest('button') as HTMLButtonElement;
+		const home = screen.getByRole('link', { name: 'Home' });
 		expect(home.className).not.toContain('bg-muted');
+		expect(home.hasAttribute('aria-current')).toBe(false);
 	});
 
-	test('navigates to the result page on click', async () => {
+	test('links to the result page', () => {
 		render(navigation);
-		const result = screen.getByText('Result').closest('button') as HTMLButtonElement;
-		fireEvent.click(result);
-		expect(holder.goto).toHaveBeenCalledWith('/result');
-	})
-
-	test('navigates to the upload page on click', async () => {
-		render(navigation);
-		const upload = screen.getByText('Upload').closest('button') as HTMLButtonElement;
-		fireEvent.click(upload);
-		expect(holder.goto).toHaveBeenCalledWith('/upload');
+		const result = screen.getByRole('link', { name: 'Result' });
+		expect(result.getAttribute('href')).toBe('/result');
 	});
 
-	test('settings button navigates to /settings', async () => {
+	test('links to the upload page', () => {
 		render(navigation);
-		const button = screen.getByRole('button', { name: /Settings/i });
-		fireEvent.click(button);
-		expect(holder.goto).toHaveBeenCalledWith('/settings');
+		const upload = screen.getByRole('link', { name: 'Upload' });
+		expect(upload.getAttribute('href')).toBe('/upload');
+	});
+
+	test('settings link points to /settings', () => {
+		render(navigation);
+		const link = screen.getByRole('link', { name: /Settings/i });
+		expect(link.getAttribute('href')).toBe('/settings');
 	});
 
 	test('toggle mode button triggers toggleMode', async () => {

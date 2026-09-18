@@ -4,7 +4,6 @@
 
     import ToggleModeButton from "./toggle-mode-button.svelte";
     import { Button } from "../ui/button/index.js";
-    import { goto } from "$app/navigation";
     import { page } from "$app/state";
     import SettingsButton from "./settings-button.svelte";
     import Logo from "$lib/assets/Logo.svg";
@@ -24,18 +23,20 @@
 </script>
 
 <nav
-    class="border-b px-6 h-14 flex items-center w-full bg-popover sticky top-0 z-50"
+    aria-label="Main navigation"
+    class="border-b h-14 flex items-center gap-2 w-full bg-popover sticky top-0 z-50 overflow-x-auto px-2 sm:px-6"
 >
-    <div class="flex items-center gap-4">
-        <img src={Logo} alt="Logo" class="h-12 w-12" />
+    <div class="flex items-center gap-1 sm:gap-2">
+        <img src={Logo} alt="TrustAI" class="hidden h-12 w-12 md:block" />
         {#each LINKS as link}
             <Button
                 variant="link"
-                size="lg"
-                onclick={() => goto(link.href)}
-                class={isActive(link.href)
-                    ? "bg-muted text-primary"
-                    : "text-muted-foreground"}
+                size="sm"
+                href={link.href}
+                aria-current={isActive(link.href) ? "page" : undefined}
+                class="px-2 sm:px-3 {isActive(link.href)
+                    ? 'bg-muted text-primary'
+                    : 'text-muted-foreground'}"
             >
                 {link.name}
             </Button>
@@ -43,7 +44,7 @@
     </div>
 
     <!-- Spacer: Schiebt den Rest nach rechts -->
-    <div class="flex-grow"></div>
+    <div class="min-w-2 flex-grow"></div>
 
     <div class="flex items-center gap-2">
         <SettingsButton />

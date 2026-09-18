@@ -11,6 +11,7 @@
     import * as Item from "$lib/components/ui/item/index.js";
     import * as Card from "$lib/components/ui/card/index.js";
     import * as Empty from "$lib/components/ui/empty/index.js";
+    import { Skeleton } from "$lib/components/ui/skeleton/index.js";
 
     import { Progress } from "$lib/components/ui/progress/index.js";
     import * as Tooltip from "$lib/components/ui/tooltip/index.js";
@@ -160,6 +161,9 @@
 
     let activeImageIndex = $state(0);
     let activeHeatmapIndex = $state(0);
+    const historicPatientId = page.url.searchParams.get("patientId");
+    let historicLoading = $state(Boolean(historicPatientId));
+    let historicError = $state("");
 
     $effect(() => {
         if (activeImageIndex >= imageIds.length) {
@@ -192,10 +196,9 @@
         goto("/upload");
     }
 
-    onMount(async () => {
-        const patientId = page.url.searchParams.get("patientId");
-        if (!patientId) return;
-
+    async function loadHistoricAnalysis(patientId: string) {
+        historicLoading = true;
+        historicError = "";
         try {
             const response = await fetch(`/api/patients/${patientId}/analysis`);
             if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
@@ -209,6 +212,15 @@
             );
         } catch (error) {
             console.error("Failed to load historic analysis:", error);
+            historicError = "The selected analysis could not be loaded.";
+        } finally {
+            historicLoading = false;
+        }
+    }
+
+    onMount(() => {
+        if (historicPatientId) {
+            void loadHistoricAnalysis(historicPatientId);
         }
     });
 
@@ -236,19 +248,19 @@
     });
 </script>
 
-<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
-    {#if $analysisResult}
-        <div class="flex items-center justify-between border-b pb-4">
+<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-4 pb-12 sm:px-6">
+    {#if $analysisResult && !historicLoading && !historicError}
+        <div class="flex flex-col items-start gap-4 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <header
+                <h1
                     class="text-2xl font-bold tracking-tight flex items-center gap-2"
                 >
                     Medical Analysis Dashboard
-                </header>
-                <h2 class="text-muted-foreground mt-1">
+                </h1>
+                <p class="text-muted-foreground mt-1">
                     Detailed AI diagnostics based on patient metadata and X-Ray
                     imaging
-                </h2>
+                </p>
             </div>
             <Button
                 variant="default"
@@ -260,9 +272,9 @@
         </div>
     {:else}
         <div>
-            <header class="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
                 <Stethoscope size={24} /> Medical Analysis Dashboard
-            </header>
+            </h1>
             <p class="text-muted-foreground mt-1">
                 Detailed AI diagnostics based on patient metadata and X-Ray imaging
             </p>
@@ -322,12 +334,53 @@
         </Tooltip.Root>
     {/snippet}
 
-    {#if $analysisResult}
+    {#if historicLoading}
+        <Card.Root aria-busy="true" aria-label="Loading analysis">
+            <Card.Header>
+                <Skeleton class="h-5 w-40" />
+                <Skeleton class="h-4 w-full max-w-md" />
+            </Card.Header>
+            <Card.Content class="space-y-4">
+                <Skeleton class="h-28 w-full" />
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <Skeleton class="h-36 w-full md:col-span-2" />
+                    <Skeleton class="h-36 w-full" />
+                </div>
+            </Card.Content>
+        </Card.Root>
+    {:else if historicError}
+        <Card.Root>
+            <Card.Header>
+                <Card.Title><h2>Analysis Results</h2></Card.Title>
+                <Card.Description>
+                    The requested historic analysis is currently unavailable.
+                </Card.Description>
+            </Card.Header>
+            <Card.Content>
+                <Alert.Root variant="destructive">
+                    <AlertTriangle />
+                    <Alert.Title>Unable to load analysis</Alert.Title>
+                    <Alert.Description>{historicError}</Alert.Description>
+                    {#if historicPatientId}
+                        <Alert.Action>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                onclick={() => loadHistoricAnalysis(historicPatientId)}
+                            >
+                                Try again
+                            </Button>
+                        </Alert.Action>
+                    {/if}
+                </Alert.Root>
+            </Card.Content>
+        </Card.Root>
+    {:else if $analysisResult}
         {#if predictions.length > 0}
             <Item.Root variant="outline" class="flex-col items-stretch p-4">
                 <Item.Header class="mb-2">
                     <Item.Title class="text-lg">
-                        AI Diagnosis Ranking
+                        <h2>AI Diagnosis Ranking</h2>
                         <Badge variant="secondary" class="text-xs">
                             {filteredPredictions.length} detected
                         </Badge>
@@ -361,9 +414,9 @@
                                 class="flex items-center gap-2 px-3 py-2 border-b bg-muted/40 shrink-0"
                             >
                                 <div class="min-w-0">
-                                    <h4 class="text-sm font-semibold truncate">
+                                    <h3 class="text-sm font-semibold truncate">
                                         {panel.title}
-                                    </h4>
+                                    </h3>
                                     <p
                                         class="text-xs text-muted-foreground truncate"
                                     >
@@ -461,7 +514,7 @@
             <div class="flex flex-col gap-4">
                 <Item.Root variant="outline">
                     <Item.Header>
-                        <Item.Title>Patient Information</Item.Title>
+                        <Item.Title><h2>Patient Information</h2></Item.Title>
                     </Item.Header>
                     <Item.Content class="flex flex-col gap-1">
                         <span class="text-sm"
@@ -478,7 +531,7 @@
 
                 <Item.Root variant="outline">
                     <Item.Header>
-                        <Item.Title>Known Symptoms</Item.Title>
+                        <Item.Title><h2>Known Symptoms</h2></Item.Title>
                     </Item.Header>
                     <Item.Content class="flex flex-wrap gap-2">
                         {#each patient?.symptoms ?? metadata?.symptoms ?? [] as symptom}
@@ -491,7 +544,7 @@
 
                 <Item.Root variant="outline">
                     <Item.Header>
-                        <Item.Title>Medical History & Risk Factors</Item.Title>
+                        <Item.Title><h2>Medical History & Risk Factors</h2></Item.Title>
                     </Item.Header>
                     <Item.Content class="flex flex-wrap gap-2">
                         {#each patient?.history ?? metadata?.history ?? [] as entry}
@@ -508,7 +561,7 @@
     {:else}
         <Card.Root>
             <Card.Header>
-                <Card.Title>Analysis Results</Card.Title>
+                <Card.Title><h2>Analysis Results</h2></Card.Title>
                 <Card.Description>
                     Start an analysis to generate a detailed diagnostic report.
                 </Card.Description>

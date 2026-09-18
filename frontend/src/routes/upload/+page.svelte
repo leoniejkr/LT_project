@@ -203,19 +203,19 @@
 	// TODO: required auch required machen
 </script>
 
-<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6">
+<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-4 sm:px-6">
 	<div>
-		<header class="text-2xl font-bold tracking-tight">
+		<h1 class="text-2xl font-bold tracking-tight">
 			Case Input & Initialization
-		</header>
-		<h2 class="text-muted-foreground mt-1">
+		</h1>
+		<p class="text-muted-foreground mt-1">
 			Upload X-Ray images and contextualize patient metadata for AI
 			analysis
-		</h2>
+		</p>
 	</div>
 
-	<div class="flex items-start gap-6">
-		<div class="w-4/7">
+	<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-7">
+		<div class="lg:col-span-4">
 			<Item.Root variant="outline" class="flex flex-col h-full">
 				<Item.Content>
 					<Item.Title class="w-full justify-between">
@@ -236,6 +236,9 @@
 						</Empty.Header>
 						<Empty.Content>
 							<ImageUp />
+							<Field.Label for="png_images" class="sr-only">
+								Select X-Ray files
+							</Field.Label>
 							<Input
 								id="png_images"
 								type="file"
@@ -252,7 +255,7 @@
 			</Item.Root>
 		</div>
 
-		<div class="flex-1">
+		<div class="lg:col-span-3">
 			<Item.Root variant="outline" class="flex flex-col items-start">
 				<Item.Content class="w-full">
 					<Badge variant="destructive" class="ml-auto">Required</Badge
@@ -263,24 +266,27 @@
 								<UserSearch size={18} /> Patient Metadata
 							</Field.Legend>
 							<Field.Group>
-								<div class="grid grid-cols-2 gap-3">
+								<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
 									<Field.Field>
-										<Field.Label>Patient Age</Field.Label>
+										<Field.Label for="age">Patient Age</Field.Label>
 										<Input
 											id="age"
+											type="number"
+											min="0"
+											max="130"
 											placeholder="Patient Age"
 											bind:value={patientAge}
 											required
 										/>
 									</Field.Field>
 									<Field.Field>
-										<Field.Label>Gender</Field.Label>
+										<Field.Label for="gender">Gender</Field.Label>
 										<Select.Root
 											type="single"
 											name="Select A Gender"
 											bind:value
 										>
-											<Select.Trigger>
+											<Select.Trigger id="gender" class="w-full">
 												{fieldLabel}
 											</Select.Trigger>
 											<Select.Content>
@@ -299,16 +305,6 @@
 										</Select.Root>
 									</Field.Field>
 								</div>
-								<Field.Group class="flex-wrap flex-row mt-4">
-									<Field.Field
-										orientation="horizontal"
-										class="w-auto"
-									></Field.Field>
-									<Field.Field
-										orientation="horizontal"
-										class="w-auto"
-									></Field.Field>
-								</Field.Group>
 							</Field.Group>
 						</Field.Set>
 					</form>
@@ -330,9 +326,10 @@
 			<div
 				class="rounded-xl border p-4 w-full min-w-0 overflow-hidden break-words"
 			>
-				<button
+				<Button
 					type="button"
-					class="flex w-full items-center justify-between gap-4 text-left"
+					variant="ghost"
+					class="h-auto w-full justify-between gap-4 whitespace-normal px-0 py-0 text-left hover:bg-transparent"
 					onclick={() => toggleTopic(topic.topic)}
 					aria-expanded={openTopics[topic.topic]}
 				>
@@ -354,7 +351,7 @@
 								: '-rotate-90'}"
 						/>
 					</span>
-				</button>
+				</Button>
 
 				{#if openTopics[topic.topic]}
 					<Accordion.Root
@@ -417,10 +414,13 @@
 
 	<div class="w-full">
 		<Item.Root variant="outline" class="flex-col w-full">
-			<button
+			<Button
 				type="button"
-				class="flex w-full items-center justify-between gap-2 text-left"
+				variant="ghost"
+				class="h-auto w-full justify-between gap-2 whitespace-normal p-0 text-left hover:bg-transparent"
 				onclick={() => (openSymptoms = !openSymptoms)}
+				aria-expanded={openSymptoms}
+				aria-controls="symptom-checklist"
 			>
 				<Item.Content class="w-full">
 					<Item.Title class="flex items-center gap-2">
@@ -433,9 +433,9 @@
 						? ''
 						: '-rotate-90'}"
 				/>
-			</button>
+			</Button>
 			{#if openSymptoms}
-				<div class="mt-4 flex flex-col gap-3 w-full">
+				<div id="symptom-checklist" class="mt-4 flex flex-col gap-3 w-full">
 					{@render topicChecklist(SYMPTOM_TOPICS, selectedSymptoms, "symptom")}
 				</div>
 			{/if}
@@ -444,10 +444,13 @@
 
 	<div class="w-full">
 		<Item.Root variant="outline" class="flex-col w-full">
-			<button
+			<Button
 				type="button"
-				class="flex w-full items-center justify-between gap-2 text-left"
+				variant="ghost"
+				class="h-auto w-full justify-between gap-2 whitespace-normal p-0 text-left hover:bg-transparent"
 				onclick={() => (openHistory = !openHistory)}
+				aria-expanded={openHistory}
+				aria-controls="history-checklist"
 			>
 				<Item.Content class="w-full">
 					<Item.Title class="flex items-center gap-2">
@@ -460,9 +463,9 @@
 						? ''
 						: '-rotate-90'}"
 				/>
-			</button>
+			</Button>
 			{#if openHistory}
-				<div class="mt-4 flex flex-col gap-3 w-full">
+				<div id="history-checklist" class="mt-4 flex flex-col gap-3 w-full">
 					{@render topicChecklist(HISTORY_TOPICS, selectedHistory, "history")}
 				</div>
 			{/if}
