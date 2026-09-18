@@ -9,6 +9,8 @@
     import { Badge } from "$lib/components/ui/badge/index.js";
     import { Separator } from "$lib/components/ui/separator/index.js";
     import * as Item from "$lib/components/ui/item/index.js";
+    import * as Card from "$lib/components/ui/card/index.js";
+    import * as Empty from "$lib/components/ui/empty/index.js";
 
     import { Progress } from "$lib/components/ui/progress/index.js";
     import * as Tooltip from "$lib/components/ui/tooltip/index.js";
@@ -235,26 +237,37 @@
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
-    <div class="flex items-center justify-between border-b pb-4">
-        <div>
-            <header
-                class="text-2xl font-bold tracking-tight flex items-center gap-2"
+    {#if $analysisResult}
+        <div class="flex items-center justify-between border-b pb-4">
+            <div>
+                <header
+                    class="text-2xl font-bold tracking-tight flex items-center gap-2"
+                >
+                    Medical Analysis Dashboard
+                </header>
+                <h2 class="text-muted-foreground mt-1">
+                    Detailed AI diagnostics based on patient metadata and X-Ray
+                    imaging
+                </h2>
+            </div>
+            <Button
+                variant="default"
+                class="flex items-center gap-2"
+                onclick={startNewAnalysis}
             >
-                Medical Analysis Dashboard
-            </header>
-            <h2 class="text-muted-foreground mt-1">
-                Detailed AI diagnostics based on patient metadata and X-Ray
-                imaging
-            </h2>
+                <RotateCcw size={16} /> Start New Analysis
+            </Button>
         </div>
-        <Button
-            variant="default"
-            class="flex items-center gap-2"
-            onclick={startNewAnalysis}
-        >
-            <RotateCcw size={16} /> Start New Analysis
-        </Button>
-    </div>
+    {:else}
+        <div>
+            <header class="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <Stethoscope size={24} /> Medical Analysis Dashboard
+            </header>
+            <p class="text-muted-foreground mt-1">
+                Detailed AI diagnostics based on patient metadata and X-Ray imaging
+            </p>
+        </div>
+    {/if}
 
 
     {#snippet findingCard(entry: CategorizedPrediction)}
@@ -493,30 +506,31 @@
         <HeatmapBar {imageIds} imageResults={filteredImageResults} />
         <Chat context={chatContext} />
     {:else}
-        <Item.Root variant="outline" class="bg-muted/50">
-            <Item.Content
-                class="flex flex-col items-center justify-center p-8 text-center"
-            >
-                <div
-                    class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4"
-                >
-                    <Stethoscope size={24} class="text-muted-foreground" />
-                </div>
-                <Item.Title class="text-lg"
-                    >Please start an analysis first</Item.Title
-                >
-                <Item.Description class="max-w-md mt-2">
-                    Upload an X-Ray file and enter patient metadata, then click
-                    "Start Analysis" to generate an AI diagnostics report.
-                </Item.Description>
-                <Button
-                    class="mt-6 flex items-center gap-2"
-                    onclick={() => goto("/upload")}
-                >
-                    <Undo2 size={16} /> Go to Upload
-                </Button>
-            </Item.Content>
-        </Item.Root>
+        <Card.Root>
+            <Card.Header>
+                <Card.Title>Analysis Results</Card.Title>
+                <Card.Description>
+                    Start an analysis to generate a detailed diagnostic report.
+                </Card.Description>
+            </Card.Header>
+            <Card.Content>
+                <Empty.Root>
+                    <Empty.Header>
+                        <Empty.Media variant="icon"><Stethoscope /></Empty.Media>
+                        <Empty.Title>No analysis yet</Empty.Title>
+                        <Empty.Description>
+                            Upload an X-Ray file and enter patient metadata. Your AI
+                            diagnostics report will appear here automatically.
+                        </Empty.Description>
+                    </Empty.Header>
+                    <Empty.Content>
+                        <Button href="/upload">
+                            <Undo2 /> Go to Upload
+                        </Button>
+                    </Empty.Content>
+                </Empty.Root>
+            </Card.Content>
+        </Card.Root>
     {/if}
 </div>
 
