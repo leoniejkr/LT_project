@@ -139,13 +139,13 @@
             <Accordion.Item value="step-3">
               <Accordion.Trigger>3. Start analysis</Accordion.Trigger>
               <Accordion.Content>
-                Review prediction and image insights.
+                Let the AI generate predictions and insights based on the provided information.
               </Accordion.Content>
             </Accordion.Item>
             <Accordion.Item value="step-4">
               <Accordion.Trigger>4. Use the result view</Accordion.Trigger>
               <Accordion.Content>
-                Understand the diagnosis, examine the images manually and use the
+                Understand the prediction, examine the images and heatmaps manually and use the
                 chat for further information and help.
               </Accordion.Content>
             </Accordion.Item>
