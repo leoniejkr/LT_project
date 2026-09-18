@@ -57,7 +57,6 @@
         </div>
       </Card.Content>
 
-      <!-- change src to maybe heatmap image? -->
       <div class="relative min-h-[280px] bg-muted/40 md:min-h-[420px]">
         <img
           src="/example1.png"
