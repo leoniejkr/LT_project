@@ -42,11 +42,7 @@
     } from "$lib/types.js";
     import { symptomLabelById } from "$lib/symptoms";
     import { historyLabelById } from "$lib/history";
-    import {
-        customThreshold,
-        effectiveThreshold,
-        isCustom,
-    } from "$lib/settings";
+    import { effectiveThreshold, setCustomThreshold } from "$lib/settings";
     import { classifierModel, classifierLabel } from "$lib/models";
 
     // Resolve mock patient data from the live tag catalogs so the
@@ -72,18 +68,18 @@
         hasImages ? $imageUrls.map((url) => `png:${url}`) : [],
     );
 
-    // Confidence threshold is controlled by the unified Decision Mode
-    // setting ($lib/settings). Presets are read-only; only 'custom' mode
-    // lets the user drag the slider (writing back into the store).
+    // Keep the result view synchronized with the unified Decision Mode.
+    // Moving this slider switches the setting to custom mode.
     let threshold = $state($effectiveThreshold);
 
     $effect(() => {
-        if ($isCustom) {
-            customThreshold.set(threshold);
-        } else {
-            threshold = $effectiveThreshold;
-        }
+        threshold = $effectiveThreshold;
     });
+
+    function updateThreshold(value: number) {
+        threshold = value;
+        setCustomThreshold(value);
+    }
 
     let filteredPredictions: Prediction[] = $derived(
         predictions.filter((p) => p.confidence * 100 >= threshold),
@@ -396,7 +392,7 @@
                         min={0}
                         max={100}
                         step={1}
-                        disabled={!$isCustom}
+                        onValueChange={updateThreshold}
                         class="flex-1 slider-thick"
                     />
                     <Label class="min-w-8 text-right">
