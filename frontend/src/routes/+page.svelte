@@ -54,9 +54,6 @@
           <Button href="/upload" size="lg" class="gap-2">
             Start analysis <ArrowRight size={16} />
           </Button>
-          <Button href="/result" variant="outline" size="lg">
-            View example results
-          </Button>
         </div>
       </Card.Content>
 
