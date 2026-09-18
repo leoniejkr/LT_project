@@ -2,6 +2,7 @@
     import * as Item from "$lib/components/ui/item/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
     import { Button } from "$lib/components/ui/button/index.js";
+    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
     import { Search } from "lucide-svelte";
     import { ChevronLeft, ChevronRight } from "lucide-svelte";
     import type { ImageResult } from "$lib/types";
@@ -58,23 +59,34 @@
                         class="flex items-center gap-2 text-sm px-3 py-2 border-b shrink-0 min-w-0"
                     >
                         <Badge variant="outline">{imgResult.index + 1}</Badge>
-                        <span class="font-medium truncate min-w-0">
+                        <span class="font-medium truncate min-w-0 flex-1">
                             {imgResult.filename}
                         </span>
-                        <Button
-                            variant="ghost"
-                            size="icon-xs"
-                            class="shrink-0"
-                            aria-label="Open detail view for {imgResult.filename}"
-                            onclick={() => (openDetailIndex = imgResult.index)}
-                        >
-                            <Search size={14} />
-                        </Button>
                         <span
-                            class="text-xs text-muted-foreground ml-auto shrink-0 mr-1"
+                            class="hidden text-xs text-muted-foreground shrink-0 lg:inline"
                         >
                             {imgResult.predictions.length} finding(s)
                         </span>
+                        <Tooltip.Root>
+                            <Tooltip.Trigger>
+                                {#snippet child({ props })}
+                                    <Button
+                                        {...props}
+                                        variant="default"
+                                        size="default"
+                                        class="shrink-0 shadow-md ring-2 ring-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:ring-primary/40"
+                                        aria-label="Open interactive detail view for {imgResult.filename}"
+                                        onclick={() => (openDetailIndex = imgResult.index)}
+                                    >
+                                        <Search class="size-5" />
+                                        Explore
+                                    </Button>
+                                {/snippet}
+                            </Tooltip.Trigger>
+                            <Tooltip.Content>
+                                Open the interactive original and heatmap comparison
+                            </Tooltip.Content>
+                        </Tooltip.Root>
                         {#if imgResult.predictions.length > 1}
                             <Button
                                 variant="ghost"

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Empty from "$lib/components/ui/empty/index.js";
-	import * as Item from "$lib/components/ui/item/index.js";
+	import * as Card from "$lib/components/ui/card/index.js";
 	import * as Field from "$lib/components/ui/field/index.js";
 	import * as Select from "$lib/components/ui/select/index.js";
 	import { Button } from "$lib/components/ui/button/index.js";
@@ -215,102 +215,102 @@
 	</div>
 
 	<div class="grid grid-cols-1 items-start gap-6 lg:grid-cols-7">
-		<div class="lg:col-span-4">
-			<Item.Root variant="outline" class="flex flex-col h-full">
-				<Item.Content>
-					<Item.Title class="w-full justify-between">
-						Radiological Scans (.png)
-						<Badge variant="destructive">Required</Badge>
-					</Item.Title>
-					<Item.Media></Item.Media>
-					<Empty.Root>
-						<Empty.Header>
-							<Empty.Media variant="icon">
-								<CloudUpload />
-							</Empty.Media>
-							<Empty.Title>Upload X-Ray Files</Empty.Title>
-							<Empty.Description>
-								Support for standard X-Ray formats. Ensure
-								everything is included in the upload.
-							</Empty.Description>
-						</Empty.Header>
-						<Empty.Content>
-							<ImageUp />
-							<Field.Label for="png_images" class="sr-only">
-								Select X-Ray files
-							</Field.Label>
-							<Input
-								id="png_images"
-								type="file"
-								multiple
-								bind:files
-							/>
-						</Empty.Content>
-					</Empty.Root>
-					<Item.Separator />
-					<Item.Description>
-						{imageNumber}
-					</Item.Description>
-				</Item.Content>
-			</Item.Root>
-		</div>
+		<Card.Root class="h-full lg:col-span-4">
+			<Card.Header>
+				<Card.Title><h2>Radiological Scans (.png)</h2></Card.Title>
+				<Card.Description>
+					Upload the X-Ray images that should be included in this analysis.
+				</Card.Description>
+				<Card.Action>
+					<Badge variant="destructive">Required</Badge>
+				</Card.Action>
+			</Card.Header>
+			<Card.Content>
+				<Empty.Root class="border">
+					<Empty.Header>
+						<Empty.Media variant="icon">
+							<CloudUpload />
+						</Empty.Media>
+						<Empty.Title>Upload X-Ray Files</Empty.Title>
+						<Empty.Description>
+							Support for standard X-Ray formats. Ensure
+							everything is included in the upload.
+						</Empty.Description>
+					</Empty.Header>
+					<Empty.Content>
+						<ImageUp />
+						<Field.Label for="png_images" class="sr-only">
+							Select X-Ray files
+						</Field.Label>
+						<Input
+							id="png_images"
+							type="file"
+							multiple
+							bind:files
+						/>
+					</Empty.Content>
+				</Empty.Root>
+			</Card.Content>
+			<Card.Footer class="border-t justify-between text-muted-foreground">
+				<span>Selected files</span>
+				<Badge variant="secondary">{imageNumber}</Badge>
+			</Card.Footer>
+		</Card.Root>
 
-		<div class="lg:col-span-3">
-			<Item.Root variant="outline" class="flex flex-col items-start">
-				<Item.Content class="w-full">
-					<Badge variant="destructive" class="ml-auto">Required</Badge
-					>
-					<form class="w-full">
-						<Field.Set>
-							<Field.Legend class="flex items-center gap-2">
-								<UserSearch size={18} /> Patient Metadata
-							</Field.Legend>
-							<Field.Group>
-								<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-									<Field.Field>
-										<Field.Label for="age">Patient Age</Field.Label>
-										<Input
-											id="age"
-											type="number"
-											min="0"
-											max="130"
-											placeholder="Patient Age"
-											bind:value={patientAge}
-											required
-										/>
-									</Field.Field>
-									<Field.Field>
-										<Field.Label for="gender">Gender</Field.Label>
-										<Select.Root
-											type="single"
-											name="Select A Gender"
-											bind:value
-										>
-											<Select.Trigger id="gender" class="w-full">
-												{fieldLabel}
-											</Select.Trigger>
-											<Select.Content>
-												<Select.Label
-													>Gender</Select.Label
-												>
-												{#each genders as gender (gender.value)}
-													<Select.Item
-														value={gender.value}
-														label={gender.label}
-													>
-														{gender.label}
-													</Select.Item>
-												{/each}
-											</Select.Content>
-										</Select.Root>
-									</Field.Field>
-								</div>
-							</Field.Group>
-						</Field.Set>
-					</form>
-				</Item.Content>
-			</Item.Root>
-		</div>
+		<Card.Root class="h-full lg:col-span-3">
+			<Card.Header>
+				<Card.Title class="flex items-center gap-2">
+					<h2 class="flex items-center gap-2">
+						<UserSearch size={18} /> Patient Metadata
+					</h2>
+				</Card.Title>
+				<Card.Description>
+					Add the patient context required for the diagnostic report.
+				</Card.Description>
+				<Card.Action>
+					<Badge variant="destructive">Required</Badge>
+				</Card.Action>
+			</Card.Header>
+			<Card.Content>
+				<form class="w-full">
+					<Field.Set>
+						<Field.Legend class="sr-only">Patient Metadata</Field.Legend>
+						<Field.Group>
+							<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+								<Field.Field>
+									<Field.Label for="age">Patient Age</Field.Label>
+									<Input
+										id="age"
+										type="number"
+										min="0"
+										max="130"
+										placeholder="Patient Age"
+										bind:value={patientAge}
+										required
+									/>
+								</Field.Field>
+								<Field.Field>
+									<Field.Label for="gender">Gender</Field.Label>
+									<Select.Root type="single" name="Select A Gender" bind:value>
+										<Select.Trigger id="gender" class="w-full">
+											{fieldLabel}
+										</Select.Trigger>
+										<Select.Content>
+											<Select.Label>Gender</Select.Label>
+											{#each genders as gender (gender.value)}
+												<Select.Item value={gender.value} label={gender.label}>
+													{gender.label}
+												</Select.Item>
+											{/each}
+										</Select.Content>
+									</Select.Root>
+								</Field.Field>
+							</div>
+						</Field.Group>
+					</Field.Set>
+				</form>
+			</Card.Content>
+		</Card.Root>
 	</div>
 
 	{#snippet topicChecklist(
@@ -412,8 +412,8 @@
 		{/each}
 	{/snippet}
 
-	<div class="w-full">
-		<Item.Root variant="outline" class="flex-col w-full">
+	<Card.Root class="w-full">
+		<Card.Header>
 			<Button
 				type="button"
 				variant="ghost"
@@ -422,11 +422,12 @@
 				aria-expanded={openSymptoms}
 				aria-controls="symptom-checklist"
 			>
-				<Item.Content class="w-full">
-					<Item.Title class="flex items-center gap-2">
-						<ClipboardCheck size={18} /> Symptom Checklist
-					</Item.Title>
-				</Item.Content>
+				<span class="flex items-center gap-2 text-base font-medium">
+					<ClipboardCheck size={18} /> Symptom Checklist
+				</span>
+				<Badge variant="secondary" class="ml-auto hidden sm:inline-flex">
+					{selectedCountOf(allSymptomTags, selectedSymptoms)} selected
+				</Badge>
 				<ChevronDown
 					size={18}
 					class="text-muted-foreground shrink-0 transition-transform {openSymptoms
@@ -434,16 +435,19 @@
 						: '-rotate-90'}"
 				/>
 			</Button>
-			{#if openSymptoms}
-				<div id="symptom-checklist" class="mt-4 flex flex-col gap-3 w-full">
-					{@render topicChecklist(SYMPTOM_TOPICS, selectedSymptoms, "symptom")}
-				</div>
-			{/if}
-		</Item.Root>
-	</div>
+			<Card.Description>
+				Select current symptoms that may provide relevant clinical context.
+			</Card.Description>
+		</Card.Header>
+		{#if openSymptoms}
+			<Card.Content id="symptom-checklist" class="flex flex-col gap-3">
+				{@render topicChecklist(SYMPTOM_TOPICS, selectedSymptoms, "symptom")}
+			</Card.Content>
+		{/if}
+	</Card.Root>
 
-	<div class="w-full">
-		<Item.Root variant="outline" class="flex-col w-full">
+	<Card.Root class="w-full">
+		<Card.Header>
 			<Button
 				type="button"
 				variant="ghost"
@@ -452,11 +456,12 @@
 				aria-expanded={openHistory}
 				aria-controls="history-checklist"
 			>
-				<Item.Content class="w-full">
-					<Item.Title class="flex items-center gap-2">
-						<ClipboardList size={18} /> Medical History & Risk Factors
-					</Item.Title>
-				</Item.Content>
+				<span class="flex items-center gap-2 text-base font-medium">
+					<ClipboardList size={18} /> Medical History & Risk Factors
+				</span>
+				<Badge variant="secondary" class="ml-auto hidden sm:inline-flex">
+					{selectedCountOf(allHistoryTags, selectedHistory)} selected
+				</Badge>
 				<ChevronDown
 					size={18}
 					class="text-muted-foreground shrink-0 transition-transform {openHistory
@@ -464,13 +469,16 @@
 						: '-rotate-90'}"
 				/>
 			</Button>
-			{#if openHistory}
-				<div id="history-checklist" class="mt-4 flex flex-col gap-3 w-full">
-					{@render topicChecklist(HISTORY_TOPICS, selectedHistory, "history")}
-				</div>
-			{/if}
-		</Item.Root>
-	</div>
+			<Card.Description>
+				Add known conditions, exposures, and other relevant risk factors.
+			</Card.Description>
+		</Card.Header>
+		{#if openHistory}
+			<Card.Content id="history-checklist" class="flex flex-col gap-3">
+				{@render topicChecklist(HISTORY_TOPICS, selectedHistory, "history")}
+			</Card.Content>
+		{/if}
+	</Card.Root>
 	<Separator orientation="horizontal" class="self-stretch mt-1" />
 	<div class="flex justify-end w-full pb-5">
 		<Button type="button" onclick={startAnalysis}>
