@@ -1,9 +1,6 @@
 import * as cornerstone from '@cornerstonejs/core';
 import { Enums } from '@cornerstonejs/core';
 
-const canvas = document.createElement('canvas');
-let lastImageIdDrawn = '';
-
 function loadImage(
     imageId: string,
 ): { promise: Promise<cornerstone.Types.IImage>; cancelFn?: () => void } {
@@ -13,87 +10,80 @@ function loadImage(
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
-            const rows = img.naturalHeight;
-            const columns = img.naturalWidth;
-
-            canvas.width = columns;
-            canvas.height = rows;
-            const ctx = canvas.getContext('2d')!;
-            ctx.drawImage(img, 0, 0);
-            lastImageIdDrawn = imageId;
-
-            const imageData = ctx.getImageData(0, 0, columns, rows);
-
-            const pixelData = new Uint8Array(columns * rows * 3);
-            for (let i = 0, j = 0; i < imageData.data.length; i += 4, j += 3) {
-                pixelData[j] = imageData.data[i];
-                pixelData[j + 1] = imageData.data[i + 1];
-                pixelData[j + 2] = imageData.data[i + 2];
-            }
-
-            function getPixelData(targetBuffer?: {
-                arrayBuffer: ArrayBuffer;
-                offset: number;
-                length: number;
-            }) {
-                if (targetBuffer) {
-                    const target = new Uint8Array(
-                        targetBuffer.arrayBuffer,
-                        targetBuffer.offset,
-                        targetBuffer.length,
-                    );
-                    for (
-                        let i = 0, j = 0;
-                        i < imageData.data.length;
-                        i += 4, j += 3
-                    ) {
-                        target[j] = imageData.data[i];
-                        target[j + 1] = imageData.data[i + 1];
-                        target[j + 2] = imageData.data[i + 2];
-                    }
-                    return target;
-                }
-                return pixelData;
-            }
-
-            function getCanvas() {
-                if (lastImageIdDrawn === imageId) return canvas;
+            try {
+                const rows = img.naturalHeight;
+                const columns = img.naturalWidth;
+                const canvas = document.createElement('canvas');
                 canvas.width = columns;
                 canvas.height = rows;
-                const c = canvas.getContext('2d')!;
-                c.drawImage(img, 0, 0);
-                lastImageIdDrawn = imageId;
-                return canvas;
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    throw new Error(`Could not create canvas context for: ${url}`);
+                }
+
+                ctx.drawImage(img, 0, 0);
+                const imageData = ctx.getImageData(0, 0, columns, rows);
+
+                const pixelData = new Uint8Array(columns * rows * 3);
+                for (let i = 0, j = 0; i < imageData.data.length; i += 4, j += 3) {
+                    pixelData[j] = imageData.data[i];
+                    pixelData[j + 1] = imageData.data[i + 1];
+                    pixelData[j + 2] = imageData.data[i + 2];
+                }
+
+                function getPixelData(targetBuffer?: {
+                    arrayBuffer: ArrayBuffer;
+                    offset: number;
+                    length: number;
+                }) {
+                    if (targetBuffer) {
+                        const target = new Uint8Array(
+                            targetBuffer.arrayBuffer,
+                            targetBuffer.offset,
+                            targetBuffer.length,
+                        );
+                        target.set(pixelData.subarray(0, target.length));
+                        return target;
+                    }
+                    return pixelData;
+                }
+
+                const image: cornerstone.Types.IImage = {
+                    imageId,
+                    minPixelValue: 0,
+                    maxPixelValue: 255,
+                    slope: 1,
+                    intercept: 0,
+                    windowCenter: [128],
+                    windowWidth: [255],
+                    voiLUTFunction: Enums.VOILUTFunctionType.LINEAR,
+                    getPixelData,
+                    getCanvas: () => canvas,
+                    rows,
+                    columns,
+                    height: rows,
+                    width: columns,
+                    color: true,
+                    rgba: false,
+                    numberOfComponents: 3,
+                    photometricInterpretation: 'RGB',
+                    columnPixelSpacing: 1,
+                    rowPixelSpacing: 1,
+                    invert: false,
+                    sizeInBytes: pixelData.byteLength,
+                    dataType:
+                        'Uint8Array' as cornerstone.Types.PixelDataTypedArrayString,
+                };
+
+                resolve(image);
+            } catch (error) {
+                reject(
+                    error instanceof Error
+                        ? error
+                        : new Error(`Failed to decode image: ${url}`),
+                );
             }
-
-            const image: cornerstone.Types.IImage = {
-                imageId,
-                minPixelValue: 0,
-                maxPixelValue: 255,
-                slope: 1,
-                intercept: 0,
-                windowCenter: [128],
-                windowWidth: [255],
-                voiLUTFunction: Enums.VOILUTFunctionType.LINEAR,
-                getPixelData,
-                getCanvas,
-                rows,
-                columns,
-                height: rows,
-                width: columns,
-                color: true,
-                rgba: false,
-                numberOfComponents: 3,
-                photometricInterpretation: 'RGB',
-                columnPixelSpacing: 1,
-                rowPixelSpacing: 1,
-                invert: false,
-                sizeInBytes: columns * rows * 3,
-                dataType:
-                    'Uint8Array' as cornerstone.Types.PixelDataTypedArrayString,
-            };
-
-            resolve(image);
         };
         img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
         img.src = url;
