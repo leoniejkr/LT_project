@@ -50,7 +50,7 @@
     }}
 >
     <Dialog.Content
-        class="flex max-h-[90vh] max-w-6xl flex-col gap-0 overflow-hidden p-0"
+        class="flex max-h-[90vh] w-[calc(100%_-_2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl"
         showCloseButton={false}
     >
         <!-- header -->
