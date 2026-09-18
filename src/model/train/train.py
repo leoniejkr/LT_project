@@ -18,13 +18,13 @@ ALL_CLASSES = ['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema', 'Effusio
                'Pleural_Thickening', 'Pneumonia', 'Pneumothorax', 'Covid']
 
 config = {
-    "batch_size": None,  # None -> use selected model's BATCH_SIZE (see below)
+    "batch_size": 16,  # None -> use selected model's BATCH_SIZE (see below)
     "epochs": 5,
     "backbone_lr": 1e-5,
     "classifier_lr": 1e-4,
     "architecture": "ConvNeXt-Base",
     "dataset": "NIH-MIDRC-Hybrid-PatientContext",
-    "resolution": None  # None -> use selected model's INPUT_SIZE (see below)
+    "resolution": 288  # None -> use selected model's INPUT_SIZE (see below)
 }
 
 # Resolution and batch size are now model-specific: each model class declares
@@ -34,7 +34,7 @@ config = {
 # (e.g. Swin/ViT wants its pre-trained grid). Override per run by editing
 # `MODEL_CLASS` or setting `config["batch_size"]` to a non-None value.
 MODEL_CLASS = ChestModel
-RESOLUTION = MODEL_CLASS.INPUT_SIZE
+RESOLUTION = config["resolution"] if config["resolution"] else MODEL_CLASS.INPUT_SIZE
 BATCH_SIZE = config["batch_size"] if config["batch_size"] else MODEL_CLASS.BATCH_SIZE
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
