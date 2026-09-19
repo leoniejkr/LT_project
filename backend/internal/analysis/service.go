@@ -112,9 +112,6 @@ func withoutHeatmaps(results ImageResults) ImageResults {
 }
 
 func (s *Service) DeletePatientAnalysis(patientID uint) error {
-	if patientID == 0 {
-		return s.repo.DeletePatientAnalysis(patientID)
-	}
 	a, err := s.repo.FindByPatientID(patientID)
 	if err != nil {
 		return err
@@ -130,6 +127,10 @@ func (s *Service) DeletePatientAnalysis(patientID uint) error {
 		}
 	}
 	return s.repo.DeletePatientAnalysis(patientID)
+}
+
+func (s *Service) DeleteAll() error {
+	return s.repo.DeleteAll()
 }
 
 func (s *Service) GetPatientAnalysis(patientID uint) (*Analysis, error) {

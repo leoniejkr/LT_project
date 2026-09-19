@@ -66,6 +66,9 @@ func (s *Service) DeletePatient(id uint) error {
 }
 
 func (s *Service) DeleteAll() error {
+	if err := s.orthancStore.DeleteAllPatients(); err != nil {
+		return err
+	}
 	return s.repo.DeleteAll()
 }
 

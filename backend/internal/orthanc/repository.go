@@ -64,6 +64,19 @@ func (r *Repository) DeleteInstance(instanceID string) error {
 	return nil
 }
 
+func (r *Repository) DeleteAllPatients() error {
+	var patientIDs []string
+	if err := r.client.GetJSON("/patients", &patientIDs); err != nil {
+		return fmt.Errorf("failed to list Orthanc patients: %w", err)
+	}
+	for _, patientID := range patientIDs {
+		if err := r.client.Delete("/patients/" + patientID); err != nil {
+			return fmt.Errorf("failed to delete Orthanc patient %s: %w", patientID, err)
+		}
+	}
+	return nil
+}
+
 func (r *Repository) storeImage(patientName, patientID, studyDescription, seriesDescription, modality string, pngBytes []byte) (string, error) {
 	pngBytes, err := normalizeImage(pngBytes)
 	if err != nil {

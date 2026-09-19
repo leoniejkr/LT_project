@@ -134,7 +134,8 @@ info:
 paths:
   /analysis:
     delete:
-      description: Deletes all patient data and analysis results from the database
+      description: Deletes all patient data, analysis results, and associated images
+        from all application databases
       produces:
       - application/json
       responses:
@@ -241,6 +242,33 @@ paths:
           schema:
             type: string
       summary: List completed analyses
+      tags:
+      - history
+  /patients/{id}:
+    delete:
+      description: Deletes a patient, their analysis, and all associated images.
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: Deletion successful
+        "400":
+          description: Invalid patient ID
+          schema:
+            type: string
+        "404":
+          description: Patient or analysis not found
+          schema:
+            type: string
+        "500":
+          description: Deletion failed
+          schema:
+            type: string
+      summary: Delete one saved analysis
       tags:
       - history
   /patients/{id}/analysis:

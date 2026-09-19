@@ -98,6 +98,23 @@ func TestDeletePatientAnalysis(t *testing.T) {
 	}
 }
 
+func TestDeleteAll(t *testing.T) {
+	db := setupAnalysisDB(t)
+	repo := NewRepository(db)
+	repo.Create(&Analysis{PatientID: 1, Prediction: "A"})
+	repo.Create(&Analysis{PatientID: 2, Prediction: "B"})
+
+	if err := repo.DeleteAll(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var count int64
+	db.Model(&Analysis{}).Count(&count)
+	if count != 0 {
+		t.Errorf("expected 0 analyses after delete all, got %d", count)
+	}
+}
+
 func TestCreate_WithPredictions(t *testing.T) {
 	db := setupAnalysisDB(t)
 	repo := NewRepository(db)

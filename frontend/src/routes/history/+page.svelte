@@ -23,8 +23,10 @@
     let error = $state("");
     let deleteError = $state("");
     let deleteDialogOpen = $state(false);
+    let deleteAllDialogOpen = $state(false);
     let selectedPatient = $state<PatientSummary>();
     let deletingPatientId = $state<number>();
+    let deletingAll = $state(false);
 
     async function loadPatients(signal?: AbortSignal) {
         loading = true;
@@ -73,6 +75,22 @@
             selectedPatient = undefined;
         }
     }
+
+    async function deleteAllPatients() {
+        deletingAll = true;
+        deleteError = "";
+
+        try {
+            const response = await fetch("/api/analysis", { method: "DELETE" });
+            if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+            patients = [];
+        } catch (cause) {
+            console.error("Failed to delete all analyses:", cause);
+            deleteError = "The analysis history could not be deleted.";
+        } finally {
+            deletingAll = false;
+        }
+    }
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6">
@@ -93,9 +111,24 @@
             </Card.Description>
             {#if !loading && !error && patients.length > 0}
                 <Card.Action>
-                    <Badge variant="secondary">
-                        {patients.length} {patients.length === 1 ? "analysis" : "analyses"}
-                    </Badge>
+                    <div class="flex items-center gap-2">
+                        <Badge variant="secondary">
+                            {patients.length} {patients.length === 1 ? "analysis" : "analyses"}
+                        </Badge>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            disabled={deletingAll || deletingPatientId !== undefined}
+                            onclick={() => (deleteAllDialogOpen = true)}
+                        >
+                            {#if deletingAll}
+                                <LoaderCircle class="animate-spin" />
+                            {:else}
+                                <Trash2 />
+                            {/if}
+                            Delete all
+                        </Button>
+                    </div>
                 </Card.Action>
             {/if}
         </Card.Header>
@@ -210,7 +243,7 @@
                                                             size="sm"
                                                             href={`/result?patientId=${patient.id}`}
                                                             aria-label="Open analysis for patient {patient.id}"
-                                                            disabled={deletingPatientId !== undefined}
+                                                            disabled={deletingAll || deletingPatientId !== undefined}
                                                         >
                                                             Open
                                                             <ChevronRight />
@@ -227,7 +260,7 @@
                                                             variant="destructive"
                                                             size="icon-sm"
                                                             aria-label="Delete analysis for patient {patient.id}"
-                                                            disabled={deletingPatientId !== undefined}
+                                                            disabled={deletingAll || deletingPatientId !== undefined}
                                                             onclick={() => confirmDelete(patient)}
                                                         >
                                                             {#if deletingPatientId === patient.id}
@@ -268,6 +301,27 @@
                 onclick={() => selectedPatient && void deletePatient(selectedPatient)}
             >
                 <Trash2 /> Delete
+            </AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>
+
+<AlertDialog.Root bind:open={deleteAllDialogOpen}>
+    <AlertDialog.Content size="sm">
+        <AlertDialog.Header>
+            <AlertDialog.Title>Delete all analyses?</AlertDialog.Title>
+            <AlertDialog.Description>
+                All {patients.length} analyses, patient data, original images, and heatmaps will be
+                permanently deleted. This action cannot be undone.
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+            <AlertDialog.Action
+                variant="destructive"
+                onclick={() => void deleteAllPatients()}
+            >
+                <Trash2 /> Delete all
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>

@@ -30,3 +30,10 @@ func (r *Repository) DeletePatientAnalysis(patientID uint) error {
 	}
 	return nil
 }
+
+func (r *Repository) DeleteAll() error {
+	if err := r.db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&Analysis{}).Error; err != nil {
+		return fmt.Errorf("failed to delete all analyses: %w", err)
+	}
+	return nil
+}

@@ -33,6 +33,10 @@ func setupServiceDeps(t *testing.T) (*Service, *httptest.Server) {
 	db.AutoMigrate(&Patient{})
 
 	orthancServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/patients" {
+			w.Write([]byte(`[]`))
+			return
+		}
 		w.Write([]byte(`{"ID": "orthanc-instance-1"}`))
 	}))
 

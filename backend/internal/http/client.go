@@ -92,12 +92,32 @@ func (c *Client) Post(path, contentType string, body io.Reader, out any) error {
 	return c.Do(req, out)
 }
 
+func (c *Client) GetJSON(path string, out any) error {
+	req, err := http.NewRequest(http.MethodGet, c.baseURL+path, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	return c.Do(req, out)
+}
+
 func (c *Client) Delete(path string) error {
 	req, err := http.NewRequest(http.MethodDelete, c.baseURL+path, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	return c.Do(req, nil)
+	if c.username != "" && c.password != "" {
+		req.SetBasicAuth(c.username, c.password)
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("request to %s failed: %w", req.URL, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("server returned status %d: %s", resp.StatusCode, string(body))
+	}
+	return nil
 }
 
 // GetBytes fetches binary data from an external service while preserving its

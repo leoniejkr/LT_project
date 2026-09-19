@@ -43,6 +43,10 @@ func setupHandler(t *testing.T, llmHandler http.HandlerFunc) (*Handler, *httptes
 	t.Setenv("MODELLING_URL", llmServer.URL)
 
 	orthancServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/patients" {
+			w.Write([]byte(`[]`))
+			return
+		}
 		if r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/instances/") {
 			w.Header().Set("Content-Type", "image/png")
 			w.Write([]byte("preview-image"))
@@ -371,15 +375,19 @@ func TestDeleteAnalysis_CleansUpData(t *testing.T) {
 	defer llmSrv.Close()
 	defer orthancSrv.Close()
 
-	body := &bytes.Buffer{}
-	writer := multipart.NewWriter(body)
-	writer.WriteField("formData", `{"age":55,"gender":"Male"}`)
-	writer.Close()
-
-	req := httptest.NewRequest(http.MethodPost, "/analysis", body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	w := httptest.NewRecorder()
-	handler.GetAnalysis(w, req)
+	for _, age := range []int{55, 72} {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		writer.WriteField("formData", fmt.Sprintf(`{"age":%d,"gender":"Male"}`, age))
+		writer.Close()
+		req := httptest.NewRequest(http.MethodPost, "/analysis", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		w := httptest.NewRecorder()
+		handler.GetAnalysis(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("create status = %d, want 200", w.Code)
+		}
+	}
 
 	deleteReq := httptest.NewRequest(http.MethodDelete, "/analysis", nil)
 	deleteW := httptest.NewRecorder()
@@ -387,6 +395,16 @@ func TestDeleteAnalysis_CleansUpData(t *testing.T) {
 
 	if deleteW.Code != http.StatusOK {
 		t.Errorf("delete status = %d, want %d", deleteW.Code, http.StatusOK)
+	}
+
+	listW := httptest.NewRecorder()
+	handler.ListPatients(listW, httptest.NewRequest(http.MethodGet, "/patients", nil))
+	var patients []PatientSummary
+	if err := json.NewDecoder(listW.Body).Decode(&patients); err != nil {
+		t.Fatalf("decode history: %v", err)
+	}
+	if len(patients) != 0 {
+		t.Errorf("history = %#v, want no patients", patients)
 	}
 }
 

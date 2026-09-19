@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -115,6 +116,32 @@ func TestDeleteInstance(t *testing.T) {
 	repo := NewRepository(server.URL, "", "")
 	if err := repo.DeleteInstance("instance-123"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestDeleteAllPatients(t *testing.T) {
+	deleted := make([]string, 0, 2)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/patients" {
+			w.Write([]byte(`["patient-a","patient-b"]`))
+			return
+		}
+		if r.Method == http.MethodDelete {
+			deleted = append(deleted, r.URL.Path)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+	}))
+	defer server.Close()
+
+	repo := NewRepository(server.URL, "", "")
+	if err := repo.DeleteAllPatients(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := []string{"/patients/patient-a", "/patients/patient-b"}
+	if !slices.Equal(deleted, want) {
+		t.Errorf("deleted paths = %#v, want %#v", deleted, want)
 	}
 }
 

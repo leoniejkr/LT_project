@@ -126,19 +126,19 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 
 // DeleteAnalysis godoc
 // @Summary      Delete all patient data
-// @Description  Deletes all patient data and analysis results from the database
+// @Description  Deletes all patient data, analysis results, and associated images from all application databases
 // @Tags         analysis
 // @Produce      json
 // @Success      200  {object}  map[string]string  "Deletion successful"
 // @Failure      500  {object}  string  "Deletion failed"
 // @Router       /analysis [delete]
 func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
-	if err := h.analysisService.DeletePatientAnalysis(0); err != nil {
+	if err := h.patientService.DeleteAll(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.patientService.DeleteAll(); err != nil {
+	if err := h.analysisService.DeleteAll(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
