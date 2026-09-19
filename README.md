@@ -27,7 +27,7 @@ The frontend sends the images and patient metadata to the Go backend. For this, 
 The backend then coordinates the analysis workflow. It reads the request and checks if the request size is under 50 MiB and if the request is valid. if the request is not valid a 400 error is returned to the frontend.
 If the request is valid, the backend then stores the uploaded images into the Orthanc database via a POST request to the Orthanc endpoint /tools/create-dicom and creates a patient record in Postgresql, where the Orthanc instance IDs of the images are subsequently added into the patient row. Moreover, the images are forwarded to the deep learning modelling service via a POST request to the /predict endpoint of the model. 
 
-The modelling service parses the data and loads the classifier, which is currently densenet121. Then it preprocesses the images by resizing every image, and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. The confidence store is a certainty estimation showing how certain the model is for each prediction. It also generates heatmaps in png format that indicate which image regions influenced the model's decision. 
+The modelling service parses the data and loads the classifier, which is currently a ConvNeXt-Base classifier. Then it preprocesses the images by resizing every image, and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. The confidence store is a certainty estimation showing how certain the model is for each prediction. It also generates heatmaps in png format that indicate which image regions influenced the model's decision. 
 
 The patient metadata is not used for the model classification but is instead forwarded to the LLM as metadata. The LLM can help the user better regarding possible questions with the metadata. 
 
@@ -83,6 +83,12 @@ docker compose exec ollama ollama pull phi3:mini
 
 The first command builds the application images and only has to be executed once, as long as the code stays unchanged. The second command starts the images and has to be executed every time the application is to be started. The last command downloads the language model used by the chatbot and is only required once.
 
+For this development setup, the X-ray classifier is mounted from `./checkpoints` into the modelling container. If that directory is empty, download the model once before starting (see the *Model files* section below):
+
+```bash
+python scripts/download_models.py
+```
+
 Then, open [http://localhost:5173](http://localhost:5173) in a browser.
 
 To stop the application, run:
@@ -97,6 +103,56 @@ The application data and downloaded language model are stored in Docker volumes 
 docker compose down -v
 ``` 
 only when you intentionally want to delete these volumes and their data.
+
+### Model files (X-ray classifier & LLM)
+
+#### Where the models come from
+
+**No model weights are stored in git.** GitHub rejects files above 100 MB, so all
+model files are hosted on the Hugging Face Hub and downloaded automatically.
+
+| Model | Purpose | Size | Hugging Face repo | File |
+|-------|---------|------|-------------------|------|
+| X-ray classifier | Predicts 15 conditions per image (ConvNeXt-Base) | 334 MB | `leoniejkr/lt-models` | `covnext348.pth` |
+| Chatbot LLM | Fine-tuned Llama-3-8B-Instruct | 4.9 GB | `leoniejkr/trustai-llm-gguf` | `llama-3-8b-Instruct.Q4_K_M.gguf` |
+
+Both are downloaded automatically during the normal Docker workflow, so for the
+plain `docker compose up` route **you normally do not need to do anything**:
+
+- **LLM:** the `ollama` container downloads the GGUF from Hugging Face at startup
+  and registers the model `trustai-llm:latest`. In a native-Ollama setup you register
+  it yourself with `ollama create` (see [LLM model configuration](#llm-model-configuration)).
+- **Classifier, production:** the production image downloads the checkpoint at build
+  time into `/app/checkpoints` (see [Production-Deployment](#production-deployment-und-docker-hub)).
+
+#### Getting the classifier for local development
+
+The development setup (`docker-compose.yaml`) mounts `./checkpoints` into the modelling
+container, so the file has to exist on your machine. It is a **public** Hugging Face
+repo, so no login is required. From the project root run once:
+
+```bash
+python scripts/download_models.py
+```
+
+The script places `covnext348.pth` into `./checkpoints`, which is gitignored.
+It is idempotent (re-running is harmless) and skips nothing, simply overwriting/
+re-fetching missing files. To fetch it (or additional models) explicitly:
+
+```bash
+MODEL_REPO=leoniejkr/lt-models MODEL_DIR=./checkpoints \
+MODEL_FILES=covnext348.pth python scripts/download_models.py
+```
+
+Adding future models: append the filename(s) to `DEFAULT_FILES` in
+`scripts/download_models.py` (or pass them via `MODEL_FILES=file_a.pth,file_b.pth`).
+The build/server environment variables are `MODEL_REPO` (default
+`leoniejkr/lt-models`), `MODEL_DIR` (default `./checkpoints`, `/app/checkpoints`
+inside the production image) and `HF_TOKEN` (only needed for **private** repos).
+
+> Note: `checkpoints/orientation_classifier/xray_orientation_resnet18.pth` is a
+> local helper only used by the MIDRC preprocessing pipeline; it is intentionally
+> not distributed.
 
 ## General Information for backend and brontend and how to contribute
 
@@ -247,7 +303,7 @@ All steps are idempotent — re-running any step skips work already done.
 | 4 | `processing.py` | DICOM zips | 512×512 PNGs + `midrc_processed_manifest.csv` | Skips if output PNG already exists |
 | 5 | `blend_data.py` | NIH cache + MIDRC manifest | `combined_master.csv` | Always rewrites (deterministic, fast) |
 | 6 | `compute_dataset_stats.py` | `combined_master.csv` | `dataset_stats.json` | Always rewrites (deterministic, fast) |
-| 7 | `train.py` | `combined_master.csv` + stats | `dual_view_checkpoint.pth` | Resumes from checkpoint if available |
+| 7 | `train.py` | `combined_master.csv` + stats | `covnext348.pth` | Resumes from checkpoint if available |
 
 ### Processing Details
 
@@ -372,9 +428,11 @@ Unterschiede zur Entwicklung:
 
 - **Multi-Stage-Images**: kein Live-Reload, keine Volume-Mounts, der Code liegt im Image.
   Das Backend läuft als statisches Binary, das Frontend als Node-Server (`adapter-node`).
-- **Modelling**: das trainierte Modell (`./checkpoints/dual_view_checkpoint.pth`, 28 MB)
-  ist im Repo versioniert und wird beim Docker-Build ins Image gebacken; gestartet wird
-  es als gunicorn-Worker.
+- **Modelling**: das trainierte Modell (`covnext348.pth`) wird beim Docker-Build vom
+  Hugging Face Hub nach `/app/checkpoints` geladen (`scripts/download_models.py`,
+  Standard-Repo `leoniejkr/lt-models`) und so ins Image gebacken; gestartet wird es
+  als gunicorn-Worker. Für ein privates Modell-Repo beim Build `HF_TOKEN` setzen
+  (siehe Abschnitt *Model files*).
 - **Ports**: Frontend und Backend sind intern (nur `nginx` publiziert `80`); `db`, `orthanc`
   und `ollama` sind sogar gar nicht von außen erreichbar.
 

@@ -7,13 +7,23 @@ import torchvision.models as models
 
 class SwinTransformerChestModel(pl.LightningModule):
 
+  # Swin uses a relative-position bias that can be interpolated, so it accepts
+  # other resolutions (e.g. 384) without breaking. We default to 224 because the
+  # ImageNet-1K pre-trained weights were tuned at 224 — matching the pre-training
+  # resolution is the safest transfer-learning choice. Bump INPUT_SIZE if higher
+  # detail matters more than preserving the pre-trained bias.
+  INPUT_SIZE = 224
+  # Transformers are memory-hungry; a conservative batch size at 224.
+  BATCH_SIZE = 24
+
   def __init__(
-      self, num_classes=15, lr=1e-4, weight_decay=1e-2, pos_weight=None
+      self, num_classes=15, lr=1e-4, weight_decay=1e-2, pos_weight=None,
+      backbone_factor=0.1, max_epochs=5
   ):
     super().__init__()
     self.save_hyperparameters(ignore=["pos_weight"])
 
-    # 1. Load Pretrained Swin Transformer Base (Configured for 384x384 input resolution)
+    # 1. Load Pretrained Swin Transformer Base
     self.backbone = models.swin_b(
         weights=models.Swin_B_Weights.SWIN_B_IMAGE1K_V1
     )
@@ -25,6 +35,19 @@ class SwinTransformerChestModel(pl.LightningModule):
     # 3. Class Imbalance Mitigation (register buffer avoids device mismatch issues across GPUs)
     self.register_buffer("pos_weight", pos_weight)
     self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
+
+  def masked_loss_fn(self, logits, targets, mask):
+    """Masked BCE loss for partial labels.
+
+    `mask` has the same shape as `targets` (batch x num_classes) and is
+    1 where the label is known/reliable, 0 where unknown. Lets MIDRC images
+    (only Covid annotated) avoid being penalized for undisclosed findings.
+    """
+    bce = torch.nn.functional.binary_cross_entropy_with_logits(
+        logits, targets, pos_weight=self.pos_weight, reduction="none"
+    )
+    bce = bce * mask
+    return bce.sum() / mask.sum().clamp(min=1.0)
 
     # 4. Metrics setup
     self.train_auroc = torchmetrics.AUROC(
@@ -38,9 +61,9 @@ class SwinTransformerChestModel(pl.LightningModule):
     return self.backbone(x)
 
   def training_step(self, batch, batch_idx):
-    images, targets = batch
+    images, targets, masks = batch
     logits = self(images)
-    loss = self.loss_fn(logits, targets)
+    loss = self.masked_loss_fn(logits, targets, masks)
 
     self.train_auroc(logits, targets.long())
     self.log(
@@ -56,9 +79,9 @@ class SwinTransformerChestModel(pl.LightningModule):
     return loss
 
   def validation_step(self, batch, batch_idx):
-    images, targets = batch
+    images, targets, masks = batch
     logits = self(images)
-    loss = self.loss_fn(logits, targets)
+    loss = self.masked_loss_fn(logits, targets, masks)
 
     self.val_auroc(logits, targets.long())
     self.log("val_loss", loss, on_epoch=True, prog_bar=True)
@@ -81,17 +104,23 @@ class SwinTransformerChestModel(pl.LightningModule):
         [
             {
                 "params": backbone_params,
-                "lr": self.hparams.lr * 0.1,
-            },  # 1e-5 (Preserves pretrained feature representations)
+                "lr": self.hparams.lr * self.hparams.backbone_factor,
+            },  # conservative lr preserves pretrained features
             {
                 "params": head_params,
                 "lr": self.hparams.lr,
-            },  # 1e-4 (Convergence for new targets)
+            },  # higher lr for the new classification head
         ],
         weight_decay=self.hparams.weight_decay,
     )
 
-    max_epochs = getattr(getattr(self, "trainer", None), "max_epochs", 10) or 10
+    # Also honor a real Trainer's max_epochs when used with pl.Trainer,
+    # otherwise fall back to the hparam passed at construction.
+    try:
+        trainer_epochs = getattr(self.trainer, "max_epochs", None)
+    except RuntimeError:
+        trainer_epochs = None
+    max_epochs = trainer_epochs if trainer_epochs else self.hparams.max_epochs
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
         optimizer, T_max=max_epochs, eta_min=1e-6
     )

@@ -131,6 +131,33 @@ for cls in NIH_CLASSES + [NORMAL_LABEL]:
 # 2. Read processed MIDRC COVID Manifest
 df_midrc = pd.read_csv("data_hybrid/midrc_processed_manifest.csv")
 
+# ── MIDRC ORIENTATION FIX ───────────────────────────────────────────────
+# Use ONLY the orientation-corrected copies. These live in midrc_fixed_images/
+# as full-res PNGs (up to ~4400px); resize_midrc.py pre-downscales them to
+# midrc_fixed_1024/ so the training DataLoader never re-decodes 48 GB of
+# full-res X-rays every epoch (that thrashed the 24 GB machine into swap).
+# Manifest rows without a fixed (and downscaled) copy are dropped.
+MIDRC_FIXED_DIR = os.path.join("data_hybrid", "midrc_fixed_1024")
+
+
+def remap_to_fixed(path: str):
+    fixed_path = os.path.join(MIDRC_FIXED_DIR, os.path.basename(path))
+    if os.path.exists(fixed_path):
+        return fixed_path
+    return None
+
+
+orig_rows = len(df_midrc)
+df_midrc['img_path'] = df_midrc['img_path'].apply(remap_to_fixed)
+df_midrc = df_midrc.dropna(subset=['img_path']).reset_index(drop=True)
+n_fixed = len(df_midrc)
+print(f"MIDRC images with fixed orientation: {n_fixed} / {orig_rows} "
+      f"({orig_rows - n_fixed} dropped, not yet orientation-fixed)")
+
+if len(df_midrc) == 0:
+    raise SystemExit("No MIDRC images have fixed orientations yet. "
+                     "Run fix_midrc_orientation.py first.")
+
 df_midrc_clean = pd.DataFrame()
 df_midrc_clean['img_path'] = df_midrc['img_path']
 df_midrc_clean['patient_id'] = df_midrc['patient_id'].astype(str)

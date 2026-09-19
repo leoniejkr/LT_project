@@ -40,12 +40,18 @@ data_hybrid/midrc_images_before
 *.wandb
 /wandb
 
-checkpoints/xray_orientation_resnet18.pth
+# Model weights are NOT versioned (too large for GitHub). They are downloaded
+# from the Hugging Face Hub (leoniejkr/lt-models) at Docker build time via
+# scripts/download_models.py. Keep checkpoint files local-only.
+checkpoints/**/*.pth
+
+/backend/tmp/
 
 /data_hybrid/nih_images/*
 /data_hybrid/midrc_images/*
 /data_hybrid/midrc_dicoms/*
 /data_hybrid/midrc_fixed_images/*
+/data_hybrid/midrc_fixed_1024/*
 
 
 data_hybrid/combined_master.csv

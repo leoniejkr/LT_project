@@ -16,9 +16,9 @@ export interface LLMModelOption {
 /** Classification models supported by the modelling service. */
 export const CLASSIFIER_MODELS: ClassifierModelOption[] = [
     {
-        id: 'densenet121',
-        label: 'DenseNet121 (ChestX)',
-        description: 'DenseNet-121 fine-tuned on chest X-rays (default).',
+        id: 'convnext',
+        label: 'ConvNeXt-Base (hybrid)',
+        description: 'ConvNeXt-Base trained on NIH + MIDRC, 384px black-padded (default).',
     },
 ];
 
@@ -35,7 +35,7 @@ export const LLM_MODELS: LLMModelOption[] = [
     },
 ];
 
-export const classifierModel: Writable<string> = writable('densenet121');
+export const classifierModel: Writable<string> = writable('convnext');
 export const llmModel: Writable<string> = writable('trustai-llm:latest');
 
 export const selectedClassifier = derived(

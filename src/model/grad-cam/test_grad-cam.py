@@ -32,7 +32,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.b
 model = ChestModel(num_classes=15)
 
 # Update to wherever your new single-view checkpoint is saved
-CHECKPOINT_PATH = "dual_view_checkpoint.pth" 
+CHECKPOINT_PATH = "checkpoints/covnext348.pth" 
 checkpoint = torch.load(CHECKPOINT_PATH)
 state_dict = checkpoint.get("state_dict", checkpoint)
 model.load_state_dict(state_dict, strict=False)
