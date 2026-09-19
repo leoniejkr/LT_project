@@ -32,7 +32,7 @@ ARG MODEL_REPO="leoniejkr/lt-models"
 ARG HF_TOKEN=""
 ARG MODEL_FILES=""
 COPY scripts/download_models.py .
-RUN MODEL_REPO="$MODEL_REPO" HF_TOKEN="$HF_TOKEN" MODEL_FILES="$MODEL_FILES" python download_models.py
+RUN MODEL_REPO="$MODEL_REPO" HF_TOKEN="$HF_TOKEN" MODEL_FILES="$MODEL_FILES" MODEL_DIR=/app/checkpoints python download_models.py
 
 ENV USE_MOCK=false
 ENV CHECKPOINT_PATH=/app/checkpoints/covnext348.pth

@@ -25,7 +25,7 @@ DEFAULT_FILES = [
     # "second_model.pth",  # TODO: next trained model
     # "third_model.pth",   # TODO: one more model coming later
 ]
-DEFAULT_DIR = "/app/checkpoints"
+DEFAULT_DIR = "./checkpoints"
 
 
 def main() -> None:
