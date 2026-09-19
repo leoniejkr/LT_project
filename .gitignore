@@ -27,7 +27,10 @@ ViteB
 
 data/preprocessed
 data_hybrid/midrc_images
+data_hybrid/midrc_dicoms
 data_hybrid/midrc_images_before
+data_hybrid/midrc_fixed_1024
+data_hybrid/midrc_fixed_images
 /frontend/build
 
 /images
