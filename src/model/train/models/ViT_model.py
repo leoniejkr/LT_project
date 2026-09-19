@@ -25,7 +25,7 @@ class SwinTransformerChestModel(pl.LightningModule):
 
     # 1. Load Pretrained Swin Transformer Base
     self.backbone = models.swin_b(
-        weights=models.Swin_B_Weights.SWIN_B_IMAGE1K_V1
+        weights=models.Swin_B_Weights.IMAGENET1K_V1
     )
 
     # 2. Extract input features from the default Swin head and swap for multi-label classifier
@@ -35,6 +35,14 @@ class SwinTransformerChestModel(pl.LightningModule):
     # 3. Class Imbalance Mitigation (register buffer avoids device mismatch issues across GPUs)
     self.register_buffer("pos_weight", pos_weight)
     self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
+
+    # 4. Metrics setup
+    self.train_auroc = torchmetrics.AUROC(
+        task="multilabel", num_labels=num_classes, average="macro"
+    )
+    self.val_auroc = torchmetrics.AUROC(
+        task="multilabel", num_labels=num_classes, average="macro"
+    )
 
   def masked_loss_fn(self, logits, targets, mask):
     """Masked BCE loss for partial labels.
@@ -48,14 +56,6 @@ class SwinTransformerChestModel(pl.LightningModule):
     )
     bce = bce * mask
     return bce.sum() / mask.sum().clamp(min=1.0)
-
-    # 4. Metrics setup
-    self.train_auroc = torchmetrics.AUROC(
-        task="multilabel", num_labels=num_classes, average="macro"
-    )
-    self.val_auroc = torchmetrics.AUROC(
-        task="multilabel", num_labels=num_classes, average="macro"
-    )
 
   def forward(self, x):
     return self.backbone(x)

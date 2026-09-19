@@ -1,14 +1,17 @@
+import contextlib
 import json
 import os
+import argparse
 import pandas as pd
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
+from torchvision.transforms import v2
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score  
 from PIL import Image
 from models.chest_model import ChestModel
+from models.ViT_model import SwinTransformerChestModel
 import wandb
 from tqdm import tqdm
 
@@ -18,33 +21,76 @@ ALL_CLASSES = ['Atelectasis', 'Cardiomegaly', 'Consolidation', 'Edema', 'Effusio
                'Pleural_Thickening', 'Pneumonia', 'Pneumothorax', 'Covid']
 
 config = {
-    "batch_size": 16,  # None -> use selected model's BATCH_SIZE (see below)
+    "batch_size": None,  # None -> use selected model's BATCH_SIZE (see below)
     "epochs": 5,
     "backbone_lr": 1e-5,
     "classifier_lr": 1e-4,
-    "architecture": "ConvNeXt-Base",
     "dataset": "NIH-MIDRC-Hybrid-PatientContext",
-    "resolution": 288  # None -> use selected model's INPUT_SIZE (see below)
+    "resolution": None,  # None -> use selected model's INPUT_SIZE
+    "use_amp": False,    # FP16 autocast. Benchmarked on MPS (Swin-B@224): 1369 ms/step vs
+                         # 1091 ms/step fp32 -> SLOWER (~25%) on this Mac, so off by default.
+                         # Flip to True if you run on CUDA or a machine where fp16 wins.
+    "checkpoint": None,  # None -> auto: "<model>-<resolution>px.pth"
+    "wandb_name": None,  # None -> auto: "<model>-<resolution>px"
 }
 
-# Resolution and batch size are now model-specific: each model class declares
-# its expected input size and a sensible batch size (see models/*.py
-# `INPUT_SIZE` / `BATCH_SIZE`). Transforms are built from the selected model so
-# we never squeeze/downsample to a fixed value that might not fit the backbone
-# (e.g. Swin/ViT wants its pre-trained grid). Override per run by editing
-# `MODEL_CLASS` or setting `config["batch_size"]` to a non-None value.
-MODEL_CLASS = ChestModel
+# ── Architecture selection ────────────────────────────────────────────────────
+# Every model class declares its expected INPUT_SIZE and a sensible BATCH_SIZE;
+# transforms, resolution and the checkpoint name are derived from the chosen
+# class automatically. Choose at runtime, e.g.:
+#   python src/model/train/train.py --model convnext
+#   python src/model/train/train.py --model swin            (default)
+#   MODEL=convnext python src/model/train/train.py
+MODEL_CLASSES = {
+    "convnext": ChestModel,
+    "swin": SwinTransformerChestModel,
+}
+_parser = argparse.ArgumentParser(description="Train the chest X-ray classifier.")
+_parser.add_argument(
+    "--model", choices=list(MODEL_CLASSES), default=os.getenv("MODEL", "swin"),
+    help="Backbone architecture to train (default: %(default)s)"
+)
+_parser.add_argument(
+    "--resume", default=None,
+    help="Path to '<checkpoint>_trainstate.pt' from an interrupted run to "
+         "continue training from the last saved epoch instead of restarting."
+)
+_parser.add_argument(
+    "--epochs", type=int, default=config["epochs"],
+    help="Number of training epochs (default: %(default)s)"
+)
+_args = _parser.parse_known_args()[0]
+MODEL = _args.model
+RESUME = _args.resume
+config["epochs"] = _args.epochs
+MODEL_CLASS = MODEL_CLASSES[MODEL]
+
+# Resolution and batch size are model-specific: `INPUT_SIZE` / `BATCH_SIZE` on
+# each model class. Transforms are built from the selected model so we never
+# squeeze/downsample to a size that might not fit the backbone. Override per run
+# via the config dict above.
 RESOLUTION = config["resolution"] if config["resolution"] else MODEL_CLASS.INPUT_SIZE
 BATCH_SIZE = config["batch_size"] if config["batch_size"] else MODEL_CLASS.BATCH_SIZE
+CHECKPOINT_NAME = config.get("checkpoint") or f"{MODEL}-{RESOLUTION}px"
+WANDB_NAME = config.get("wandb_name") or f"{MODEL}-{RESOLUTION}px"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
 
-# DataLoader tuning: pin_memory only helps on CUDA; on MPS/CPU it is a no-op.
-# Workers are capped low (2) because each spawned worker imports torch (~250 MB)
-# AND the machine has only 24 GB unified RAM shared with MPS — 4 workers plus
-# full-res MIDRC decodes previously thrashed the system into swap.
+# ── DataLoader tuning (Apple Silicon / MPS) ──────────────────────────────────
+# pin_memory only helps on CUDA; on MPS/CPU it is a no-op and can even slow the
+# transfer under unified memory, so keep it False outside CUDA.
 PIN_MEMORY = DEVICE.type == "cuda"
-WORKERS = 2
+# Workers parallelize image decoding + transforms (the CPU side). Tune with the
+# TRAIN_WORKERS env var; persistent_workers keeps the worker processes alive
+# between epochs instead of re-importing torch (~250 MB each) every epoch.
+WORKERS = int(os.getenv("TRAIN_WORKERS", "4"))
+PERSISTENT_WORKERS = WORKERS >= 1
+
+# ── Automatic Mixed Precision (FP16 autocast) ────────────────────────────────
+# MPS supports autocast but has no GradScaler, so we rely on autocast only. On a
+# loss that turns non-finite the batch is skipped (existing guard catches it).
+USE_AMP = config.get("use_amp", True) and DEVICE.type in ("cuda", "mps")
+amp_ctx = torch.autocast(device_type=DEVICE.type, dtype=torch.float16) if USE_AMP else contextlib.nullcontext()
 
 # Aspect-preserving resize + padding: images keep their true cardiothoracic
 # proportions (squashing to a square would distort anatomy and hurt classes
@@ -54,16 +100,18 @@ WORKERS = 2
 # used by the RandomRotation/RandomAffine augmentations.
 # Fixing the longer side guarantees EVERY output is exactly (size, size).
 # NOTE: these must live at module level so DataLoader workers (spawn) can
-# pickle them — they can NOT be defined inside __main__.
+# pickle them — they can NOT be defined inside __main__. They run on CHW
+# tensors (right after v2.ToImage()) and use the C++-optimized v2 functional
+# ops, which is the main DataLoader throughput win on Apple Silicon.
 class ResizeLongest:
     def __init__(self, size):
         self.size = size
 
     def __call__(self, img):
-        w, h = img.size
-        scale = self.size / max(w, h)
-        new_w, new_h = round(w * scale), round(h * scale)
-        return transforms.functional.resize(img, (new_h, new_w))
+        c, h, w = img.shape
+        scale = self.size / max(h, w)
+        new_h, new_w = round(h * scale), round(w * scale)
+        return v2.functional.resize(img, (new_h, new_w), antialias=True)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.size})"
@@ -74,17 +122,15 @@ class SquarePad:
         self.fill = fill
 
     def __call__(self, img):
-        w, h = img.size
-        if w == h:
+        c, h, w = img.shape
+        if h == w:
             return img
-        max_side = max(w, h)
+        max_side = max(h, w)
         pad_l = (max_side - w) // 2
         pad_r = max_side - w - pad_l
         pad_t = (max_side - h) // 2
         pad_b = max_side - h - pad_t
-
-        return transforms.functional.pad(
-            img, (pad_l, pad_t, pad_r, pad_b), fill=(self.fill, self.fill, self.fill))
+        return v2.functional.pad(img, (pad_l, pad_t, pad_r, pad_b), fill=self.fill)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(fill={self.fill})"
@@ -178,7 +224,7 @@ if __name__ == '__main__':
 
     wandb.init(
         project="hybrid-xray-covid", 
-        name="convnext-384px", 
+        name=WANDB_NAME, 
         config=config,
         settings=wandb.Settings(start_method="fork")
     )
@@ -238,30 +284,32 @@ if __name__ == '__main__':
     # 5. Dataset-specific normalization
     dataset_mean, dataset_std = load_dataset_stats()
 
-    # 6. Medical-Grade Augmentation Space
-    # ResizeLongest + SquarePad are defined at module level (importable by
-    # DataLoader workers). Train adds spatial augmentation; val only resizes.
-    train_transforms = transforms.Compose([
+    # 6. Medical-Grade Augmentation Space (torchvision v2, C++-optimized)
+    # v2.ToImage() converts the PIL image to a CHW uint8 tensor first, then all
+    # ops (incl. our ResizeLongest/SquarePad) run tensorized via v2.functional.
+    train_transforms = v2.Compose([
+        v2.ToImage(),
         ResizeLongest(RESOLUTION),
         SquarePad(),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(5, fill=0),
-        transforms.RandomAffine(
+        v2.RandomHorizontalFlip(p=0.5),
+        v2.RandomRotation(degrees=5, fill=0),
+        v2.RandomAffine(
             degrees=0,
             translate=(0.1, 0.05),
             scale=(0.85, 1.15),
             shear=5,
             fill=0
         ),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=dataset_mean, std=dataset_std)
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=dataset_mean, std=dataset_std)
     ])
 
-    val_transforms = transforms.Compose([
+    val_transforms = v2.Compose([
+        v2.ToImage(),
         ResizeLongest(RESOLUTION),
         SquarePad(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=dataset_mean, std=dataset_std)
+        v2.ToDtype(torch.float32, scale=True),
+        v2.Normalize(mean=dataset_mean, std=dataset_std)
     ])
 
     train_loader = DataLoader(
@@ -269,14 +317,16 @@ if __name__ == '__main__':
         batch_size=BATCH_SIZE, 
         shuffle=True,
         num_workers=WORKERS,
-        pin_memory=PIN_MEMORY
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTENT_WORKERS
     )
     val_loader = DataLoader(
         SingleViewXRayDataset(df_val, ALL_CLASSES, val_transforms, mask_val), 
         batch_size=BATCH_SIZE, 
         shuffle=False,
         num_workers=WORKERS,
-        pin_memory=PIN_MEMORY
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTENT_WORKERS
     )
 
     # 7. Model with class-imbalance-aware loss (sqrt-scaled to prevent gradient explosion)
@@ -302,8 +352,24 @@ if __name__ == '__main__':
     optimizer = optimizers[0]
     scheduler = schedulers[0]
 
+    # 7b. Resume support: `--resume swin-224px_trainstate.pt` continues from the
+    # last saved epoch (model + optimizer + scheduler states), so an interrupted
+    # run never loses its progress.
+    trainstate_path = f"{CHECKPOINT_NAME}_trainstate.pt"
+    start_epoch = 0
+    if RESUME:
+        if not os.path.exists(RESUME):
+            raise FileNotFoundError(f"--resume path not found: {RESUME}")
+        print(f"Resuming from {RESUME} ...")
+        ckpt = torch.load(RESUME, map_location=DEVICE, weights_only=False)
+        model.load_state_dict(ckpt["model"])
+        optimizer.load_state_dict(ckpt["optimizer"])
+        scheduler.load_state_dict(ckpt["scheduler"])
+        start_epoch = ckpt["epoch"] + 1
+        print(f"  restored epoch {ckpt['epoch']} -> continuing at epoch {start_epoch}")
+
     # 8. Training Loop
-    for epoch in range(0, config["epochs"]+1):
+    for epoch in range(start_epoch, config["epochs"]+1):
         if epoch == 0:
             print("Running baseline validation pass prior to weight optimization adjustments...")
             epoch_train_loss = 0.0
@@ -318,8 +384,10 @@ if __name__ == '__main__':
                 masks = masks.to(DEVICE)
                 
                 optimizer.zero_grad()
-                outputs = model(images)
-                loss = model.masked_loss_fn(outputs, labels, masks)
+
+                with amp_ctx:
+                    outputs = model(images)
+                    loss = model.masked_loss_fn(outputs, labels, masks)
 
                 # A NaN/Inf loss (possible on MPS under memory pressure or on a
                 # corrupt sample) must never poison the model: skip the update.
@@ -353,8 +421,9 @@ if __name__ == '__main__':
                 labels = labels.to(DEVICE)
                 masks = masks.to(DEVICE)
                 
-                outputs = model(images)
-                loss = model.masked_loss_fn(outputs, labels, masks)
+                with amp_ctx:
+                    outputs = model(images)
+                    loss = model.masked_loss_fn(outputs, labels, masks)
                 running_val_loss += loss.item() * images.size(0)
                 
                 probs = torch.sigmoid(outputs)
@@ -410,7 +479,13 @@ if __name__ == '__main__':
         if epoch > 0:
             current_lrs = [param_group['lr'] for param_group in optimizer.param_groups]
             metrics_to_log["lr"] = current_lrs[0]
-            torch.save(model.state_dict(), "dual_view_checkpoint.pth")
+            torch.save(model.state_dict(), f"{CHECKPOINT_NAME}.pth")
+            torch.save({
+                "model": model.state_dict(),
+                "optimizer": optimizer.state_dict(),
+                "scheduler": scheduler.state_dict(),
+                "epoch": epoch,
+            }, trainstate_path)
 
         print("\n")
         
@@ -421,8 +496,8 @@ if __name__ == '__main__':
             print("Training will continue locally; wandb will attempt background reconnection.")
             print("If the connection is back, the next epoch's log will flush the queue.")
 
-    torch.save(model.state_dict(), "checkpoint.pth")
-    print("Model weights successfully saved locally to checkpoint.pth!")
+    torch.save(model.state_dict(), f"{CHECKPOINT_NAME}_final.pth")
+    print(f"Model weights successfully saved locally to {CHECKPOINT_NAME}_final.pth!")
 
     try:
         wandb.finish()

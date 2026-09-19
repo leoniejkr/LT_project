@@ -303,7 +303,7 @@ All steps are idempotent — re-running any step skips work already done.
 | 4 | `processing.py` | DICOM zips | 512×512 PNGs + `midrc_processed_manifest.csv` | Skips if output PNG already exists |
 | 5 | `blend_data.py` | NIH cache + MIDRC manifest | `combined_master.csv` | Always rewrites (deterministic, fast) |
 | 6 | `compute_dataset_stats.py` | `combined_master.csv` | `dataset_stats.json` | Always rewrites (deterministic, fast) |
-| 7 | `train.py` | `combined_master.csv` + stats | `covnext348.pth` | Resumes from checkpoint if available |
+| 7 | `train.py --model swin` | `combined_master.csv` + stats | `swin-224px.pth` (use `--model convnext` → `convnext-384px.pth`) | Resume an interrupted run via `--resume swin-224px_trainstate.pt` |
 
 ### Processing Details
 
@@ -321,8 +321,9 @@ All steps are idempotent — re-running any step skips work already done.
 - Stratified by patient (not image) to prevent data leakage
 
 **Training (Step 7)** uses:
+- Backbone selectable: `--model swin` (Swin-B transformer, 224px) or `--model convnext` (ConvNeXt-Base, 384px); resolution and batch size derive from the model
 - ConvNeXt-Base backbone (pretrained)
-- 384×384 resolution
+- 384×384 resolution (convnext) / 224×224 (swin)
 - Dataset-specific normalization (computed in Step 6)
 - sqrt-scaled `pos_weight` BCE loss for class imbalance
 - CosineAnnealing LR scheduler
