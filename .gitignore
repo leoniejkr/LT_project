@@ -40,11 +40,12 @@ data_hybrid/midrc_images_before
 *.wandb
 /wandb
 
-# Trained model weights (covnext348.pth is 334 MB; GitHub limit is 100 MB).
-# Bake them into the Docker image at build time; do not version them.
-# The 44 MB orientation classifier under checkpoints/orientation_classifier/
-# stays tracked (it is under the limit and needed by the data pipeline).
-checkpoints/*.pth
+# Model weights are NOT versioned (too large for GitHub). They are downloaded
+# from the Hugging Face Hub (leoniejkr/lt-models) at Docker build time via
+# scripts/download_models.py. Keep checkpoint files local-only.
+checkpoints/**/*.pth
+
+/backend/tmp/
 
 /data_hybrid/nih_images/*
 /data_hybrid/midrc_images/*

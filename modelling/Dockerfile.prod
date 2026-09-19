@@ -24,9 +24,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Quellcode des Modelling-Service
 COPY modelling/*.py .
 
-# Trainiertes Modell direkt ins Image backen, damit der Container
-# ohne zusätzlichen Volume-Mount sofort lauffähig ist.
-COPY checkpoints/ ./checkpoints/
+# Modellgewichte sind NICHT in git (zu gross fuer GitHub). Sie werden beim
+# Build vom Hugging Face Hub geladen (siehe scripts/download_models.py), damit
+# das Image selbststaendig ist und ohne Model-Datei verteilt werden kann.
+# Fuer private Repos: HF_TOKEN als Build-Arg setzen (docker compose build --build-arg HF_TOKEN=...).
+ARG MODEL_REPO="leoniejkr/lt-models"
+ARG HF_TOKEN=""
+ARG MODEL_FILES=""
+COPY scripts/download_models.py .
+RUN MODEL_REPO="$MODEL_REPO" HF_TOKEN="$HF_TOKEN" MODEL_FILES="$MODEL_FILES" python download_models.py
 
 ENV USE_MOCK=false
 ENV CHECKPOINT_PATH=/app/checkpoints/covnext348.pth
