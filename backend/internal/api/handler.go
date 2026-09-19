@@ -1,6 +1,7 @@
 package api
 
 import (
+	"backend/internal/analysis"
 	"backend/internal/chat"
 	"backend/internal/patient"
 	"encoding/json"
@@ -10,23 +11,40 @@ import (
 )
 
 type Handler struct {
-	patientService *patient.Service
-	chatClient     *chat.Client
+	patientService  *patient.Service
+	chatService     *chat.Service
+	analysisService *analysis.Service
 }
 
-func NewHandler(patientService *patient.Service, chatClient *chat.Client) *Handler {
+func NewHandler(patientService *patient.Service, chatService *chat.Service, analysisService *analysis.Service) *Handler {
 	return &Handler{
-		patientService: patientService,
-		chatClient:     chatClient,
+		patientService:  patientService,
+		chatService:     chatService,
+		analysisService: analysisService,
 	}
 }
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("POST /analysis", h.GetAnalysis)
 	router.HandleFunc("DELETE /analysis", h.DeleteAnalysis)
+	router.HandleFunc("GET /patients", h.ListPatients)
+	router.HandleFunc("GET /patients/{id}/analysis", h.GetPatientAnalysis)
+	router.HandleFunc("GET /patients/{id}/images/{imageID}", h.GetPatientImage)
 	router.HandleFunc("POST /chat", h.Chat)
 }
 
+// GetAnalysis godoc
+// @Summary      Get AI analysis
+// @Description  Upload patient data and X-Ray pictures and get analysis results back
+// @Tags         analysis
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        formData  formData  string  true  "Patient data as JSON (age, gender, symptoms, history)"
+// @Param        image_files  formData  []file  true  "X-Ray PNG images"
+// @Success      200  {object}  AnalysisResultResponse  "Successful analysis"
+// @Failure      400  {object}  string  "Invalid request"
+// @Failure      500  {object}  map[string]interface{}  "Analysis or server error"
+// @Router       /analysis [post]
 func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(50 << 20); err != nil {
 		http.Error(w, "Unable to parse multipart form", http.StatusBadRequest)
@@ -86,7 +104,7 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	analysisResp, err := h.patientService.GetAnalysis(createdPatient.ID, createdPatient, imageBuffers, imageNames, classifierModel, llmModel)
+	analysisResp, err := h.analysisService.GetAnalysis(createdPatient.ID, createdPatient, imageBuffers, imageNames, classifierModel, llmModel)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -100,15 +118,26 @@ func (h *Handler) GetAnalysis(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]any{
-		"status":   "success",
-		"patient":  createdPatient,
-		"analysis": analysisResp,
+	json.NewEncoder(w).Encode(AnalysisResultResponse{
+		Status: "success", Patient: newPatientResponse(createdPatient), Analysis: newAnalysisResponseFromModel(analysisResp),
 	})
 }
 
+// DeleteAnalysis godoc
+// @Summary      Delete all patient data
+// @Description  Deletes all patient data and analysis results from the database
+// @Tags         analysis
+// @Produce      json
+// @Success      200  {object}  map[string]string  "Deletion successful"
+// @Failure      500  {object}  string  "Deletion failed"
+// @Router       /analysis [delete]
 func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
-	if err := h.patientService.DeleteAllData(); err != nil {
+	if err := h.analysisService.DeletePatientAnalysis(0); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := h.patientService.DeleteAll(); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -118,21 +147,6 @@ func (h *Handler) DeleteAnalysis(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-const chatSystemPrompt = `You are a medical AI assistant helping clinicians understand chest X-ray analysis results.
-Answer questions about diagnoses, confidence scores and findings clearly and concisely.
-Use the patient context provided in this conversation (symptoms, medical history, risk factors)
-when answering questions about the patient.
-If you are unsure, say so. Always recommend consulting a radiologist for final decisions.`
-
-type ChatRequest struct {
-	Message string         `json:"message"`
-	History []chat.Message `json:"history"`
-	Context map[string]any `json:"context,omitempty"`
-	Model   string         `json:"model,omitempty"`
-}
-
-// buildContextMessage renders the client-supplied patient context as an
-// additional system message so the model can reason about it.
 func buildContextMessage(context map[string]any) (chat.Message, bool) {
 	if len(context) == 0 {
 		return chat.Message{}, false
@@ -142,13 +156,24 @@ func buildContextMessage(context map[string]any) (chat.Message, bool) {
 		return chat.Message{}, false
 	}
 	return chat.Message{
-		Role: "system",
+		Role: chat.SystemRole,
 		Content: "Known patient context for this conversation " +
 			"(age, checked symptoms, medical history and risk factors, analysis findings). " +
 			"Use it when answering questions about this patient:\n" + string(payload),
 	}, true
 }
 
+// Chat godoc
+// @Summary      Chat with medical AI
+// @Description  Send a message to the medical AI assistant with patient context
+// @Tags         chat
+// @Accept       json
+// @Produce      json
+// @Param        request  body  ChatRequest  true  "Chat request with message, history, and context"
+// @Success      200  {object}  map[string]string  "AI reply"
+// @Failure      400  {object}  string  "Invalid request or missing message"
+// @Failure      502  {object}  map[string]string  "Chat service error"
+// @Router       /chat [post]
 func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -161,22 +186,22 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messages := []chat.Message{{Role: "system", Content: chatSystemPrompt}}
+	messages := []chat.Message{{Role: chat.SystemRole}}
 	if contextMsg, ok := buildContextMessage(req.Context); ok {
 		messages = append(messages, contextMsg)
 	}
 	for _, m := range req.History {
-		if m.Role == "user" || m.Role == "assistant" {
+		if (m.Role == chat.UserRole) || (m.Role == chat.AssistantRole) {
 			messages = append(messages, m)
 		}
 	}
 
 	last := len(messages) - 1
-	if last < 1 || messages[last].Role != "user" || messages[last].Content != req.Message {
-		messages = append(messages, chat.Message{Role: "user", Content: req.Message})
+	if (last < 1 || messages[last].Role != chat.UserRole) || (messages[last].Content != req.Message) {
+		messages = append(messages, chat.Message{Role: chat.UserRole, Content: req.Message})
 	}
 
-	reply, err := h.chatClient.SendMessage(messages, req.Model)
+	reply, err := h.chatService.SendMessage(messages, req.Model)
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		json.NewEncoder(w).Encode(map[string]string{

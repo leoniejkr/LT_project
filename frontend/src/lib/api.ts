@@ -6,4 +6,4 @@ export type ApiResponse<T extends keyof paths, M extends keyof paths[T]> =
 
 // Hilfstyp für API-Payloads (POST)
 export type ApiRequest<T extends keyof paths> = 
-    paths[T]["post"] extends { parameters: { formData: infer P } } ? P : any;
+    paths[T] extends { post: { parameters: { formData: infer P } } } ? P : never;

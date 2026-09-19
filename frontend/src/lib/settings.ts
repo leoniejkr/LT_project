@@ -54,6 +54,16 @@ export const decisionMode: Writable<DecisionMode> =
 /** 0-100 percentage used only when mode is `custom`. */
 export const customThreshold: Writable<number> = writable(50);
 
+/**
+ * Activates manual threshold control and stores a valid percentage.
+ * Use this for controls that should turn a preset into a custom value.
+ */
+export function setCustomThreshold(value: number): void {
+    const normalizedValue = Math.min(100, Math.max(0, Math.round(value)));
+    customThreshold.set(normalizedValue);
+    decisionMode.set('custom');
+}
+
 export const isCustom = derived(
     decisionMode,
     ($mode) => $mode === 'custom',

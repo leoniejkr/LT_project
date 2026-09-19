@@ -31,14 +31,16 @@
   ];
 </script>
 
-<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-6 pb-12">
+<div class="mt-6 mx-auto w-full max-w-6xl flex flex-col gap-6 px-4 pb-12 sm:px-6">
   <Card.Root class="overflow-hidden p-0">
     <div class="grid gap-0 md:grid-cols-2">
       <Card.Content class="flex flex-col justify-center p-6 md:p-8 lg:p-10">
         <Badge variant="secondary" class="mb-4 w-fit">TrustAI</Badge>
         <Card.Header class="p-0">
-          <Card.Title class="text-3xl font-bold tracking-tight md:text-5xl">
-            Medical image analysis and Risk Assessment AI
+          <Card.Title>
+            <h1 class="text-3xl font-bold tracking-tight md:text-5xl">
+              Medical image analysis and Risk Assessment AI
+            </h1>
           </Card.Title>
           <Card.Description class="mt-4 max-w-xl text-base md:text-lg">
             This project was made to help clinicians with reviewing chest X-rays
@@ -52,13 +54,9 @@
           <Button href="/upload" size="lg" class="gap-2">
             Start analysis <ArrowRight size={16} />
           </Button>
-          <Button href="/result" variant="outline" size="lg">
-            View example results
-          </Button>
         </div>
       </Card.Content>
 
-      <!-- change src to maybe heatmap image? -->
       <div class="relative min-h-[280px] bg-muted/40 md:min-h-[420px]">
         <img
           src="/example1.png"
@@ -79,7 +77,9 @@
           >
             <Icon size={18} />
           </div>
-          <Card.Title class="text-lg font-semibold">{i + 1}. {step.title}</Card.Title>
+          <Card.Title class="text-lg font-semibold">
+            <h2>{i + 1}. {step.title}</h2>
+          </Card.Title>
           <Card.Description class="mt-2">
             {step.description}
           </Card.Description>
@@ -135,13 +135,13 @@
             <Accordion.Item value="step-3">
               <Accordion.Trigger>3. Start analysis</Accordion.Trigger>
               <Accordion.Content>
-                Review prediction and image insights.
+                Let the AI generate predictions and insights based on the provided information.
               </Accordion.Content>
             </Accordion.Item>
             <Accordion.Item value="step-4">
               <Accordion.Trigger>4. Use the result view</Accordion.Trigger>
               <Accordion.Content>
-                Understand the diagnosis, examine the images manually and use the
+                Understand the prediction, examine the images and heatmaps manually and use the
                 chat for further information and help.
               </Accordion.Content>
             </Accordion.Item>

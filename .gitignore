@@ -40,7 +40,11 @@ data_hybrid/midrc_images_before
 *.wandb
 /wandb
 
-checkpoints/xray_orientation_resnet18.pth
+# Trained model weights (covnext348.pth is 334 MB; GitHub limit is 100 MB).
+# Bake them into the Docker image at build time; do not version them.
+# The 44 MB orientation classifier under checkpoints/orientation_classifier/
+# stays tracked (it is under the limit and needed by the data pipeline).
+checkpoints/*.pth
 
 /data_hybrid/nih_images/*
 /data_hybrid/midrc_images/*

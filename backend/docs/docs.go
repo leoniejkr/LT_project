@@ -14,7 +14,459 @@ const docTemplate = `{
     },
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
-    "paths": {}
+    "paths": {
+        "/analysis": {
+            "post": {
+                "description": "Upload patient data and X-Ray pictures and get analysis results back",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analysis"
+                ],
+                "summary": "Get AI analysis",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Patient data as JSON (age, gender, symptoms, history)",
+                        "name": "formData",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "file"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "X-Ray PNG images",
+                        "name": "image_files",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful analysis",
+                        "schema": {
+                            "$ref": "#/definitions/api.AnalysisResultResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Analysis or server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes all patient data and analysis results from the database",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "analysis"
+                ],
+                "summary": "Delete all patient data",
+                "responses": {
+                    "200": {
+                        "description": "Deletion successful",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Deletion failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/chat": {
+            "post": {
+                "description": "Send a message to the medical AI assistant with patient context",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chat"
+                ],
+                "summary": "Chat with medical AI",
+                "parameters": [
+                    {
+                        "description": "Chat request with message, history, and context",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.ChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "AI reply",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or missing message",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "502": {
+                        "description": "Chat service error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/patients": {
+            "get": {
+                "description": "Returns the patients with a persisted, completed analysis, newest first.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "history"
+                ],
+                "summary": "List completed analyses",
+                "responses": {
+                    "200": {
+                        "description": "Completed analysis history",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/api.PatientSummary"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unable to load history",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/patients/{id}/analysis": {
+            "get": {
+                "description": "Returns a patient and their persisted analysis for the history dashboard.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "history"
+                ],
+                "summary": "Get a saved analysis",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Patient ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Saved analysis",
+                        "schema": {
+                            "$ref": "#/definitions/api.PatientAnalysisResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid patient ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Patient or analysis not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/patients/{id}/images/{imageID}": {
+            "get": {
+                "description": "Proxies an original X-Ray or Grad-CAM heatmap from Orthanc after verifying it belongs to the patient.",
+                "produces": [
+                    "image/png"
+                ],
+                "tags": [
+                    "history"
+                ],
+                "summary": "Get a saved patient image",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Patient ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Orthanc instance ID",
+                        "name": "imageID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Original X-Ray or Grad-CAM heatmap",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid patient or image ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Patient or image not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "502": {
+                        "description": "Unable to retrieve image from Orthanc",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "api.AnalysisResponse": {
+            "type": "object",
+            "properties": {
+                "image_results": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ImageResult"
+                    }
+                },
+                "model_version": {
+                    "type": "string"
+                },
+                "predictions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.Prediction"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.AnalysisResultResponse": {
+            "type": "object",
+            "properties": {
+                "analysis": {
+                    "$ref": "#/definitions/api.AnalysisResponse"
+                },
+                "patient": {
+                    "$ref": "#/definitions/api.PatientResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ChatRequest": {
+            "type": "object",
+            "properties": {
+                "context": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/chat.Message"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "model": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ImagePrediction": {
+            "type": "object",
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "heatmap": {
+                    "type": "string"
+                },
+                "orthancId": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.ImageResult": {
+            "type": "object",
+            "properties": {
+                "filename": {
+                    "type": "string"
+                },
+                "index": {
+                    "type": "integer"
+                },
+                "predictions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ImagePrediction"
+                    }
+                }
+            }
+        },
+        "api.PatientAnalysisResponse": {
+            "type": "object",
+            "properties": {
+                "analysis": {
+                    "$ref": "#/definitions/api.AnalysisResponse"
+                },
+                "patient": {
+                    "$ref": "#/definitions/api.PatientResponse"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.PatientResponse": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "orthancIDs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "symptoms": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "api.PatientSummary": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api.Prediction": {
+            "type": "object",
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "number"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "chat.Message": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/chat.Role"
+                }
+            }
+        },
+        "chat.Role": {
+            "type": "string",
+            "enum": [
+                "user",
+                "assistant",
+                "system"
+            ],
+            "x-enum-varnames": [
+                "UserRole",
+                "AssistantRole",
+                "SystemRole"
+            ]
+        }
+    }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it

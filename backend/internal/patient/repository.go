@@ -2,6 +2,7 @@ package patient
 
 import (
 	"fmt"
+
 	"gorm.io/gorm"
 )
 
@@ -20,12 +21,20 @@ func (r *Repository) Create(p *Patient) error {
 	return nil
 }
 
-func (r *Repository) FindByID(id uint) (*Patient, error) {
+func (r *Repository) FindByID(patientID uint) (*Patient, error) {
 	var p Patient
-	if err := r.db.First(&p, id).Error; err != nil {
+	if err := r.db.First(&p, patientID).Error; err != nil {
 		return nil, err
 	}
 	return &p, nil
+}
+
+func (r *Repository) FindAll() ([]Patient, error) {
+	var patients []Patient
+	if err := r.db.Order("id DESC").Find(&patients).Error; err != nil {
+		return nil, fmt.Errorf("failed to list patients: %w", err)
+	}
+	return patients, nil
 }
 
 func (r *Repository) Update(p *Patient) error {
@@ -33,12 +42,9 @@ func (r *Repository) Update(p *Patient) error {
 }
 
 func (r *Repository) DeletePatient(patientID uint) error {
-	if patientID == 0 {
-		return r.db.Where("1 = 1").Delete(&Patient{}).Error
-	}
 	return r.db.Where("id = ?", patientID).Delete(&Patient{}).Error
 }
 
 func (r *Repository) DeleteAll() error {
-	return r.db.Where("1 = 1").Delete(&Patient{}).Error
+	return r.db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&Patient{}).Error
 }

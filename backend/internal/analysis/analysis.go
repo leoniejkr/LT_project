@@ -29,7 +29,8 @@ func (p Predictions) Value() (driver.Value, error) {
 type ImagePrediction struct {
 	Class      string  `json:"class"`
 	Confidence float64 `json:"confidence"`
-	Heatmap    string  `json:"heatmap"`
+	Heatmap    string  `json:"heatmap,omitempty"`
+	OrthancID  string  `json:"orthancId,omitempty"`
 }
 
 type ImagePredictions []ImagePrediction
@@ -76,4 +77,13 @@ type Analysis struct {
 	ModelVersion     string       `json:"modelVersion,omitempty"`
 	Predictions      Predictions  `gorm:"type:jsonb" json:"predictions"`
 	ImageResults     ImageResults `gorm:"type:jsonb" json:"imageResults"`
+}
+
+// ModelPredictionResponse is the response contract of the modelling service.
+// API handlers map it to their own response DTOs before sending it to clients.
+type ModelPredictionResponse struct {
+	Status       string       `json:"status"`
+	ModelVersion string       `json:"model_version"`
+	Predictions  Predictions  `json:"predictions"`
+	ImageResults ImageResults `json:"image_results"`
 }

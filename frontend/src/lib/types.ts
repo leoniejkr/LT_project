@@ -7,7 +7,8 @@ export interface Prediction {
 export interface ImagePrediction {
     class: string;
     confidence: number;
-    heatmap: string;
+    heatmap?: string;
+    orthancId?: string;
 }
 
 export interface ImageResult {
@@ -21,20 +22,33 @@ export interface AnalysisResponse {
     model_version: string;
     predictions: Prediction[];
     image_results: ImageResult[];
-    is_mock: boolean;
 }
 
-export interface PatientData {
-    id: number;
+export interface PatientMetadata {
     age: number;
     gender: string;
     symptoms: string[];
     history: string[];
+}
+
+export interface PatientData extends PatientMetadata {
+    id: number;
     orthancIDs: string[];
+}
+
+export interface PatientSummary {
+    id: number;
+    age: number;
+    gender: string;
 }
 
 export interface AnalysisResult {
     status: string;
     patient: PatientData;
     analysis: AnalysisResponse;
+}
+
+export interface CategorizedPrediction {
+    pred: Prediction;
+    rank: number;
 }

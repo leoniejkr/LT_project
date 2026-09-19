@@ -1,18 +1,5 @@
 import { writable, derived, type Writable, type Readable } from 'svelte/store';
 
-/**
- * Model selection settings.
- *
- * Two independent choices:
- * - classifierModel: which computer-vision model classifies the chest X-rays
- *   (produces the confidence scores + heatmaps).
- * - llmModel: which LLM generates the natural-language reasons and powers
- *   the assistant chat.
- *
- * These feed into the analysis pipeline (frontend -> backend -> modelling).
- * The catalogs are designed to grow: add an entry here and implement the
- * corresponding behaviour in the modelling service.
- */
 
 export interface ClassifierModelOption {
     id: string;
@@ -29,16 +16,12 @@ export interface LLMModelOption {
 /** Classification models supported by the modelling service. */
 export const CLASSIFIER_MODELS: ClassifierModelOption[] = [
     {
-        id: 'densenet121',
-        label: 'DenseNet121 (ChestX)',
-        description: 'DenseNet-121 fine-tuned on chest X-rays (default).',
+        id: 'convnext',
+        label: 'ConvNeXt-Base (hybrid)',
+        description: 'ConvNeXt-Base trained on NIH + MIDRC, 384px black-padded (default).',
     },
 ];
 
-/**
- * LLM models that can be selected (static catalog — the source of truth for
- * which models the app supports). Add an entry here to offer a new model.
- */
 export const LLM_MODELS: LLMModelOption[] = [
     {
         id: 'trustai-llm:latest',
@@ -52,7 +35,7 @@ export const LLM_MODELS: LLMModelOption[] = [
     },
 ];
 
-export const classifierModel: Writable<string> = writable('densenet121');
+export const classifierModel: Writable<string> = writable('convnext');
 export const llmModel: Writable<string> = writable('trustai-llm:latest');
 
 export const selectedClassifier = derived(

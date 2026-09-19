@@ -4,25 +4,202 @@
  */
 
 export interface paths {
-  "/patients": {
-    /** Creates new patient with the provided metadata and image files */
+  "/analysis": {
+    /** Upload patient data and X-Ray pictures and get analysis results back */
     post: {
       parameters: {
         formData: {
-          /** Patienten-Metadata as JSON-String */
+          /** Patient data as JSON (age, gender, symptoms, history) */
           formData: string;
-          /** The image picture data */
-          image_file: unknown;
+          /** X-Ray PNG images */
+          image_files: unknown[];
         };
       };
       responses: {
-        /** Accepted */
-        202: {
+        /** Successful analysis */
+        200: {
+          schema: definitions["api.AnalysisResultResponse"];
+        };
+        /** Invalid request */
+        400: {
+          schema: string;
+        };
+        /** Analysis or server error */
+        500: {
+          schema: { [key: string]: unknown };
+        };
+      };
+    };
+    /** Deletes all patient data and analysis results from the database */
+    delete: {
+      responses: {
+        /** Deletion successful */
+        200: {
+          schema: { [key: string]: string };
+        };
+        /** Deletion failed */
+        500: {
           schema: string;
         };
       };
     };
   };
+  "/chat": {
+    /** Send a message to the medical AI assistant with patient context */
+    post: {
+      parameters: {
+        body: {
+          /** Chat request with message, history, and context */
+          request: definitions["api.ChatRequest"];
+        };
+      };
+      responses: {
+        /** AI reply */
+        200: {
+          schema: { [key: string]: string };
+        };
+        /** Invalid request or missing message */
+        400: {
+          schema: string;
+        };
+        /** Chat service error */
+        502: {
+          schema: { [key: string]: string };
+        };
+      };
+    };
+  };
+  "/patients": {
+    /** Returns the patients with a persisted, completed analysis, newest first. */
+    get: {
+      responses: {
+        /** Completed analysis history */
+        200: {
+          schema: definitions["api.PatientSummary"][];
+        };
+        /** Unable to load history */
+        500: {
+          schema: string;
+        };
+      };
+    };
+  };
+  "/patients/{id}/analysis": {
+    /** Returns a patient and their persisted analysis for the history dashboard. */
+    get: {
+      parameters: {
+        path: {
+          /** Patient ID */
+          id: number;
+        };
+      };
+      responses: {
+        /** Saved analysis */
+        200: {
+          schema: definitions["api.PatientAnalysisResponse"];
+        };
+        /** Invalid patient ID */
+        400: {
+          schema: string;
+        };
+        /** Patient or analysis not found */
+        404: {
+          schema: string;
+        };
+      };
+    };
+  };
+  "/patients/{id}/images/{imageID}": {
+    /** Proxies an original X-Ray or Grad-CAM heatmap from Orthanc after verifying it belongs to the patient. */
+    get: {
+      parameters: {
+        path: {
+          /** Patient ID */
+          id: number;
+          /** Orthanc instance ID */
+          imageID: string;
+        };
+      };
+      responses: {
+        /** Original X-Ray or Grad-CAM heatmap */
+        200: {
+          schema: unknown;
+        };
+        /** Invalid patient or image ID */
+        400: {
+          schema: string;
+        };
+        /** Patient or image not found */
+        404: {
+          schema: string;
+        };
+        /** Unable to retrieve image from Orthanc */
+        502: {
+          schema: string;
+        };
+      };
+    };
+  };
+}
+
+export interface definitions {
+  "api.AnalysisResponse": {
+    image_results?: definitions["api.ImageResult"][];
+    model_version?: string;
+    predictions?: definitions["api.Prediction"][];
+    status?: string;
+  };
+  "api.AnalysisResultResponse": {
+    analysis?: definitions["api.AnalysisResponse"];
+    patient?: definitions["api.PatientResponse"];
+    status?: string;
+  };
+  "api.ChatRequest": {
+    context?: { [key: string]: unknown };
+    history?: definitions["chat.Message"][];
+    message?: string;
+    model?: string;
+  };
+  "api.ImagePrediction": {
+    class?: string;
+    confidence?: number;
+    heatmap?: string;
+    orthancId?: string;
+  };
+  "api.ImageResult": {
+    filename?: string;
+    index?: number;
+    predictions?: definitions["api.ImagePrediction"][];
+  };
+  "api.PatientAnalysisResponse": {
+    analysis?: definitions["api.AnalysisResponse"];
+    patient?: definitions["api.PatientResponse"];
+    status?: string;
+  };
+  "api.PatientResponse": {
+    age?: number;
+    gender?: string;
+    history?: string[];
+    id?: number;
+    orthancIDs?: string[];
+    symptoms?: string[];
+  };
+  "api.PatientSummary": {
+    age?: number;
+    gender?: string;
+    id?: number;
+  };
+  "api.Prediction": {
+    class?: string;
+    confidence?: number;
+    reason?: string;
+  };
+  "chat.Message": {
+    content?: string;
+    role?: definitions["chat.Role"];
+  };
+  /** @enum {string} */
+  "chat.Role": "user" | "assistant" | "system";
 }
 
 export interface operations {}

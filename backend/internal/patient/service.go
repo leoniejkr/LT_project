@@ -1,27 +1,19 @@
 package patient
 
 import (
-	"backend/internal/analysis"
 	"backend/internal/orthanc"
 	"fmt"
 )
 
-type FileInput struct {
-	Name  string
-	Bytes []byte
-}
-
 type Service struct {
-	repo            *Repository
-	analysisService *analysis.Service
-	orthancStore    *orthanc.Repository
+	repo         *Repository
+	orthancStore *orthanc.Repository
 }
 
-func NewService(repo *Repository, analysisService *analysis.Service, orthancStore *orthanc.Repository) *Service {
+func NewService(repo *Repository, orthancStore *orthanc.Repository) *Service {
 	return &Service{
-		repo:            repo,
-		analysisService: analysisService,
-		orthancStore:    orthancStore,
+		repo:         repo,
+		orthancStore: orthancStore,
 	}
 }
 
@@ -52,17 +44,35 @@ func (s *Service) CreatePatient(p *Patient, files []FileInput) (*Patient, error)
 	return p, nil
 }
 
-func (s *Service) GetAnalysis(patientID uint, patientData *Patient, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*analysis.PredictionResponse, error) {
-	return s.analysisService.GetAnalysis(patientID, patientData, imageBuffers, imageNames, classifierModel, llmModel)
-}
-
 func (s *Service) GetPatient(id uint) (*Patient, error) {
 	return s.repo.FindByID(id)
 }
 
-func (s *Service) DeleteAllData() error {
-	if err := s.analysisService.DeletePatientAnalysis(0); err != nil {
-		return err
-	}
+func (s *Service) GetPatients() ([]Patient, error) {
+	return s.repo.FindAll()
+}
+
+func (s *Service) DeletePatient(id uint) error {
+	return s.repo.DeletePatient(id)
+}
+
+func (s *Service) DeleteAll() error {
 	return s.repo.DeleteAll()
+}
+
+func (s *Service) HasImage(id uint, orthancID string) (bool, error) {
+	p, err := s.repo.FindByID(id)
+	if err != nil {
+		return false, err
+	}
+	for _, imageID := range p.OrthancIDs {
+		if imageID == orthancID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (s *Service) GetImagePreview(orthancID string) ([]byte, string, error) {
+	return s.orthancStore.GetPreview(orthancID)
 }

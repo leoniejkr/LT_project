@@ -1,0 +1,413 @@
+# __TrustAI__
+
+## Project Summary
+
+### What does the application do
+
+TrustAI is a Medical Prediction AI platform created to support clinicians in assessing chest X-ray images. Its main feature is a deep learning model that analyzes uploaded medical images uploaded in .png format, to detect potential abnormalities, diseases, and other visual findings.
+
+Users can upload one or multiple X-ray images and patient information. The model then generates predictions for possible conditions based on the images and also gives a certainty estimation for each result, which we call confidence scores.
+
+On the results page, the dashboard displays heatmaps which highlight the image regions that have contributed to each prediction. For more information, the user can use a medical viewport to take a closer look at the X-Rays or interact with an integrated chatbot. The chatbot has knowledge about the supported diseases and has access to the patient metadata and model findings.
+
+### Workflow of the application
+
+#### General information
+
+The application is build as a web app without any authentication. We decided not to implement authentication services such as Keycloak because we do not plan on hosting this application ourself, but to make it available for private and local use via Docker.
+It is divided into a frontend, which is built with Typescript and SvelteKit (on top of Vite), a backend, which is built with Golang, and a separate modelling service. The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for medical image storage
+The OpenAPI standard in combination with Swagger are used to construct the REST API and its specification.
+
+#### User centric workflow 
+
+The user starts by uploading one or more chest X-Ray .png images and entering patient information such as age, gender, symptoms, and medical history via the upload page through the web interface. The application does not support the upload of .dcm images.
+
+The frontend sends the images and patient metadata to the Go backend. For this, the frontend builds the form data, which consists of the image files, the JSON string with the metadata, the classifier model and the llm model and sends this as a POST request to the backend via the /api/analysis REST endpoint. 
+
+The backend then coordinates the analysis workflow. It reads the request and checks if the request size is under 50 MiB and if the request is valid. if the request is not valid a 400 error is returned to the frontend.
+If the request is valid, the backend then stores the uploaded images into the Orthanc database via a POST request to the Orthanc endpoint /tools/create-dicom and creates a patient record in Postgresql, where the Orthanc instance IDs of the images are subsequently added into the patient row. Moreover, the images are forwarded to the deep learning modelling service via a POST request to the /predict endpoint of the model. 
+
+The modelling service parses the data and loads the classifier, which is currently a ConvNeXt-Base classifier. Then it preprocesses the images by resizing every image, and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. The confidence store is a certainty estimation showing how certain the model is for each prediction. It also generates heatmaps in png format that indicate which image regions influenced the model's decision. 
+
+The patient metadata is not used for the model classification but is instead forwarded to the LLM as metadata. The LLM can help the user better regarding possible questions with the metadata. 
+
+All analysis results and heatmap images are returned to the backend. The analysis results are saved in Postgresql and the heatmaps are saved in th Orthanc database. When the results from the POST request are received by the frontend, the frontend automatically navigates to the result page, where users can see the original images through a CornerstoneJS medical viewer. Furthermore, the analysis results such as the predictions, confidence scores and corresponding heatmaps can be reviewed.
+
+The application presents two types of prediction results. Aggregated results and individual results, which are both accompanied with confidence scores that are measured in percentages. The aggregated results are located at the top and show the aggregated, calculated classifications over all the uploaded X-Ray images, while the individual results at the bottom show the calculated classifications for each individual X-Ray image with their respective corresponding heatmaps. The classifications are ranked according to their confidence scores. The confidence threshold for shown classifications can be modified in the GUI with a slider in the results page after the calculation. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
+
+The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.
+
+Right now, patient data and analysis results are deleted after every new analysis to comply with regulations. But the repository lays the ground work for future contributors to implement persistent databases, as they are already included as Dockerfiles and implementations exist in the backend.
+
+For more precise information about the frontend and backend workflow see [Frontend](#frontend) and [Backend](#backend).
+
+### What did we do with which data
+
+see [Data](#data)
+
+#### Prediction model
+
+<!-- noch aktuell? -->
+
+The prediction model was trained on the mixed data of MIDRC: Open-A1 and the NIH Chest X-Ray Dataset.
+
+#### LLM -> Chatbot
+
+Data for the LLM
+
+### How did we collect the data
+
+Dataset sources \
+MIDRC: https://www.midrc.org/midrc-data \
+NIH: https://www.kaggle.com/datasets/nih-chest-xrays/data
+
+
+## How to run and start the application
+
+### Running the application
+
+#### Prerequisites for running the application
+
+The application runs all required services in containers, so no separate installation of any programming language or database is needed if you only want to run the application.
+For most OS just install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/). If you use NixOS or Arch-based systems just install the Docker Engine. For MacOS you can install Colima instead to your liking.
+
+#### Starting the application
+Open a terminal in the project root directory and run:
+
+```bash
+docker compose build
+docker compose up -d
+<!-- Dieses exec ding muss man eigentlich nicht machen oder?? -->
+docker compose exec ollama ollama pull phi3:mini 
+```
+
+The first command builds the application images and only has to be executed once, as long as the code stays unchanged. The second command starts the images and has to be executed every time the application is to be started. The last command downloads the language model used by the chatbot and is only required once.
+
+Then, open [http://localhost:5173](http://localhost:5173) in a browser.
+
+To stop the application, run:
+
+```bash
+docker compose down
+```
+
+The application data and downloaded language model are stored in Docker volumes and remain available after stopping the services. Use 
+
+```bash
+docker compose down -v
+``` 
+only when you intentionally want to delete these volumes and their data.
+
+## General Information for backend and brontend and how to contribute
+
+The frontend and backend Docker images can be used for development purposes as well since live reloading is integrated into both images. The frontend uses Vite as a build tool and for live reloading and the backend uses Air. The instruction on how to set up Docker and run the images are written in [Starting the application](##starting-the-application). 
+
+### Frontend
+
+#### Structure of the Frontend
+The frontend is written in Typescript in combination with Svelte and SvelteKit as a build tool. SvelteKit is powered by Vite. 
+SvelteKit operates on a filesystem based router, which means that routes / URLs are defined by the directories in the frontend codebase. The frontend route/ directory is structured in a way to accomodate this. No manual router setup is needed.
+
+The lib directory contains different kinds of shared functions and components. The individual files are composed of services and utility logic that are used throughout the frontend. General UI components are located in /components. ShadCN for Svelte was used for the UI components. The /assets folder contains .svg files. 
+
+#### Contributing
+
+##### Prerequisites
+
+1. Install nvm and the current NodeJS version with npm as seen in the tutorial [https://nodejs.org/en/download/current](https://nodejs.org/en/download/current)
+2. Navigate into the frontend folder and execute 
+```bash
+npm install
+```
+to install all dependencies
+
+##### Running and Testing the Frontend
+
+If you only want to start and work on the frontend, execute ``npm run dev``. This command executes Vite, which is a build tool for web development. It comes with integrated live reloading, meaning you dont have to restart Vite after making changes to the code. Make sure the Docker images are not running or else the ports overlap.
+
+To to test the frontend there are multiple commands that serve different purposes. The most important two are:
+
+```bash
+npm run test
+```
+Starts the unit tests, which are implemented using vitest as recommended by the Svelte team [https://svelte.dev/docs/svelte/testing](https://svelte.dev/docs/svelte/testing).
+
+```bash
+npm run test:e2e
+```
+Starts the E2E tests which are implemented using Playwright. Playwright is the de-facto standard nowadays for end-to-end tests as it is generally faster and more reliable than Selenium for example. 
+
+### Backend
+
+#### Structure of the backend
+
+The backend is structured as a layered architecture that sends requests in the backend from handler to service to a repository or client. The handlers are the HTTP layer that translate HTTP requests into service calls that can be understood by the backend. The services contain business and orchestration logic. The repositories do not contain any business logic and instead communicate with the database. For this they use GORM, which is an ORM library for Golang. For more information about ORM, see [ORM](ORM).
+Some directories contain files that are named the same as those directories. These files contain types and structs. 
+
+The main.go is located under /cmd/server and acts as a starting point for the backend that initialises the database, reads configuration files, injects dependencies into the components and starts the HTTP server on the configured port.
+
+The rest of the backend code resides in the /internal directory. 
+
+The Rest API is documented in the /docs directory using the OpenAPI standard and Swagger and it is directly used by the frontend. 
+
+#### Contributing
+
+##### Prerequisites
+
+1. Install go as instructed here [https://go.dev/doc/install](https://go.dev/doc/install)
+2. Run 
+```bash
+go mod tidy
+```
+to install all dependencies
+3. You may have to write ``export PATH=$PATH:$(go env GOPATH)/bin`` into your .bashrc
+
+##### Testing the Backend
+
+Tests in Go have the "_test" suffix. The general Go convention is to have one test file for every normal Go file that exists but this repository does not follow this convention for the files that are named after the directory they are in as these files only contain types and structs. 
+
+To test the backend move to the backend/internal folder and run
+
+```bash
+go test ./...
+```
+or if you are in VSCode and have installed GOlang support, right click into the internal folder and click on "Run Tests".
+
+##### Update the API with Swagger
+
+Changing the API in any way requires you to update the API specification and documentation. To do this run the following command in the backend folder:
+
+ ```bash
+ swag init --dir ./cmd/server,./internal/api --output ./docs
+ ```
+Changing the API in the backend may require you to also make changes in the frontend.
+
+# Data
+
+## Hybrid Chest X-Ray Multi-Label Training Pipeline
+
+An end-to-end pipeline that blends the NIH Chest X-Ray 14 dataset with the MIDRC COVID-19 dataset into a unified 15-class multi-label classification problem.
+
+### Dataset Sources
+
+| Dataset | Source | Contents |
+|---------|--------|----------|
+| NIH Chest X-Ray | [Kaggle](https://www.kaggle.com/datasets/nih-chest-xrays/data) | ~112k images, 14 pathologies, no COVID |
+| MIDRC | [midrc.org](https://www.midrc.org/midrc-data) | COVID-19 positive chest X-rays |
+
+### Directory Structure
+
+```
+data_hybrid/
+├── nih_images/
+│   └── path.txt                     ← Pointer to Kaggle cache (run get_nih_data.py first)
+├── midrc_dicoms/                    ← Raw MIDRC DICOM zips
+├── midrc_images/                    ← Converted 512×512 PNGs
+├── midrc_download_manifest.json     ← gen3-client download list
+├── midrc_processed_manifest.csv     ← Processed image manifest
+└── combined_master.csv              ← Final training dataset
+```
+
+### Pipeline Execution Order
+
+Each step reads the output of the previous one. Run from the project root.
+
+```bash
+# Step 1: Download NIH dataset to Kaggle cache + create pointer file (skips if cached)
+python src/model/construct_data/get_nih_data.py
+
+# Step 2: Query MIDRC cloud API → generates download manifest (skips if manifest exists)
+python src/model/construct_data/get_midrc_data.py          # add --force to re-query
+
+# Step 3: Download DICOM zips via gen3-client → data_hybrid/midrc_dicoms/ (skips completed)
+python src/model/construct_data/download_midrc_data.py
+
+# Step 4: Convert DICOMs → 512×512 PNGs with CLAHE + auto-rotation (skips existing PNGs)
+python src/model/train/processing.py
+
+# Step 5: Merge NIH + MIDRC into combined_master.csv (2:1 ratio, patient-level)
+python src/model/construct_data/blend_data.py
+
+# Step 6: Compute dataset-specific normalization (mean/std)
+python src/model/train/compute_dataset_stats.py
+
+# Step 7: Train the model
+python src/model/train/train.py
+```
+
+All steps are idempotent — re-running any step skips work already done.
+
+### What Each Step Does
+
+| Step | Script | Input | Output | Skip Logic |
+|------|--------|-------|--------|------------|
+| 1 | `get_nih_data.py` | Kaggle API | Kaggle cache + `nih_images/path.txt` | `kagglehub` skips cached downloads |
+| 2 | `get_midrc_data.py` | MIDRC Gen3 API | `midrc_download_manifest.json` | Skips if manifest exists (`--force` to re-query) |
+| 3 | `download_midrc_data.py` | manifest JSON | `data_hybrid/midrc_dicoms/` | `--skip-completed` flag |
+| 4 | `processing.py` | DICOM zips | 512×512 PNGs + `midrc_processed_manifest.csv` | Skips if output PNG already exists |
+| 5 | `blend_data.py` | NIH cache + MIDRC manifest | `combined_master.csv` | Always rewrites (deterministic, fast) |
+| 6 | `compute_dataset_stats.py` | `combined_master.csv` | `dataset_stats.json` | Always rewrites (deterministic, fast) |
+| 7 | `train.py` | `combined_master.csv` + stats | `covnext348.pth` | Resumes from checkpoint if available |
+
+### Processing Details
+
+**DICOM → PNG (Step 4)** applies:
+- MONAI `ScaleIntensityRangePercentiles(0.5, 99.5)` windowing
+- CLAHE adaptive histogram equalization (clip_limit=0.02)
+- MONOCHROME1 photometric inversion (both Strategy A and fallback)
+- Auto-rotation of landscape images to portrait (width > height → rotate 90°)
+- Resize to 512×512, saved as 8-bit grayscale
+
+**Data Blending (Step 5)** applies:
+- NIH: 14 pathologies from `Data_Entry_2017.csv`, filtered to PA/AP views only
+- MIDRC: COVID=1, all other pathologies=0
+- 2:1 ratio (NIH:MIDRC) via patient-level random sampling
+- Stratified by patient (not image) to prevent data leakage
+
+**Training (Step 7)** uses:
+- ConvNeXt-Base backbone (pretrained)
+- 384×384 resolution
+- Dataset-specific normalization (computed in Step 6)
+- sqrt-scaled `pos_weight` BCE loss for class imbalance
+- CosineAnnealing LR scheduler
+- Patient-stratified 80/10/10 train/val/test split
+
+
+### Fast path (recommended): native Ollama
+
+In Docker, Ollama runs on **CPU only** — the Docker VM has no access to the host GPU.
+An 8B model on CPU generates ~1 token/s, so replies take minutes. **This is a Docker
+limitation, not a problem with the model.**
+
+Ollama supports GPU acceleration natively on **all platforms**:
+
+| OS | GPU API | Install |
+|----|---------|---------|
+| macOS (Apple Silicon) | Metal | `brew install ollama` |
+| Linux (NVIDIA/AMD) | CUDA / ROCm | `curl -fsSL https://ollama.com/install.sh \| sh` |
+| Windows | CUDA | Download from [ollama.com](https://ollama.com) |
+
+In every case, install native Ollama once, register the model, and the app runs at
+full GPU speed (typically 10-50x faster than Docker CPU):
+
+1. **Install Ollama** (see table above — one-time per machine)
+2. **Start the service:**
+   ```bash
+   # macOS
+   brew services start ollama
+   # Linux
+   ollama serve &   # or via systemd
+   ```
+3. **Register the fine-tuned model** (uses the GGUF in the repo, no extra download) and
+   pull the fallback model:
+   ```bash
+   ollama create trustai-llm -f \
+     src/LLM/files/clinical_model_dir/trustai-llm.Modelfile.native
+   ollama pull phi3:mini
+   ```
+4. **Point the containers at the host Ollama** (`.env` is gitignored):
+   ```bash
+   echo "LLM_URL=http://host.docker.internal:11434" > .env
+   docker compose up -d --force-recreate backend modelling
+   ```
+
+The Docker `ollama` service stays in compose (internal-only, no published port) as the
+default for pure-Docker setups; when `LLM_URL` is set the app uses the native Ollama and
+the container simply sits idle.
+
+The fine-tuned model (`trustai-llm:latest`) is registered automatically when the `ollama` container starts (downloaded from Hugging Face, see [LLM model configuration](#llm-model-configuration)). The fallback model `phi3:mini` is pulled automatically as well, so both options in the **Settings → LLM Model** dropdown work out of the box. On the native path, pull it once with `ollama pull phi3:mini`, otherwise the app will return an error when that model is selected.
+
+Notes:
+- the models are stored in the ``ollama_data`` volume (container) or ``~/.ollama`` (native), so they survive restarts; re-download only after ``docker compose down -v``
+- on the native path both models must be present in the host Ollama: `ollama create trustai-llm -f ...` and `ollama pull phi3:mini` (both one-time per machine)
+- optional, to enable the fallback model: ``docker compose exec ollama ollama pull phi3:mini``
+- the backend connects to the LLM via ``OLLAMA_URL``/``OLLAMA_MODEL`` — ``OLLAMA_URL`` is ``http://ollama:11434`` by default and overridden by the ``LLM_URL`` env var (see above)
+- quick test without the UI: ``curl -X POST http://localhost:8080/chat -H "Content-Type: application/json" -d '{"message": "hello", "history": []}'``
+
+#### LLM model configuration
+
+The fine-tuned LLM (`trustai-llm:latest`) is registered in the `ollama` container at startup from a GGUF file hosted on Hugging Face. No local model file needs to be present on the developer's machine. The downloaded GGUF is cached in the `llm_models` volume and the registered model in `ollama_data`; the download/registration is skipped if the model already exists.
+
+- **Base model (before fine-tuning):** `unsloth/llama-3-8b-Instruct-bnb-4bit` — the Llama-3-8B-Instruct base model (Meta) in the 4-bit quantized Unsloth variant, used in `src/LLM/ollama_finetune.py`
+- **Fine-tuned GGUF repo:** `leoniejkr/trustai-llm-gguf` (public, read-only for everyone — only the account owner can modify the weights)
+- **Default GGUF:** `llama-3-8b-Instruct.Q4_K_M.gguf`
+
+**Important:** the 4.9 GB model file is **not committed to git** (GitHub rejects files > 100 MB).
+Every developer/teacher gets the weights from the HF repo instead — either automatically in
+the `ollama` container (see above) or via `ollama create trustai-llm -f ...` in the native
+setup. Only code/config lives in git.
+
+The download is skipped if the file already exists (cached in `/models`), and the model is only re-created when necessary. Both sources can be overridden via environment variables:
+
+```yaml
+# docker-compose.yaml  (ollama service)
+environment:
+  HF_MODEL_REPO: leoniejkr/trustai-llm-gguf   # namespace/repo on the HF Hub
+  HF_GGUF_FILE: llama-3-8b-Instruct.Q4_K_M.gguf
+```
+
+If you host your own copy (e.g. a fork on your own HF account), just point `HF_MODEL_REPO` at it. A **private** repo requires authentication inside the container; for the default **public** repo no token is needed.
+
+The Go backend and the modelling service use `OLLAMA_MODEL` (default `trustai-llm:latest`) to talk to the LLM. The model actually used per request is chosen in the **Settings → LLM Model** dropdown of the web app (`trustai-llm:latest` or `phi3:mini`); `phi3:mini` must be pulled manually if you want to use it.
+
+## Production-Deployment und Docker Hub
+
+Der Dev-Workflow (`docker-compose.yaml`: Live-Reload + Volume-Mounts) ist nicht zum
+Publizieren gedacht. Dafür gibt es separate Production-Builds (in den Dockerfiles als
+`target: prod`) und ein eigenes Compose-File.
+
+### Produktions-Stack lokal starten
+
+```bash
+docker compose -f docker-compose.prod.yaml up -d
+```
+
+Danach läuft die App unter [http://localhost](http://localhost). Ein nginx-Reverse-Proxy
+ist der einzige Einstiegspunkt: `/` → Frontend (SvelteKit-SSR), `/api/*` → Go-Backend
+(das `/api`-Präfix wird entfernt), `/swagger/` → Swagger-UI. Das LLM (`trustai-llm:latest`)
+wird wie im Dev-Setup automatisch beim Start des `ollama`-Containers vom Hugging Face Hub
+geladen (siehe [LLM model configuration](#llm-model-configuration)).
+
+Unterschiede zur Entwicklung:
+
+- **Multi-Stage-Images**: kein Live-Reload, keine Volume-Mounts, der Code liegt im Image.
+  Das Backend läuft als statisches Binary, das Frontend als Node-Server (`adapter-node`).
+- **Modelling**: das trainierte Modell (`./checkpoints/covnext348.pth`)
+  ist im Repo versioniert und wird beim Docker-Build ins Image gebacken; gestartet wird
+  es als gunicorn-Worker.
+- **Ports**: Frontend und Backend sind intern (nur `nginx` publiziert `80`); `db`, `orthanc`
+  und `ollama` sind sogar gar nicht von außen erreichbar.
+
+### Images automatisch publizieren (GitHub Actions)
+
+`.github/workflows/publish-images.yml` baut die drei Produktions-Images und pusht sie nach
+**GHCR** — aber nur, wenn man es manuell auslöst, nicht bei jedem Push:
+
+1. Auf GitHub → *Actions → Publish Production Images → Run workflow* klicken.
+2. Der Job baut und pusht:
+   - `ghcr.io/leoniejkr/lt_project-backend`
+   - `ghcr.io/leoniejkr/lt_project-frontend`
+   - `ghcr.io/leoniejkr/lt_project-modelling`
+
+Die Pakete werden im Workflow automatisch auf *public* gesetzt (best effort). Für eigene
+Deployments können die `image:`-Namen in `docker-compose.prod.yaml` auf diese GHCR-Adressen
+umgestellt werden.
+
+Alternativ zu Docker Hub wechseln: im Workflow den Login auf `docker/login-action`
+umbauen und die Secrets `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` anlegen.
+
+### Images manuell publizieren (z. B. Docker Hub)
+
+1. Registry-Namespace im Compose-File setzen (`laterne/trustai-...` → `<user>/<name>`).
+2. `docker login`
+3. `docker compose -f docker-compose.prod.yaml build`
+4. `docker compose -f docker-compose.prod.yaml push`
+
+Danach kann der Stack statt mit den `build:`-Blöcken mit den veröffentlichten `image:`-Namen
+ausgerollt werden.
+
+## Concepts
+
+### ORM
+
+Object relational mapping is a strategy with which one can map object oriented programming structures into relational database structures. This has to be done, because relational databases store object information in data tables and Go stores object information in structs which can not be automatically mapped into data tables. 

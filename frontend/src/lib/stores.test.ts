@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 import { get } from 'svelte/store';
-import { analysisResult, patientMetadata, uploadedFileUrls } from './stores';
-import type { AnalysisResult, AnalysisResponse } from './types';
+import { analysisResult, patientMetadata, imageUrls } from './stores';
+import type { AnalysisResult, AnalysisResponse, PatientMetadata } from './types';
 
 function mockAnalysisResponse(overrides: Partial<AnalysisResponse> = {}): AnalysisResponse {
 	return {
@@ -9,7 +9,6 @@ function mockAnalysisResponse(overrides: Partial<AnalysisResponse> = {}): Analys
 		model_version: 'v1.0',
 		predictions: [],
 		image_results: [],
-		is_mock: false,
 		...overrides,
 	};
 }
@@ -74,43 +73,53 @@ describe('patientMetadata store', () => {
 		expect(get(patientMetadata)).toBeNull();
 	});
 
-	test('accepts arbitrary metadata objects', () => {
-		const meta = { name: 'John Doe', age: 60, note: 'follow-up' };
+	test('accepts patient metadata objects', () => {
+		const meta: PatientMetadata = {
+			age: 60,
+			gender: 'male',
+			symptoms: [],
+			history: [],
+		};
 		patientMetadata.set(meta);
 		expect(get(patientMetadata)).toEqual(meta);
 	});
 
 	test('resets to null', () => {
-		patientMetadata.set({ something: true });
+		patientMetadata.set({
+			age: 45,
+			gender: 'female',
+			symptoms: ['dyspnea'],
+			history: [],
+		});
 		patientMetadata.set(null);
 		expect(get(patientMetadata)).toBeNull();
 	});
 });
 
-describe('uploadedFileUrls store', () => {
+describe('imageUrls store', () => {
 	test('initializes to empty array', () => {
-		expect(get(uploadedFileUrls)).toEqual([]);
+		expect(get(imageUrls)).toEqual([]);
 	});
 
 	test('stores multiple file urls', () => {
 		const urls = ['http://localhost/file1.png', 'http://localhost/file2.png'];
-		uploadedFileUrls.set(urls);
-		expect(get(uploadedFileUrls)).toEqual(urls);
+		imageUrls.set(urls);
+		expect(get(imageUrls)).toEqual(urls);
 	});
 
 	test('update fn can append urls', () => {
-		uploadedFileUrls.set([]);
-		uploadedFileUrls.update((prev) => [...prev, 'http://localhost/new.png']);
-		uploadedFileUrls.update((prev) => [...prev, 'http://localhost/another.png']);
-		expect(get(uploadedFileUrls)).toEqual([
+		imageUrls.set([]);
+		imageUrls.update((prev) => [...prev, 'http://localhost/new.png']);
+		imageUrls.update((prev) => [...prev, 'http://localhost/another.png']);
+		expect(get(imageUrls)).toEqual([
 			'http://localhost/new.png',
 			'http://localhost/another.png',
 		]);
 	});
 
 	test('reset to empty array', () => {
-		uploadedFileUrls.set(['http://localhost/old.png']);
-		uploadedFileUrls.set([]);
-		expect(get(uploadedFileUrls)).toEqual([]);
+		imageUrls.set(['http://localhost/old.png']);
+		imageUrls.set([]);
+		expect(get(imageUrls)).toEqual([]);
 	});
 });

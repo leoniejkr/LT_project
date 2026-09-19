@@ -44,8 +44,8 @@ else:
         classifier_model = request.form.get("classifier_model", "").strip() or DEFAULT_CLASSIFIER
         llm_model = request.form.get("llm_model", "").strip() or None
 
-        # Load / validate the selected classifier. The returned model is the
-        # one actually used by run_inference / generate_heatmaps.
+        # Load / validate the selected classifier. This instance is what
+        # run_inference / generate_heatmaps actually use.
         classifier = get_classifier(classifier_model)
 
         all_class_scores = {cls: [] for cls in ALL_CLASSES}
@@ -57,7 +57,7 @@ else:
 
             logger.info("Processing image %d/%d: %s", idx + 1, len(image_files), filename)
 
-            result = run_inference(image_bytes)
+            result = run_inference(image_bytes, model=classifier)
 
             top_class_indices = []
             for pred in result["predictions"]:
@@ -72,6 +72,7 @@ else:
                     result["rgb_img_np"],
                     result["probabilities"],
                     top_class_indices,
+                    model=classifier,
                 )
 
             image_pred_with_reasons = []
@@ -111,7 +112,6 @@ else:
             "status": "success",
             "predictions": aggregated_with_reasons,
             "image_results": image_results,
-            "is_mock": False,
         })
 
 

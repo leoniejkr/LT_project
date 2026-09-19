@@ -4,23 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"mime/multipart"
-	"net/http"
 	"os"
+
+	httpclient "backend/internal/http"
 )
 
-type PredictionResponse struct {
-	Status       string      `json:"status"`
-	ModelVersion string      `json:"model_version"`
-	Predictions  Predictions `json:"predictions"`
-	ImageResults ImageResults `json:"image_results"`
-	IsMock       bool        `json:"is_mock"`
-}
-
 type LLMClient struct {
-	baseURL    string
-	httpClient *http.Client
+	client *httpclient.Client
 }
 
 func NewLLMClient() *LLMClient {
@@ -28,13 +19,10 @@ func NewLLMClient() *LLMClient {
 	if baseURL == "" {
 		baseURL = "http://localhost:5000"
 	}
-	return &LLMClient{
-		baseURL:    baseURL,
-		httpClient: &http.Client{},
-	}
+	return &LLMClient{client: httpclient.New(baseURL)}
 }
 
-func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*PredictionResponse, error) {
+func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageNames []string, classifierModel, llmModel string) (*ModelPredictionResponse, error) {
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 
@@ -73,27 +61,9 @@ func (c *LLMClient) GetPrediction(patientData any, imageBuffers [][]byte, imageN
 		return nil, fmt.Errorf("failed to close multipart writer: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", c.baseURL+"/predict", &body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
+	var result ModelPredictionResponse
+	if err := c.client.Post("/predict", writer.FormDataContentType(), &body, &result); err != nil {
 		return nil, fmt.Errorf("failed to call modelling service: %w", err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		respBody, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("modelling service returned status %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	var result PredictionResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode modelling response: %w", err)
-	}
-
 	return &result, nil
 }

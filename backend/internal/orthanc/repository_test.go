@@ -326,3 +326,29 @@ func TestStoreXRays_RejectsInvalidImageData(t *testing.T) {
 		t.Errorf("error should mention unsupported image data, got: %v", err)
 	}
 }
+
+func TestGetPreview(t *testing.T) {
+	want := []byte("preview-image")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("method = %s, want GET", r.Method)
+		}
+		if r.URL.Path != "/instances/instance-123/preview" {
+			t.Errorf("path = %q, want preview path", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "image/png")
+		w.Write(want)
+	}))
+	defer server.Close()
+
+	got, contentType, err := NewRepository(server.URL, "", "").GetPreview("instance-123")
+	if err != nil {
+		t.Fatalf("GetPreview returned error: %v", err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Errorf("preview = %q, want %q", got, want)
+	}
+	if contentType != "image/png" {
+		t.Errorf("content type = %q, want image/png", contentType)
+	}
+}
