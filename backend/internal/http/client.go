@@ -92,6 +92,14 @@ func (c *Client) Post(path, contentType string, body io.Reader, out any) error {
 	return c.Do(req, out)
 }
 
+func (c *Client) Delete(path string) error {
+	req, err := http.NewRequest(http.MethodDelete, c.baseURL+path, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	return c.Do(req, nil)
+}
+
 // GetBytes fetches binary data from an external service while preserving its
 // content type. It is used for image proxies where JSON decoding is unsuitable.
 func (c *Client) GetBytes(path string) ([]byte, string, error) {

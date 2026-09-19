@@ -53,6 +53,15 @@ func (s *Service) GetPatients() ([]Patient, error) {
 }
 
 func (s *Service) DeletePatient(id uint) error {
+	p, err := s.repo.FindByID(id)
+	if err != nil {
+		return err
+	}
+	for _, orthancID := range p.OrthancIDs {
+		if err := s.orthancStore.DeleteInstance(orthancID); err != nil {
+			return err
+		}
+	}
 	return s.repo.DeletePatient(id)
 }
 

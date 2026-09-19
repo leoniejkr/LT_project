@@ -7,6 +7,7 @@ import (
 	"backend/internal/patient"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"image"
 	"image/png"
 	"mime/multipart"
@@ -469,6 +470,63 @@ func TestHistoryEndpoints_RejectUnknownPatient(t *testing.T) {
 	router.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/patients/999/analysis", nil))
 	if w.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", w.Code)
+	}
+}
+
+func TestDeletePatient_RemovesOnlySelectedHistoryRow(t *testing.T) {
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+
+	for _, age := range []int{41, 67} {
+		body := &bytes.Buffer{}
+		writer := multipart.NewWriter(body)
+		writer.WriteField("formData", fmt.Sprintf(`{"age":%d,"gender":"Male"}`, age))
+		writer.Close()
+		req := httptest.NewRequest(http.MethodPost, "/analysis", body)
+		req.Header.Set("Content-Type", writer.FormDataContentType())
+		w := httptest.NewRecorder()
+		handler.GetAnalysis(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("create status = %d, want 200", w.Code)
+		}
+	}
+
+	router := http.NewServeMux()
+	handler.RegisterRoutes(router)
+	deleteW := httptest.NewRecorder()
+	router.ServeHTTP(deleteW, httptest.NewRequest(http.MethodDelete, "/patients/1", nil))
+	if deleteW.Code != http.StatusNoContent {
+		t.Fatalf("delete status = %d, want 204: %s", deleteW.Code, deleteW.Body.String())
+	}
+
+	listW := httptest.NewRecorder()
+	router.ServeHTTP(listW, httptest.NewRequest(http.MethodGet, "/patients", nil))
+	var patients []PatientSummary
+	if err := json.NewDecoder(listW.Body).Decode(&patients); err != nil {
+		t.Fatalf("decode history: %v", err)
+	}
+	if len(patients) != 1 || patients[0].ID != 2 {
+		t.Errorf("history = %#v, want only patient 2", patients)
+	}
+}
+
+func TestDeletePatient_RejectsInvalidAndUnknownID(t *testing.T) {
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+	router := http.NewServeMux()
+	handler.RegisterRoutes(router)
+
+	for path, want := range map[string]int{
+		"/patients/not-a-number": http.StatusBadRequest,
+		"/patients/999":          http.StatusNotFound,
+	} {
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, path, nil))
+		if w.Code != want {
+			t.Errorf("DELETE %s status = %d, want %d", path, w.Code, want)
+		}
 	}
 }
 

@@ -100,6 +100,24 @@ func TestStoreXRays_Success(t *testing.T) {
 	}
 }
 
+func TestDeleteInstance(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("method = %s, want DELETE", r.Method)
+		}
+		if r.URL.Path != "/instances/instance-123" {
+			t.Errorf("path = %s, want /instances/instance-123", r.URL.Path)
+		}
+		w.Write([]byte(`{}`))
+	}))
+	defer server.Close()
+
+	repo := NewRepository(server.URL, "", "")
+	if err := repo.DeleteInstance("instance-123"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestStoreXRays_Base64Encoding(t *testing.T) {
 	pngData := makeTestPNG(t)
 

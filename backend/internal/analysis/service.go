@@ -112,6 +112,23 @@ func withoutHeatmaps(results ImageResults) ImageResults {
 }
 
 func (s *Service) DeletePatientAnalysis(patientID uint) error {
+	if patientID == 0 {
+		return s.repo.DeletePatientAnalysis(patientID)
+	}
+	a, err := s.repo.FindByPatientID(patientID)
+	if err != nil {
+		return err
+	}
+	for _, image := range a.ImageResults {
+		for _, prediction := range image.Predictions {
+			if prediction.OrthancID == "" {
+				continue
+			}
+			if err := s.orthancStore.DeleteInstance(prediction.OrthancID); err != nil {
+				return err
+			}
+		}
+	}
 	return s.repo.DeletePatientAnalysis(patientID)
 }
 

@@ -30,6 +30,42 @@ func (h *Handler) ListPatients(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
+// DeletePatient godoc
+// @Summary      Delete one saved analysis
+// @Description  Deletes a patient, their analysis, and all associated images.
+// @Tags         history
+// @Param        id  path  int  true  "Patient ID"
+// @Success      204  "Deletion successful"
+// @Failure      400  {object}  string  "Invalid patient ID"
+// @Failure      404  {object}  string  "Patient or analysis not found"
+// @Failure      500  {object}  string  "Deletion failed"
+// @Router       /patients/{id} [delete]
+func (h *Handler) DeletePatient(w http.ResponseWriter, r *http.Request) {
+	patientID, err := strconv.ParseUint(r.PathValue("id"), 10, 64)
+	if err != nil || patientID == 0 {
+		http.Error(w, "Invalid patient ID", http.StatusBadRequest)
+		return
+	}
+	id := uint(patientID)
+	if _, err := h.patientService.GetPatient(id); err != nil {
+		http.Error(w, "Patient not found", http.StatusNotFound)
+		return
+	}
+	if _, err := h.analysisService.GetPatientAnalysis(id); err != nil {
+		http.Error(w, "Analysis not found", http.StatusNotFound)
+		return
+	}
+	if err := h.analysisService.DeletePatientAnalysis(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if err := h.patientService.DeletePatient(id); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // GetPatientAnalysis godoc
 // @Summary      Get a saved analysis
 // @Description  Returns a patient and their persisted analysis for the history dashboard.

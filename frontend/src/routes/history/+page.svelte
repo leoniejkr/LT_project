@@ -7,10 +7,13 @@
     import * as Empty from "$lib/components/ui/empty/index.js";
     import * as Table from "$lib/components/ui/table/index.js";
     import * as Alert from "$lib/components/ui/alert/index.js";
+    import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
     import * as Tooltip from "$lib/components/ui/tooltip/index.js";
     import {
         ClipboardList,
         ChevronRight,
+        LoaderCircle,
+        Trash2,
         TriangleAlert,
     } from "lucide-svelte";
     import type { PatientSummary } from "$lib/types";
@@ -18,6 +21,10 @@
     let patients = $state<PatientSummary[]>([]);
     let loading = $state(true);
     let error = $state("");
+    let deleteError = $state("");
+    let deleteDialogOpen = $state(false);
+    let selectedPatient = $state<PatientSummary>();
+    let deletingPatientId = $state<number>();
 
     async function loadPatients(signal?: AbortSignal) {
         loading = true;
@@ -42,6 +49,30 @@
 
         return () => controller.abort();
     });
+
+    function confirmDelete(patient: PatientSummary) {
+        selectedPatient = patient;
+        deleteDialogOpen = true;
+    }
+
+    async function deletePatient(patient: PatientSummary) {
+        deletingPatientId = patient.id;
+        deleteError = "";
+
+        try {
+            const response = await fetch(`/api/patients/${patient.id}`, {
+                method: "DELETE",
+            });
+            if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+            patients = patients.filter((entry) => entry.id !== patient.id);
+        } catch (cause) {
+            console.error(`Failed to delete patient ${patient.id}:`, cause);
+            deleteError = `Analysis #${patient.id} could not be deleted.`;
+        } finally {
+            deletingPatientId = undefined;
+            selectedPatient = undefined;
+        }
+    }
 </script>
 
 <div class="mt-6 mx-auto w-full max-w-6xl px-4 pb-12 sm:px-6">
@@ -69,6 +100,13 @@
             {/if}
         </Card.Header>
         <Card.Content>
+            {#if deleteError}
+                <Alert.Root variant="destructive" class="mb-4">
+                    <TriangleAlert />
+                    <Alert.Title>Unable to delete analysis</Alert.Title>
+                    <Alert.Description>{deleteError}</Alert.Description>
+                </Alert.Root>
+            {/if}
             {#if loading}
                 <div
                     class="overflow-hidden rounded-lg border"
@@ -162,23 +200,47 @@
                                         <Badge variant="secondary">{patient.gender}</Badge>
                                     </Table.Cell>
                                     <Table.Cell class="p-4 text-right">
-                                        <Tooltip.Root>
-                                            <Tooltip.Trigger>
-                                                {#snippet child({ props })}
-                                                    <Button
-                                                        {...props}
-                                                        variant="outline"
-                                                        size="sm"
-                                                        href={`/result?patientId=${patient.id}`}
-                                                        aria-label="Open analysis for patient {patient.id}"
-                                                    >
-                                                        Open
-                                                        <ChevronRight />
-                                                    </Button>
-                                                {/snippet}
-                                            </Tooltip.Trigger>
-                                            <Tooltip.Content>Open analysis</Tooltip.Content>
-                                        </Tooltip.Root>
+                                        <div class="flex justify-end gap-2">
+                                            <Tooltip.Root>
+                                                <Tooltip.Trigger>
+                                                    {#snippet child({ props })}
+                                                        <Button
+                                                            {...props}
+                                                            variant="outline"
+                                                            size="sm"
+                                                            href={`/result?patientId=${patient.id}`}
+                                                            aria-label="Open analysis for patient {patient.id}"
+                                                            disabled={deletingPatientId !== undefined}
+                                                        >
+                                                            Open
+                                                            <ChevronRight />
+                                                        </Button>
+                                                    {/snippet}
+                                                </Tooltip.Trigger>
+                                                <Tooltip.Content>Open analysis</Tooltip.Content>
+                                            </Tooltip.Root>
+                                            <Tooltip.Root>
+                                                <Tooltip.Trigger>
+                                                    {#snippet child({ props })}
+                                                        <Button
+                                                            {...props}
+                                                            variant="destructive"
+                                                            size="icon-sm"
+                                                            aria-label="Delete analysis for patient {patient.id}"
+                                                            disabled={deletingPatientId !== undefined}
+                                                            onclick={() => confirmDelete(patient)}
+                                                        >
+                                                            {#if deletingPatientId === patient.id}
+                                                                <LoaderCircle class="animate-spin" />
+                                                            {:else}
+                                                                <Trash2 />
+                                                            {/if}
+                                                        </Button>
+                                                    {/snippet}
+                                                </Tooltip.Trigger>
+                                                <Tooltip.Content>Delete analysis</Tooltip.Content>
+                                            </Tooltip.Root>
+                                        </div>
                                     </Table.Cell>
                                 </Table.Row>
                             {/each}
@@ -189,3 +251,24 @@
         </Card.Content>
     </Card.Root>
 </div>
+
+<AlertDialog.Root bind:open={deleteDialogOpen}>
+    <AlertDialog.Content size="sm">
+        <AlertDialog.Header>
+            <AlertDialog.Title>Delete analysis?</AlertDialog.Title>
+            <AlertDialog.Description>
+                Analysis #{selectedPatient?.id} and all associated patient data and images will
+                be permanently deleted. This action cannot be undone.
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <AlertDialog.Footer>
+            <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+            <AlertDialog.Action
+                variant="destructive"
+                onclick={() => selectedPatient && void deletePatient(selectedPatient)}
+            >
+                <Trash2 /> Delete
+            </AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>

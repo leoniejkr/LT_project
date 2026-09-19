@@ -56,6 +56,14 @@ func (r *Repository) StoreHeatmap(patientName, patientID string, pngBytes []byte
 func (r *Repository) GetPreview(instanceID string) ([]byte, string, error) {
 	return r.client.GetBytes("/instances/" + instanceID + "/preview")
 }
+
+func (r *Repository) DeleteInstance(instanceID string) error {
+	if err := r.client.Delete("/instances/" + instanceID); err != nil {
+		return fmt.Errorf("failed to delete Orthanc instance %s: %w", instanceID, err)
+	}
+	return nil
+}
+
 func (r *Repository) storeImage(patientName, patientID, studyDescription, seriesDescription, modality string, pngBytes []byte) (string, error) {
 	pngBytes, err := normalizeImage(pngBytes)
 	if err != nil {
