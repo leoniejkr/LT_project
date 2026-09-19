@@ -7,11 +7,12 @@ from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from pytorch_grad_cam.utils.image import show_cam_on_image
 
-from model import get_model, ALL_CLASSES
+from model import ALL_CLASSES
+from models_registry import get_classifier, DEFAULT_CLASSIFIER
 
 
-def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices):
-    model = get_model()
+def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices, model=None):
+    model = model or get_classifier(DEFAULT_CLASSIFIER)
     target_layers = [model.backbone.features]
 
     heatmaps = {}
@@ -38,8 +39,8 @@ def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices):
     return heatmaps
 
 
-def generate_heatmap_overlay(input_tensor, rgb_img_np, class_index):
-    model = get_model()
+def generate_heatmap_overlay(input_tensor, rgb_img_np, class_index, model=None):
+    model = model or get_classifier(DEFAULT_CLASSIFIER)
     target_layers = [model.backbone.features]
 
     targets = [ClassifierOutputTarget(class_index)]

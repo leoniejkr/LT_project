@@ -3,8 +3,13 @@ Registry of available classification models.
 
 Each entry maps a stable model id (used by the frontend settings and sent
 over the wire) to a factory that returns the loaded, eval-mode model for
-inference. Today only DenseNet121 is implemented; adding another model means
-implementing a factory here and registering it in CLASSIFIER_REGISTRY.
+inference.
+
+Extension point: to add another architecture (e.g. a transformer, or an
+ensemble that averages several classifiers), implement the classifier in
+model.py (it must satisfy the ChestClassifier interface) and register a
+factory here. The frontend catalog in frontend/src/lib/models.ts must also
+be updated so the model appears in the settings dropdown.
 """
 
 import logging
@@ -12,17 +17,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def _densenet121() -> object:
-    from model import get_model
-    return get_model()
+def _convnext() -> object:
+    from model import get_convnext_model
+    return get_convnext_model()
 
 
 # id -> factory returning an eval-mode torch model.
 CLASSIFIER_REGISTRY = {
-    "densenet121": _densenet121,
+    "convnext": _convnext,
 }
 
-DEFAULT_CLASSIFIER = "densenet121"
+DEFAULT_CLASSIFIER = "convnext"
 
 
 def get_classifier(model_id: str) -> object:
