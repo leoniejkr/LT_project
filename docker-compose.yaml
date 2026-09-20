@@ -83,10 +83,8 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./data:/app/data
       - ./checkpoints:/app/checkpoints:ro
     environment:
-      - USE_MOCK=false
       - CHECKPOINT_PATH=/app/checkpoints/covnext348.pth
       - OLLAMA_URL=${LLM_URL:-http://ollama:11434}
       - OLLAMA_MODEL=trustai-llm:latest

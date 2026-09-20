@@ -61,7 +61,6 @@ jobs:
       - run: python -m py_compile inference.py
       - run: python -m py_compile gradcam.py
       - run: python -m py_compile reason_generator.py
-      - run: python -m py_compile mock_service.py
 
   docker-frontend:
     runs-on: ubuntu-latest

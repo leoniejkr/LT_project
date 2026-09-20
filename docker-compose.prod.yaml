@@ -95,7 +95,6 @@ services:
     expose:
       - "5000"
     environment:
-      - USE_MOCK=false
       - CHECKPOINT_PATH=/app/checkpoints/covnext348.pth
       - OLLAMA_URL=${LLM_URL:-http://ollama:11434}
       - OLLAMA_MODEL=trustai-llm:latest
