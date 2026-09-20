@@ -112,7 +112,17 @@ def get_ensemble_model(member_ids=None) -> EnsembleChestModel:
     member_ids = member_ids if member_ids is not None else [
         id_ for id_ in CLASSIFIER_REGISTRY if id_ != "ensemble"
     ]
-    members = [get_classifier(id_) for id_ in member_ids]
+    members = []
+    for id_ in member_ids:
+        try:
+            members.append(get_classifier(id_))
+        except FileNotFoundError as e:
+            # A freshly registered architecture whose checkpoint does not
+            # exist yet (e.g. DenseNet before it is trained) must not break
+            # the whole ensemble selection — log and go on without it.
+            logger.warning(
+                "Ensemble member '%s' unavailable, excluding it: %s", id_, e
+            )
     if not members:
         raise ValueError("ensemble needs at least one registered member model")
 

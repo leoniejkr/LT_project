@@ -270,6 +270,58 @@ class SwinTransformerChestModel(ChestClassifier, pl.LightningModule):
         return transforms.Compose(transforms_list)
 
 
+class DenseNetChestModel(ChestClassifier, pl.LightningModule):
+    """DenseNet-121 (CheXNet) classifier trained on the NIH + MIDRC hybrid dataset.
+
+    Mirrors ml/model/train/models/densenet_model.py. Input geometry is exactly
+    what training produced: longer side scaled to INPUT_SIZE (224), shorter
+    side padded with black, then dataset normalization. ``backbone.features``
+    already returns a (B, C, H, W) channel-first map, so Grad-CAM picks it up
+    via the default ``model.backbone.features`` target (no wrapper needed).
+    """
+
+    INPUT_SIZE = 224
+    BATCH_SIZE = 32
+
+    def __init__(self, num_classes=15, pos_weight=None):
+        super().__init__()
+        # Backbone from scratch (weights=None): the trained checkpoint contains
+        # the full pretrained backbone weights, so no download is needed at
+        # runtime and the container stays offline-capable.
+        self.backbone = models.densenet121(weights=None)
+        num_ftrs = self.backbone.classifier.in_features
+        self.backbone.classifier = nn.Linear(num_ftrs, num_classes)
+
+        # Registered buffer so we can strict-load the training checkpoint that
+        # also stored `pos_weight`. A fresh tensor if none is provided.
+        if pos_weight is None:
+            pos_weight = torch.ones(num_classes)
+        self.register_buffer("pos_weight", pos_weight)
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
+
+    def forward(self, x):
+        return self.backbone(x)
+
+    @classmethod
+    def preprocess(cls, apply_normalize=True):
+        """Build the training-matching transform for arbitrary input images.
+
+        Same contract as ConvNeXtChestModel.preprocess; only the resolution
+        (224) and the backbone differ.
+        """
+        transforms_list = [
+            ResizeLongest(cls.INPUT_SIZE),
+            SquarePad(fill=0),
+            transforms.ToTensor(),
+        ]
+        if apply_normalize:
+            transforms_list.append(transforms.Normalize(
+                mean=DATASET_MEAN,
+                std=DATASET_STD,
+            ))
+        return transforms.Compose(transforms_list)
+
+
 ALL_CLASSES = [
     "Atelectasis",
     "Cardiomegaly",
@@ -360,4 +412,39 @@ def get_swin_model(checkpoint_path=None) -> SwinTransformerChestModel:
 
     logger.info("Swin model loaded successfully on %s", device)
     _model_instances["swin"] = model
+    return model
+
+
+def get_densenet_model(checkpoint_path=None) -> DenseNetChestModel:
+    """Load the trained DenseNet-121 (CheXNet) classifier (cached).
+
+    `checkpoint_path` defaults to $DENSENET_CHECKPOINT_PATH / the densenet
+    checkpoint (result of `TRAIN_MODEL=densenet python .../train.py` → copy
+    `checkpoint.pth` to `checkpoints/densenet-224px_final.pth`).
+    """
+    global _model_instances
+    if "densenet" in _model_instances:
+        return _model_instances["densenet"]
+
+    device = _resolve_device()
+    logger.info("Using device: %s", device)
+
+    checkpoint_path = checkpoint_path or os.getenv(
+        "DENSENET_CHECKPOINT_PATH",
+        os.path.join(REPO_ROOT, "checkpoints", "densenet-224px_final.pth"),
+    )
+    logger.info("Loading DenseNet checkpoint from %s", checkpoint_path)
+
+    model = DenseNetChestModel(num_classes=15)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    state_dict = checkpoint.get("state_dict", checkpoint)
+    # Same strict contract as ConvNeXt/Swin: pos_weight lives both as a standalone
+    # buffer and inside the loss module; our class registers both, so a silent
+    # mismatch must never pass.
+    model.load_state_dict(state_dict, strict=True)
+    model.to(device)
+    model.eval()
+
+    logger.info("DenseNet model loaded successfully on %s", device)
+    _model_instances["densenet"] = model
     return model
