@@ -11,19 +11,19 @@
       icon: Upload,
       title: "Upload",
       description:
-        "Upload one or more X-ray images to start a new medical analysis.",
+        "Upload one or more X-ray images.",
     },
     {
       icon: FileText,
       title: "Add context",
       description:
-        "Provide patient metadata such as age, gender, symptoms and known conditions.",
+        "Provide patient metadata such as age, gender, symptoms and known conditions and start the analysis.",
     },
     {
       icon: Stethoscope,
       title: "Review results",
       description:
-        "Inspect the model prediction, explanation and supporting image insights. Chat with the AI to understand the findings and get additional information.",
+        "Inspect the model predictions and supporting image insights. Chat with the AI to understand the findings and get additional information.",
     },
   ];
 </script>
