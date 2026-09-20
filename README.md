@@ -34,7 +34,15 @@ In the production deployment, Nginx rejects request size over 200 MiB. Too much 
 The backend then validates the request data.
 If the request is valid, the backend then stores the uploaded images into the Orthanc database via a POST request to the Orthanc endpoint /tools/create-dicom and creates a patient record in Postgresql, where the Orthanc instance IDs of the images are subsequently added into the patient row. Moreover, the images are forwarded to the deep learning modelling service via a POST request to the /predict endpoint of the model. 
 
-The modelling service parses the data and loads the classifier, which is currently a ConvNeXt-Base classifier. Then it preprocesses the images by resizing every image, and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. The confidence store is a certainty estimation showing how certain the model is for each prediction. It also generates heatmaps in png format that indicate which image regions influenced the model's decision. 
+The modelling service parses the data and loads the classifier selected in the
+frontend settings (ConvNeXt-Base by default, so the extended setup also
+supports the Swin-B transformer). Each classifier applies its own
+training-matching preprocessing (the selected model's `INPUT_SIZE` + dataset
+normalization) and uses it to identify possible abnormalities and calculate a
+confidence score for each prediction. The confidence score is a certainty
+estimation showing how certain the model is for each prediction. It also
+generates heatmaps in png format that indicate which image regions influenced
+the model's decision. 
 
 The patient metadata is not used for the model classification but is instead forwarded to the LLM as metadata. The LLM can help the user better regarding possible questions with the metadata. 
 
@@ -75,7 +83,7 @@ NIH: https://www.kaggle.com/datasets/nih-chest-xrays/data
 #### Prerequisites for running the application
 
 The application runs all required services in containers, so no separate installation of any programming language or database is needed if you only want to run the application.
-The development setup requires Python with `huggingface_hub` once to download the X-ray classifier before the first start. The production image downloads this checkpoint automatically during its build.
+The development setup requires Python with `huggingface_hub` once to download the X-ray classifiers (ConvNeXt + Swin, `scripts/download_models.py`) before the first start. The production image downloads the checkpoints automatically during its build.
 For most OS just install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/). If you use NixOS or Arch-based systems just install the Docker Engine. For MacOS you can install Colima instead to your liking.
 
 #### Starting the application
@@ -127,7 +135,8 @@ automatically depends on the setup.
 
 | Model | Purpose | Size | Hugging Face repo | File |
 |-------|---------|------|-------------------|------|
-| X-ray classifier | Predicts 15 conditions per image (ConvNeXt-Base) | 334 MB | `leoniejkr/lt-models` | `covnext348.pth` |
+| X-ray classifier (ConvNeXt-Base) | Predicts 15 conditions per image, 384px input | 334 MB | `leoniejkr/lt-models` | `covnext348.pth` |
+| X-ray classifier (Swin-B) | Same 15 conditions, 224px transformer backbone | 331 MB | `leoniejkr/lt-models` | `swin-224px_final.pth` |
 | Chatbot LLM | Fine-tuned Llama-3-8B-Instruct | 4.9 GB | `leoniejkr/trustai-llm-gguf` | `llama-3-8b-Instruct.Q4_K_M.gguf` |
 
 The model download differs between the development and production setups:
@@ -137,10 +146,10 @@ The model download differs between the development and production setups:
   it yourself with `ollama create` (see [LLM model configuration](#llm-model-configuration)).
 - **Classifier, development:** `docker-compose.yaml` mounts the local
   `./checkpoints` directory into the modelling container. Download
-  `covnext348.pth` once with `python scripts/download_models.py` before starting
-  the application.
-- **Classifier, production:** the production image downloads the checkpoint at build
-  time into `/app/checkpoints` (see [Production-Deployment](#production-deployment-und-docker-hub)).
+  `covnext348.pth` and `swin-224px_final.pth` once with `python scripts/download_models.py`
+  before starting the application.
+- **Classifier, production:** the production image downloads both checkpoints at
+  build time into `/app/checkpoints` (see [Production-Deployment](#production-deployment-und-docker-hub)).
 
 #### Getting the classifier for local development
 
@@ -152,12 +161,13 @@ repo, so no login is required. From the project root run once:
 python scripts/download_models.py
 ```
 
-The script places `covnext348.pth` into `./checkpoints`, which is gitignored.
-It is idempotent and `hf_hub_download` reuses its local cache when possible instead of downloading an unchanged file again. To fetch the checkpoint (or additional models) explicitly:
+The script places `covnext348.pth` and `swin-224px_final.pth` into
+`./checkpoints`, which is gitignored.
+It is idempotent and `hf_hub_download` reuses its local cache when possible instead of downloading an unchanged file again. To fetch the checkpoints (or additional models) explicitly:
 
 ```bash
 MODEL_REPO=leoniejkr/lt-models MODEL_DIR=./checkpoints \
-MODEL_FILES=covnext348.pth python scripts/download_models.py
+MODEL_FILES=covnext348.pth,swin-224px_final.pth python scripts/download_models.py
 ```
 
 Adding future models: append the filename(s) to `DEFAULT_FILES` in
@@ -508,11 +518,11 @@ Unterschiede zur Entwicklung:
 
 - **Multi-Stage-Images**: kein Live-Reload, keine Volume-Mounts, der Code liegt im Image.
   Das Backend läuft als statisches Binary, das Frontend als Node-Server (`adapter-node`).
-- **Modelling**: das trainierte Modell (`covnext348.pth`) wird beim Docker-Build vom
-  Hugging Face Hub nach `/app/checkpoints` geladen (`scripts/download_models.py`,
-  Standard-Repo `leoniejkr/lt-models`) und so ins Image gebacken; gestartet wird es
-  als gunicorn-Worker. Für ein privates Modell-Repo beim Build `HF_TOKEN` setzen
-  (siehe Abschnitt *Model files*).
+- **Modelling**: die trainierten Modelle (`covnext348.pth`, `swin-224px_final.pth`)
+  werden beim Docker-Build vom Hugging Face Hub nach `/app/checkpoints` geladen
+  (`scripts/download_models.py`, Standard-Repo `leoniejkr/lt-models`) und so ins
+  Image gebacken; gestartet wird es als gunicorn-Worker. Für ein privates
+  Modell-Repo beim Build `HF_TOKEN` setzen (siehe Abschnitt *Model files*).
 - **Ports**: Frontend und Backend sind intern (nur `nginx` publiziert `80`); `db`, `orthanc`
   und `ollama` sind sogar gar nicht von außen erreichbar.
 

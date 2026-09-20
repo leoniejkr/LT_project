@@ -22,8 +22,7 @@ from huggingface_hub import hf_hub_download
 DEFAULT_REPO = "leoniejkr/lt-models"
 DEFAULT_FILES = [
     "covnext348.pth",
-    # "second_model.pth",  # TODO: next trained model
-    # "third_model.pth",   # TODO: one more model coming later
+    "swin-224px_final.pth",
 ]
 DEFAULT_DIR = "./checkpoints"
 
