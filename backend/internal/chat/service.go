@@ -40,6 +40,11 @@ func (s *Service) SendMessage(messages []Message, model string) (string, error) 
 		Model:    model,
 		Messages: messages,
 		Stream:   false,
+		Options: Options{
+			Temperature: 0.3,
+			NumPredict:  1024,
+			NumCtx:      8192,
+		},
 	}, &result); err != nil {
 		return "", fmt.Errorf("failed to call ollama: %w", err)
 	}

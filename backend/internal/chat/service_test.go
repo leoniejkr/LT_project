@@ -31,6 +31,12 @@ func TestSendMessage_Success(t *testing.T) {
 		if len(req.Messages) != 2 || req.Messages[0].Role != "user" {
 			t.Errorf("unexpected messages: %+v", req.Messages)
 		}
+		if req.Options.NumPredict != 1024 {
+			t.Errorf("num_predict = %d, want 1024 (long replies must not be cut)", req.Options.NumPredict)
+		}
+		if req.Options.NumCtx != 8192 {
+			t.Errorf("num_ctx = %d, want 8192", req.Options.NumCtx)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(ChatResponse{
