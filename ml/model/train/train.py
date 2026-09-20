@@ -1,5 +1,11 @@
 import json
 import os
+
+# MPS safety: cap the PyTorch/MPS memory pool so it stops growing until the
+# 24 GB Mac swaps (previously MPS OOM'd at ~30 GiB mid-training, after the
+# machine had been thrashing at >100 s per batch). Must be set BEFORE torch.
+os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.55")
+
 import pandas as pd
 import numpy as np
 import torch
@@ -40,11 +46,12 @@ BATCH_SIZE = config["batch_size"] if config["batch_size"] else MODEL_CLASS.BATCH
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
 
 # DataLoader tuning: pin_memory only helps on CUDA; on MPS/CPU it is a no-op.
-# Workers are capped low (2) because each spawned worker imports torch (~250 MB)
-# AND the machine has only 24 GB unified RAM shared with MPS — 4 workers plus
-# full-res MIDRC decodes previously thrashed the system into swap.
+# Workers are capped low because each spawned worker imports torch (~250 MB)
+# AND the machine has only 24 GB unified RAM shared with MPS — more workers
+# plus full-res PNG decodes previously thrashed the system into swap.
+# Override with TRAIN_WORKERS=n if you have a quiet machine.
 PIN_MEMORY = DEVICE.type == "cuda"
-WORKERS = 2
+WORKERS = int(os.environ.get("TRAIN_WORKERS", "1"))
 
 # Aspect-preserving resize + padding: images keep their true cardiothoracic
 # proportions (squashing to a square would distort anatomy and hurt classes
