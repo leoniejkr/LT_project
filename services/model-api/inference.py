@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from PIL import Image
 
-from model import ALL_CLASSES
+from model import ALL_CLASSES, preprocess_crop_box
 from models_registry import get_classifier, DEFAULT_CLASSIFIER
 from ensemble import EnsembleChestModel
 
@@ -20,7 +20,8 @@ def _preprocess_image(pil_img, model):
     input_tensor = model.preprocess(apply_normalize=True)(pil_img).unsqueeze(0)
     rgb_img_np = model.preprocess(apply_normalize=False)(pil_img)
     rgb_img_np = rgb_img_np.permute(1, 2, 0).numpy()
-    return input_tensor, rgb_img_np
+    crop_box = preprocess_crop_box(model.INPUT_SIZE, pil_img)
+    return input_tensor, rgb_img_np, crop_box
 
 
 def run_inference(image_bytes: bytes, model=None) -> dict:
@@ -31,14 +32,16 @@ def run_inference(image_bytes: bytes, model=None) -> dict:
 
     if isinstance(model, EnsembleChestModel):
         # Each member gets its own tensor (its INPUT_SIZE + normalization);
-        # forward() averages the member probabilities.
+        # forward() averages the member probabilities. Crop boxes live on the
+        # member inputs (their own geometry), see EnsembleInputs.crop_for.
         inputs = model.preprocess(apply_normalize=True)(pil_img)
         with torch.no_grad():
             probs = model(inputs).squeeze(0).cpu().numpy()
         input_tensor = inputs
         rgb_img_np = None
+        crop_box = None
     else:
-        input_tensor, rgb_img_np = _preprocess_image(pil_img, model)
+        input_tensor, rgb_img_np, crop_box = _preprocess_image(pil_img, model)
         input_tensor = input_tensor.to(device)
         with torch.no_grad():
             probabilities = torch.sigmoid(model(input_tensor)).squeeze(0).cpu().numpy()
@@ -57,6 +60,7 @@ def run_inference(image_bytes: bytes, model=None) -> dict:
         "predictions": predictions,
         "input_tensor": input_tensor,
         "rgb_img_np": rgb_img_np,
+        "crop_box": crop_box,
         "probabilities": probs,
         "pil_img": pil_img,
     }

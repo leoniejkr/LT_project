@@ -27,19 +27,28 @@ def _target_layers(model):
 def _resolve_member(model, inputs, class_index):
     """For an ensemble, pick the member that contributed most to `class_index`.
 
-    Its own tensor + rgb map (already in the EnsembleInputs) are used so the
-    heatmap reflects the image geometry that actually drove the vote.
+    Its own tensor + rgb map + crop box (already in the EnsembleInputs) are
+    used so the heatmap reflects the image geometry that actually drove the
+    vote, with the padding cropped off.
     """
     if not isinstance(model, EnsembleChestModel):
-        return model, inputs, None
+        return model, inputs, None, None
     if inputs.member_confs is None:
         raise RuntimeError("ensemble inputs carry no member confidences; run forward first")
     confs = inputs.member_confs[:, 0, class_index]  # (num_members,)
     member = model.models[int(torch.argmax(confs).item())]
-    return member, inputs.tensor_for(member), inputs.rgb_for(member)
+    return member, inputs.tensor_for(member), inputs.rgb_for(member), inputs.crop_for(member)
 
 
-def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices, model=None):
+def _crop_padding(overlay, crop_box):
+    """Cut the symmetric black SquarePad off the overlay, keeping the anatomy."""
+    if crop_box is None:
+        return overlay
+    left, top, right, bottom = crop_box
+    return overlay.crop((left, top, right, bottom))
+
+
+def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices, model=None, crop_box=None):
     model = model or get_classifier(DEFAULT_CLASSIFIER)
 
     heatmaps = {}
@@ -47,7 +56,7 @@ def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices, mo
     for idx in class_indices:
         class_name = ALL_CLASSES[idx]
         conf = float(probabilities[idx])
-        member, member_tensor, member_rgb = _resolve_member(model, input_tensor, idx)
+        member, member_tensor, member_rgb, member_crop = _resolve_member(model, input_tensor, idx)
         if member_rgb is None:
             member_rgb = rgb_img_np
         target_layers = _target_layers(member)
@@ -57,7 +66,7 @@ def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices, mo
             grayscale_cam = cam(input_tensor=member_tensor, targets=targets)[0, :]
             visualization = show_cam_on_image(member_rgb, grayscale_cam, use_rgb=True)
 
-        img = Image.fromarray(visualization)
+        img = _crop_padding(Image.fromarray(visualization), member_crop or crop_box)
         buf = io.BytesIO()
         img.save(buf, format="PNG", optimize=True)
         b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
@@ -70,9 +79,9 @@ def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices, mo
     return heatmaps
 
 
-def generate_heatmap_overlay(input_tensor, rgb_img_np, class_index, model=None):
+def generate_heatmap_overlay(input_tensor, rgb_img_np, class_index, model=None, crop_box=None):
     model = model or get_classifier(DEFAULT_CLASSIFIER)
-    member, member_tensor, member_rgb = _resolve_member(model, input_tensor, class_index)
+    member, member_tensor, member_rgb, member_crop = _resolve_member(model, input_tensor, class_index)
     if member_rgb is None:
         member_rgb = rgb_img_np
     target_layers = _target_layers(member)
@@ -83,7 +92,7 @@ def generate_heatmap_overlay(input_tensor, rgb_img_np, class_index, model=None):
         grayscale_cam = cam(input_tensor=member_tensor, targets=targets)[0, :]
         visualization = show_cam_on_image(member_rgb, grayscale_cam, use_rgb=True)
 
-    img = Image.fromarray(visualization)
+    img = _crop_padding(Image.fromarray(visualization), member_crop or crop_box)
     buf = io.BytesIO()
     img.save(buf, format="PNG", optimize=True)
     return base64.b64encode(buf.getvalue()).decode("utf-8")

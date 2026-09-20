@@ -66,6 +66,7 @@ def predict():
                 result["probabilities"],
                 top_class_indices,
                 model=classifier,
+                crop_box=result.get("crop_box"),
             )
 
         image_pred_with_reasons = []

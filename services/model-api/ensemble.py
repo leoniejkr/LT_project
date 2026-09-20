@@ -3,7 +3,7 @@ import logging
 import torch
 import torch.nn as nn
 
-from model import ChestClassifier
+from model import ChestClassifier, preprocess_crop_box
 
 logger = logging.getLogger(__name__)
 
@@ -11,10 +11,11 @@ logger = logging.getLogger(__name__)
 class EnsembleInputs:
     """Per-member preprocessed inputs for one image.
 
-    ``pairs`` is a list of ``(member, input_tensor, rgb_map)`` where the tensor
-    is ``(1, C, H, W)`` in the member's own input geometry (its INPUT_SIZE +
-    dataset normalization) and ``rgb_map`` is the ``(H, W, 3)`` 0..1 image for
-    Grad-CAM overlays at the same geometry.
+    ``pairs`` is a list of ``(member, input_tensor, rgb_map, crop_box)`` where
+    the tensor is ``(1, C, H, W)`` in the member's own input geometry (its
+    INPUT_SIZE + dataset normalization), ``rgb_map`` is the ``(H, W, 3)`` 0..1
+    image for Grad-CAM overlays at the same geometry, and ``crop_box`` is the
+    pre-pad content box (so the black padding is never displayed).
     """
 
     def __init__(self, pairs):
@@ -22,16 +23,22 @@ class EnsembleInputs:
         self.member_confs = None  # (num_members, 1, num_classes); set by forward()
 
     def tensor_for(self, member):
-        for m, tensor, _ in self.pairs:
+        for m, tensor, _, _ in self.pairs:
             if m is member:
                 return tensor
         raise KeyError(f"no input for member {member}")
 
     def rgb_for(self, member):
-        for m, _, rgb in self.pairs:
+        for m, _, rgb, _ in self.pairs:
             if m is member:
                 return rgb
         raise KeyError(f"no rgb map for member {member}")
+
+    def crop_for(self, member):
+        for m, _, _, crop_box in self.pairs:
+            if m is member:
+                return crop_box
+        raise KeyError(f"no crop box for member {member}")
 
 
 class _EnsembleTransform:
@@ -44,7 +51,8 @@ class _EnsembleTransform:
         for member in self.members:
             tensor = member.preprocess(apply_normalize=True)(pil_img).unsqueeze(0)
             rgb = member.preprocess(apply_normalize=False)(pil_img).permute(1, 2, 0).numpy()
-            pairs.append((member, tensor, rgb))
+            crop_box = preprocess_crop_box(member.INPUT_SIZE, pil_img)
+            pairs.append((member, tensor, rgb, crop_box))
         return EnsembleInputs(pairs)
 
 

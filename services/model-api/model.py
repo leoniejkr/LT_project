@@ -89,6 +89,22 @@ class SquarePad:
         return f"{self.__class__.__name__}(fill={self.fill})"
 
 
+def preprocess_crop_box(input_size, pil_img):
+    """(left, top, right, bottom) box of the pre-pad content inside the square.
+
+    Mirrors ResizeLongest + SquarePad: the longer side is scaled to
+    `input_size`, the shorter side padded symmetrically with black. Returns the
+    content box so Grad-CAM overlays (and any displayed image) can be cropped
+    back to the actual anatomy, hiding the padding the model was trained with.
+    """
+    w, h = pil_img.size
+    scale = input_size / max(w, h)
+    new_w, new_h = round(w * scale), round(h * scale)
+    left = (input_size - new_w) // 2
+    top = (input_size - new_h) // 2
+    return (left, top, left + new_w, top + new_h)
+
+
 class ConvNeXtChestModel(ChestClassifier, pl.LightningModule):
     """ConvNeXt-Base classifier trained on the NIH + MIDRC hybrid dataset.
 
