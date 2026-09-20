@@ -169,17 +169,11 @@
         background-color: oklch(0.577 0.245 27.325 / 10%);
         border-color: oklch(0.577 0.245 27.325 / 30%);
     }
-    .confidence-critical-bar {
-        background-color: oklch(0.577 0.245 27.325);
-    }
 
     .confidence-high {
         color: oklch(0.67 0.19 50);
         background-color: oklch(0.67 0.19 50 / 10%);
         border-color: oklch(0.67 0.19 50 / 30%);
-    }
-    .confidence-high-bar {
-        background-color: oklch(0.67 0.19 50);
     }
 
     .confidence-medium {
@@ -187,17 +181,16 @@
         background-color: oklch(0.65 0.18 75 / 10%);
         border-color: oklch(0.65 0.18 75 / 30%);
     }
-    .confidence-medium-bar {
-        background-color: oklch(0.65 0.18 75);
-    }
 
     .confidence-low {
-        color: var(--primary);
-        background-color: var(--secondary);
-        border-color: oklch(from var(--primary) l c h / 30%);
+        color: oklch(0.43 0.14 242);
+        background-color: oklch(0.94 0.025 242);
+        border-color: oklch(0.68 0.12 242 / 45%);
     }
-    .confidence-low-bar {
-        background-color: var(--chart-2);
+    .dark .confidence-low {
+        color: oklch(0.82 0.09 238);
+        background-color: oklch(0.34 0.04 238);
+        border-color: oklch(0.68 0.11 238 / 55%);
     }
 
     .symptom-badge {
@@ -216,6 +209,9 @@
         background-color: oklch(0.65 0.18 75) !important;
     }
     .confidence-low-bar[data-slot="progress"] > [data-slot="progress-indicator"] {
-        background-color: var(--chart-2) !important;
+        background-color: oklch(0.54 0.15 242) !important;
+    }
+    .dark .confidence-low-bar[data-slot="progress"] > [data-slot="progress-indicator"] {
+        background-color: oklch(0.72 0.13 238) !important;
     }
 }
