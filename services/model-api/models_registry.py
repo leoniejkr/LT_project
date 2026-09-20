@@ -27,6 +27,11 @@ def _swin() -> object:
     return get_swin_model()
 
 
+def _densenet() -> object:
+    from model import get_densenet_model
+    return get_densenet_model()
+
+
 def _ensemble() -> object:
     from ensemble import get_ensemble_model
     return get_ensemble_model()
@@ -36,6 +41,7 @@ def _ensemble() -> object:
 CLASSIFIER_REGISTRY = {
     "convnext": _convnext,
     "swin": _swin,
+    "densenet": _densenet,
     "ensemble": _ensemble,
 }
 

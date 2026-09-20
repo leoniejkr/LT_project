@@ -26,9 +26,14 @@ export const CLASSIFIER_MODELS: ClassifierModelOption[] = [
         description: 'Swin-B trained on NIH + MIDRC, 224px black-padded.',
     },
     {
+        id: 'densenet',
+        label: 'DenseNet-121 / CheXNet (hybrid)',
+        description: 'DenseNet-121 trained on NIH + MIDRC, 224px black-padded.',
+    },
+    {
         id: 'ensemble',
-        label: 'Ensemble (ConvNeXt + Swin)',
-        description: 'Averaged predictions of ConvNeXt-Base (384px) and Swin-B (224px).',
+        label: 'Ensemble (ConvNeXt + Swin + DenseNet)',
+        description: 'Averaged predictions of ConvNeXt-Base (384px), Swin-B (224px) and DenseNet-121 (224px).',
     },
 ];
 

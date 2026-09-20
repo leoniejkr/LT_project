@@ -35,6 +35,7 @@ RUN python -c "import pathlib,sys; bad=[p for p in pathlib.Path('/app/checkpoint
 
 ENV CHECKPOINT_PATH=/app/checkpoints/covnext348.pth
 ENV SWIN_CHECKPOINT_PATH=/app/checkpoints/swin-224px_final.pth
+ENV DENSENET_CHECKPOINT_PATH=/app/checkpoints/densenet-224px_final.pth
 
 # gunicorn statt des Flask-Dev-Servers (ein Worker, da das Modell im
 # Prozessspeicher gehalten wird und die Inferenz synchron läuft).

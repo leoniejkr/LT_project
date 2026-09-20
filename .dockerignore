@@ -8,3 +8,4 @@ services/*
 checkpoints/*
 !checkpoints/covnext348.pth
 !checkpoints/swin-224px_final.pth
+!checkpoints/densenet-224px_final.pth
