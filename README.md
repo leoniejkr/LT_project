@@ -315,8 +315,14 @@ python ml/model/construct_data/resize_midrc.py
 # Step 7: Cap class counts and merge NIH + MIDRC into combined_master.csv
 python ml/model/construct_data/blend_data.py
 
-# Step 8: Compute normalization statistics at train.py's current 288px resolution
-python ml/model/train/compute_dataset_stats.py --resolution 288
+# Step 8: Compute normalization statistics once. The resolution is taken
+# automatically from the active model's INPUT_SIZE (default convnext = 384;
+# use --model swin for a 224 run), so the stats match the trained backbone.
+# One dataset_stats.json is reused everywhere else — the values barely depend
+# on the size (SquarePad's black fill is scale-invariant), so re-running per
+# model is optional.
+python ml/model/train/compute_dataset_stats.py
+# (for a Swin-B training run:  python ml/model/train/compute_dataset_stats.py --model swin)
 
 # Step 9: Train the model
 python ml/model/train/train.py
@@ -325,6 +331,13 @@ python ml/model/train/train.py
 The download and initial DICOM conversion steps reuse or skip existing files.
 The orientation correction, resize, dataset merge, statistics calculation and
 training steps rewrite their outputs when run again.
+
+The training codebase is shared by both backbones: train the ConvNeXt model with
+`MODEL_CLASS = ChestModel` in `ml/model/train/train.py` and the Swin-B model with
+`MODEL_CLASS = SwinTransformerChestModel` (from `models.ViT_model`); resolution
+and batch size then adapt automatically as described under *Training (Step 9)*.
+The newer trainer additionally exposes this as a CLI flag
+(`--model convnext` / `--model swin`).
 
 ### What Each Step Does
 
@@ -364,11 +377,29 @@ training steps rewrite their outputs when run again.
   unknown and masked out of the loss during training
 
 **Training (Step 9)** uses:
-- ConvNeXt-Base backbone (pretrained)
-- 288×288 resolution in the current `train.py` configuration
-- Dataset-specific normalization (computed in Step 8 at the same resolution)
+- **Backbone-adaptive input geometry and batch size.** Each model class declares
+  the resolution it was architecture-tuned for (`INPUT_SIZE`) and a memory-safe
+  `BATCH_SIZE`, and `train.py` derives both from the selected class so no model
+  is squeezed to a size that does not fit its architecture:
+
+  | Backbone | `INPUT_SIZE` | `BATCH_SIZE` | Why these values |
+  |----------|--------------|--------------|------------------|
+  | ConvNeXt-Base (`ChestModel`) | 384 | 32 | fully-convolutional → resolution-flexible; higher input keeps more X-ray detail |
+  | Swin-B (`SwinTransformerChestModel`) | 224 | 24 | matches the ImageNet-1K pre-training grid (safer than interpolating the relative-position bias); transformers need more memory per image |
+
+  `train.py` resolves `RESOLUTION = config["resolution"] or MODEL_CLASS.INPUT_SIZE`
+  and `BATCH_SIZE = config["batch_size"] or MODEL_CLASS.BATCH_SIZE`. The current
+  `main` configuration pins ConvNeXt to 288 px / batch 16; setting those config
+  keys to `None` falls back to the class defaults above. Both backbones share the
+  same data handling otherwise (same `combined_master.csv`, same 15 classes, same
+  masked partial labels, same patient splits).
+- Aspect-preserving geometry: longer side resized to the model's resolution,
+  shorter side black-padded to a square (never distorted).
+- Dataset-specific normalization (Step 8 mean/std; one set of statistics serves
+  all backbones, since they describe the images, not the network geometry).
 - Partial-label masked BCE loss with sqrt-scaled `pos_weight` for class imbalance
-- CosineAnnealing LR scheduler
+- Differential learning rates for backbone vs. classification head +
+  CosineAnnealing LR scheduler
 - Patient-level 80/10/10 train/validation/test split, stratified by the combined
   COVID/Effusion key
 - A fresh training run each time; intermediate weights are written to

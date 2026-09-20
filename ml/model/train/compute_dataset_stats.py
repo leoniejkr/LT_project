@@ -8,11 +8,17 @@ IMPORTANT: mirrors the exact preprocessing of train.py (ResizeLongest +
 SquarePad) so the stats match what the model actually sees at train time,
 and so equal-sized batches stack correctly despite mixed source resolutions.
 
-Usage:
-    python ml/model/train/compute_dataset_stats.py \
-        --csv data_hybrid/combined_master.csv \
-        --output ml/model/train/dataset_stats.json \
-        --resolution 384
+One file is reused for all backbones: the statistics depend very weakly on
+the target size (SquarePad's black fill is scale-invariant and resize only
+changes interpolation), so there is no need to recompute per architecture.
+The resolution defaults to the selected model's INPUT_SIZE so the numbers come
+out at the same geometry that backbone trains at:
+
+Usage (default: convnext -> its INPUT_SIZE of 384; aligned with train.py):
+    python ml/model/train/compute_dataset_stats.py
+
+For a Swin-B training run, align the resolution to 224:
+    python ml/model/train/compute_dataset_stats.py --model swin
 """
 
 import argparse
@@ -22,6 +28,25 @@ import pandas as pd
 from PIL import Image
 from torchvision import transforms
 from torch.utils.data import DataLoader, Dataset
+
+from models.chest_model import ChestModel
+from models.ViT_model import SwinTransformerChestModel
+
+# Same model classes (and default) as train.py, so the stats are automatically
+# computed at the geometry of whichever backbone is being trained.
+STATS_MODEL_CLASSES = {
+    "convnext": ChestModel,
+    "swin": SwinTransformerChestModel,
+}
+DEFAULT_STATS_MODEL = "convnext"  # must mirror train.py's default MODEL_CLASS
+
+
+def resolve_resolution(model_name: str, resolution: int | None) -> int:
+    """Return the stats resolution: explicit --resolution, else the selected
+    model's INPUT_SIZE (convnext 384, swin 224)."""
+    if resolution is not None:
+        return resolution
+    return STATS_MODEL_CLASSES[model_name].INPUT_SIZE
 
 
 class StatsDataset(Dataset):
@@ -106,14 +131,22 @@ def main():
     parser = argparse.ArgumentParser(description="Compute dataset mean/std for normalization")
     parser.add_argument("--csv", default="data_hybrid/combined_master.csv")
     parser.add_argument("--output", default="ml/model/train/dataset_stats.json")
-    parser.add_argument("--resolution", type=int, default=384,
-                        help="Target square size (must match train.py's model INPUT_SIZE).")
+    parser.add_argument("--model", choices=list(STATS_MODEL_CLASSES),
+                        default=DEFAULT_STATS_MODEL,
+                        help="Backbone for the stats resolution (default: %(default)s).")
+    parser.add_argument("--resolution", type=int, default=None,
+                        help="Explicit square size. Default: the selected "
+                             "model's INPUT_SIZE (%s), i.e. the geometry that "
+                             "backbone trains at."
+                             % ", ".join(f"{k}={v.INPUT_SIZE}" for k, v in STATS_MODEL_CLASSES.items()))
     parser.add_argument("--batch-size", type=int, default=64)
     parser.add_argument("--num-workers", type=int, default=4)
     args = parser.parse_args()
 
-    print(f"Computing stats over images in {args.csv} at {args.resolution}x{args.resolution} ...")
-    mean, std = compute_stats(args.csv, args.resolution,
+    resolution = resolve_resolution(args.model, args.resolution)
+    print(f"Computing stats over images in {args.csv} at {resolution}x{resolution} "
+          f"(model: {args.model}) ...")
+    mean, std = compute_stats(args.csv, resolution,
                               batch_size=args.batch_size, num_workers=args.num_workers)
 
     result = {"mean": mean, "std": std}
