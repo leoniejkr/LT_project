@@ -113,7 +113,8 @@ model files are hosted on the Hugging Face Hub and downloaded automatically.
 
 | Model | Purpose | Size | Hugging Face repo | File |
 |-------|---------|------|-------------------|------|
-| X-ray classifier | Predicts 15 conditions per image (ConvNeXt-Base) | 334 MB | `leoniejkr/lt-models` | `covnext348.pth` |
+| X-ray classifier (default) | Predicts 15 conditions per image (ConvNeXt-Base, 384 px) | 334 MB | `leoniejkr/lt-models` | `covnext348.pth` |
+| X-ray classifier (alternative) | Same 15 conditions (Swin-B Transformer, 224 px, black-padded) | 332 MB | `leoniejkr/lt-models` | `swin-224px_final.pth` |
 | Chatbot LLM | Fine-tuned Llama-3-8B-Instruct | 4.9 GB | `leoniejkr/trustai-llm-gguf` | `llama-3-8b-Instruct.Q4_K_M.gguf` |
 
 Both are downloaded automatically during the normal Docker workflow, so for the
@@ -122,8 +123,11 @@ plain `docker compose up` route **you normally do not need to do anything**:
 - **LLM:** the `ollama` container downloads the GGUF from Hugging Face at startup
   and registers the model `trustai-llm:latest`. In a native-Ollama setup you register
   it yourself with `ollama create` (see [LLM model configuration](#llm-model-configuration)).
-- **Classifier, production:** the production image downloads the checkpoint at build
-  time into `/app/checkpoints` (see [Production-Deployment](#production-deployment-und-docker-hub)).
+- **Classifier:** the production image downloads BOTH checkpoints at build time
+  into `/app/checkpoints` (see [Production-Deployment](#production-deployment-und-docker-hub)).
+  Deployed in-progress requests select the backbone via the ``classifier_model`` form
+  field (frontend settings); the default stays ConvNeXt (`convnext`), the alternative
+  is Swin (`swin`).
 
 #### Getting the classifier for local development
 
@@ -135,9 +139,10 @@ repo, so no login is required. From the project root run once:
 python scripts/download_models.py
 ```
 
-The script places `covnext348.pth` into `./checkpoints`, which is gitignored.
+The script places `covnext348.pth` and `swin-224px_final.pth` into
+`./checkpoints`, which is gitignored.
 It is idempotent (re-running is harmless) and skips nothing, simply overwriting/
-re-fetching missing files. To fetch it (or additional models) explicitly:
+re-fetching missing files. To fetch a single file (or additional models) explicitly:
 
 ```bash
 MODEL_REPO=leoniejkr/lt-models MODEL_DIR=./checkpoints \
@@ -149,6 +154,33 @@ Adding future models: append the filename(s) to `DEFAULT_FILES` in
 The build/server environment variables are `MODEL_REPO` (default
 `leoniejkr/lt-models`), `MODEL_DIR` (default `./checkpoints`, `/app/checkpoints`
 inside the production image) and `HF_TOKEN` (only needed for **private** repos).
+The modelling container decides which checkpoint to load at runtime via
+`CHECKPOINT_PATH` (ConvNeXt) and `SWIN_CHECKPOINT_PATH` (Swin).
+
+#### How to add a new classifier backbone
+
+Deploying a freshly trained backbone end-to-end takes these steps (mirrors what
+was done for Swin-B):
+
+1. **Upload the weights** – they must not go into git (> 100 MB). Push the `.pth`
+   to the public repo:
+   ```bash
+   huggingface-cli upload leoniejkr/lt-models checkpoints/<model>_final.pth
+   ```
+2. **Serve it** – add a model class in `modelling/model.py` that mirrors the
+   training class exactly (backbone + head + `pos_weight`), because the server
+   loads with `strict=True` and any key mismatch aborts. Register the factory and
+   the model id in `modelling/models_registry.py` (`CLASSIFIER_REGISTRY`). For
+   transformers, expose a `gradcam_target_layer` that yields a `(B, C, H, W)` map
+   and sits in the forward graph (see `_SwinSpatialFeatures`).
+3. **Set the checkpoint path** – point a dedicated env var (e.g.
+   `SWIN_CHECKPOINT_PATH`) at the file, defaulting to a `checkpoints/` filename,
+   and add that env var to `modelling/Dockerfile.prod` and both compose files.
+4. **Auto-download** – append the filename to `DEFAULT_FILES` in
+   `scripts/download_models.py` so production builds fetch it automatically.
+5. **Expose it to users** – add the option to `CLASSIFIER_MODELS` in
+   `frontend/src/lib/models.ts` (label + description shown in the settings).
+6. **Document it** – add a row to the table above.
 
 > Note: `checkpoints/orientation_classifier/xray_orientation_resnet18.pth` is a
 > local helper only used by the MIDRC preprocessing pipeline; it is intentionally
@@ -429,11 +461,11 @@ Unterschiede zur Entwicklung:
 
 - **Multi-Stage-Images**: kein Live-Reload, keine Volume-Mounts, der Code liegt im Image.
   Das Backend läuft als statisches Binary, das Frontend als Node-Server (`adapter-node`).
-- **Modelling**: das trainierte Modell (`covnext348.pth`) wird beim Docker-Build vom
-  Hugging Face Hub nach `/app/checkpoints` geladen (`scripts/download_models.py`,
-  Standard-Repo `leoniejkr/lt-models`) und so ins Image gebacken; gestartet wird es
-  als gunicorn-Worker. Für ein privates Modell-Repo beim Build `HF_TOKEN` setzen
-  (siehe Abschnitt *Model files*).
+- **Modelling**: die trainierten Modelle (`covnext348.pth` + `swin-224px_final.pth`)
+  werden beim Docker-Build vom Hugging Face Hub nach `/app/checkpoints` geladen
+  (`scripts/download_models.py`, Standard-Repo `leoniejkr/lt-models`) und so ins
+  Image gebacken; gestartet wird der Container als gunicorn-Worker. Für ein
+  privates Modell-Repo beim Build `HF_TOKEN` setzen (siehe Abschnitt *Model files*).
 - **Ports**: Frontend und Backend sind intern (nur `nginx` publiziert `80`); `db`, `orthanc`
   und `ollama` sind sogar gar nicht von außen erreichbar.
 

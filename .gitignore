@@ -47,6 +47,9 @@ data_hybrid/midrc_fixed_images
 # from the Hugging Face Hub (leoniejkr/lt-models) at Docker build time via
 # scripts/download_models.py. Keep checkpoint files local-only.
 checkpoints/**/*.pth
+# Training artifacts in the repo root (e.g. swin-224px.pth, *_trainstate.pt).
+*.pth
+*.pt
 
 /backend/tmp/
 

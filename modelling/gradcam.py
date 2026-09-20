@@ -11,9 +11,20 @@ from model import ALL_CLASSES
 from models_registry import get_classifier, DEFAULT_CLASSIFIER
 
 
+def _target_layers(model):
+    """Pick the layer to hook for Grad-CAM.
+
+    ConvNeXt exposes ``backbone.features`` (a Sequential, channels-first).
+    Transformers (Swin) define ``model.gradcam_target_layer`` to provide a 4D
+    channels-first feature map instead (see model.py), because their raw
+    encoder output is channels-last and would silently produce a wrong CAM.
+    """
+    return [getattr(model, "gradcam_target_layer", model.backbone.features)]
+
+
 def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices, model=None):
     model = model or get_classifier(DEFAULT_CLASSIFIER)
-    target_layers = [model.backbone.features]
+    target_layers = _target_layers(model)
 
     heatmaps = {}
 
@@ -41,7 +52,7 @@ def generate_heatmaps(input_tensor, rgb_img_np, probabilities, class_indices, mo
 
 def generate_heatmap_overlay(input_tensor, rgb_img_np, class_index, model=None):
     model = model or get_classifier(DEFAULT_CLASSIFIER)
-    target_layers = [model.backbone.features]
+    target_layers = _target_layers(model)
 
     targets = [ClassifierOutputTarget(class_index)]
 

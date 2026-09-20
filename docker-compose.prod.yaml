@@ -97,6 +97,7 @@ services:
     environment:
       - USE_MOCK=false
       - CHECKPOINT_PATH=/app/checkpoints/covnext348.pth
+      - SWIN_CHECKPOINT_PATH=/app/checkpoints/swin-224px_final.pth
       - OLLAMA_URL=${LLM_URL:-http://ollama:11434}
       - OLLAMA_MODEL=trustai-llm:latest
     depends_on:

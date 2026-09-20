@@ -22,9 +22,15 @@ def _convnext() -> object:
     return get_convnext_model()
 
 
+def _swin() -> object:
+    from model import get_swin_model
+    return get_swin_model()
+
+
 # id -> factory returning an eval-mode torch model.
 CLASSIFIER_REGISTRY = {
     "convnext": _convnext,
+    "swin": _swin,
 }
 
 DEFAULT_CLASSIFIER = "convnext"
