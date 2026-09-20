@@ -1,8 +1,8 @@
 # Production-Build für den Modelling-Service.
 #
-# WICHTIG: Dieser Build erwartet den Build-Context im REPO-ROOT (`.`), weil das
-# trainierte Modell aus `./checkpoints` mit ins Image gebacken wird. Siehe
-# docker-compose.prod.yaml:
+# WICHTIG: Dieser Build erwartet den Build-Context im REPO-ROOT (`.`), weil die
+# trainierten Klassifikator-Gewichte aus `checkpoints/` (Git LFS) mit ins Image
+# kopiert werden. Siehe docker-compose.prod.yaml:
 #
 #   modelling:
 #     build:
@@ -24,15 +24,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Quellcode des Modelling-Service
 COPY services/model-api/*.py .
 
-# Modellgewichte sind NICHT in git (zu gross fuer GitHub). Sie werden beim
-# Build vom Hugging Face Hub geladen (siehe scripts/download_models.py), damit
-# das Image selbststaendig ist und ohne Model-Datei verteilt werden kann.
-# Fuer private Repos: HF_TOKEN als Build-Arg setzen (docker compose build --build-arg HF_TOKEN=...).
-ARG MODEL_REPO="leoniejkr/lt-models"
-ARG HF_TOKEN=""
-ARG MODEL_FILES=""
-COPY scripts/download_models.py .
-RUN MODEL_REPO="$MODEL_REPO" HF_TOKEN="$HF_TOKEN" MODEL_FILES="$MODEL_FILES" MODEL_DIR=/app/checkpoints python download_models.py
+# Die CNN-Gewichte liegen seit Git LFS direkt im Repo (`checkpoints/`, siehe
+# .gitattributes, via .dockerignore in den Build-Context gefiltert) und werden
+# hier mitkopiert. WICHTIG: der Build braucht die REALEN Dateien — beim Klonen
+# zuerst `git lfs install`/`git lfs pull` ausführen, sonst landen nur kleine
+# LFS-Pointer-Texte im Image und die Inferenz schlägt beim Laden fehl. Ein
+# Guard bricht den Build deshalb ab, wenn ein Checkpoint zu klein ist.
+COPY checkpoints/ /app/checkpoints/
+RUN python -c "import pathlib,sys; bad=[p for p in pathlib.Path('/app/checkpoints').glob('*.pth') if p.stat().st_size<100_000_000]; (sys.exit('LFS-Pointer statt Gewichten: %s - git lfs install && git lfs pull vergessen?' % bad) if bad else None)"
 
 ENV CHECKPOINT_PATH=/app/checkpoints/covnext348.pth
 ENV SWIN_CHECKPOINT_PATH=/app/checkpoints/swin-224px_final.pth

@@ -24,6 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Die CNN-Gewichte liegen als Git-LFS-Dateien im Repo; ohne lfs: true
+          # würde das Modelling-Image nur Pointer statt echter Gewichte backen.
+          lfs: true
 
       - name: Compute lowercase image namespace
         id: meta

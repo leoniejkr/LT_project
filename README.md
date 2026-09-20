@@ -101,8 +101,7 @@ git lfs install
 
 > If you cloned the repository **before** installing Git LFS, the checkpoints
 > arrive as small pointer files (~130 bytes instead of ~330 MB). Fix it with
-> `git lfs pull` or re-fetch them with `python scripts/download_models.py`
-> (see [Getting the classifier](#getting-the-classifier-for-local-development)).
+> `git lfs pull`.
 
 Then build and start the application from the project root:
 
@@ -148,23 +147,24 @@ only when you intentionally want to delete these volumes and their data.
 
 #### Where the models come from
 
-**GitHub rejects files above 100 MB**, so model weights are distributed in two
-ways:
+**GitHub rejects files above 100 MB**, so model weights are distributed as
+follows:
 
-- **In the repository via Git LFS:** the two default X-ray classifiers ship
-  with every clone, so the app works out of the box. The git history only
+- **X-ray classifiers — in the repository via Git LFS:** the CNN checkpoints
+  ship with every clone, so the app works out of the box. The git history only
   contains small pointer files; GitHub LFS serves the actual weights (each file
-  is well below the 2 GB per-file limit).
-- **From Hugging Face on demand:** everything else (the LLM, or re-downloaded /
-  newly trained classifier variants) is fetched automatically — the `ollama`
-  container downloads the GGUF at startup, `scripts/download_models.py`
-  downloads individual classifier files.
+  is well below the 2 GB per-file limit). Adding a retrained model to the
+  ensemble is just dropping the `.pth` into `checkpoints/` and committing — Git
+  LFS tracks it automatically (see [Getting the classifier](#getting-the-classifier-for-local-development)).
+- **LLM — from Hugging Face on demand:** the fine-tuned GGUF is too large for
+  Git LFS (4.9 GB vs. the 2 GB per-file limit), so the `ollama` container
+  downloads it automatically at startup.
 
-| Model | Purpose | Size | Ships in repo (Git LFS) | Hugging Face repo | File |
-|-------|---------|------|------------------------|-------------------|------|
-| X-ray classifier (ConvNeXt-Base) | Predicts 15 conditions per image, 384px input | 334 MB | ✅ | `leoniejkr/lt-models` | `covnext348.pth` |
-| X-ray classifier (Swin-B) | Same 15 conditions, 224px transformer backbone | 331 MB | ✅ | `leoniejkr/lt-models` | `swin-224px_final.pth` |
-| Chatbot LLM | Fine-tuned Llama-3-8B-Instruct | 4.9 GB | ❌ (too large for Git LFS) | `leoniejkr/trustai-llm-gguf` | `llama-3-8b-Instruct.Q4_K_M.gguf` |
+| Model | Purpose | Size | Ships in repo (Git LFS) | File |
+|-------|---------|------|------------------------|------|
+| X-ray classifier (ConvNeXt-Base) | Predicts 15 conditions per image, 384px input | 334 MB | ✅ | `checkpoints/covnext348.pth` |
+| X-ray classifier (Swin-B) | Same 15 conditions, 224px transformer backbone | 331 MB | ✅ | `checkpoints/swin-224px_final.pth` |
+| Chatbot LLM | Fine-tuned Llama-3-8B-Instruct (from `leoniejkr/trustai-llm-gguf`) | 4.9 GB | ❌ (too large for Git LFS) | `llama-3-8b-Instruct.Q4_K_M.gguf` |
 
 The model download differs between the development and production setups:
 
@@ -172,40 +172,31 @@ The model download differs between the development and production setups:
   and registers the model `trustai-llm:latest`. In a native-Ollama setup you register
   it yourself with `ollama create` (see [LLM model configuration](#llm-model-configuration)).
 - **Classifier, development:** `docker-compose.yaml` mounts the local
-  `./checkpoints` directory into the modelling container. The two default
-  checkpoint files already exist after `git clone`/`git lfs pull`; use
-  `scripts/download_models.py` only to re-fetch or replace them.
-- **Classifier, production:** the production image downloads **all** classifier
-  checkpoints at build time into `/app/checkpoints` (see
+  `./checkpoints` directory (the Git LFS files) into the modelling container.
+  No download step is needed.
+- **Classifier, production:** the production image copies the checkpoints from
+  the repository into `/app/checkpoints` at build time (Git LFS must be
+  installed so the real files are in the clone, see
   [Production-Deployment](#production-deployment-und-docker-hub)).
 
-#### Getting the classifier for local development
+#### Getting the classifier / adding a new one
 
-The development setup (`docker-compose.yaml`) mounts `./checkpoints` into the modelling
-container, so the checkpoint files have to exist on your machine. For the two default
-classifiers they come from Git LFS (`git lfs install && git lfs pull`); anything else
-can be fetched from Hugging Face. It is a **public** repo, so no login is required.
-From the project root run once:
+The development setup (`docker-compose.yaml`) mounts `./checkpoints` into the
+modelling container, and those checkpoint files come straight from Git LFS.
+On a correct clone the two default classifiers are already present:
 
 ```bash
-python scripts/download_models.py
+git lfs install   # once, fetches the LFS model files on clone/pull
+git lfs pull      # only needed if pointers were already cloned without LFS
 ```
 
-The script places `covnext348.pth` and `swin-224px_final.pth` into
-`./checkpoints` (overwriting the LFS versions is fine, they are identical) —
-useful when Git LFS pointers were not fetched, or to grab extra model files.
-It is idempotent and `hf_hub_download` reuses its local cache when possible instead of downloading an unchanged file again. To fetch the checkpoints (or additional models) explicitly:
-
-```bash
-MODEL_REPO=leoniejkr/lt-models MODEL_DIR=./checkpoints \
-MODEL_FILES=covnext348.pth,swin-224px_final.pth python scripts/download_models.py
-```
-
-Adding future models: append the filename(s) to `DEFAULT_FILES` in
-`scripts/download_models.py` (or pass them via `MODEL_FILES=file_a.pth,file_b.pth`).
-The build/server environment variables are `MODEL_REPO` (default
-`leoniejkr/lt-models`), `MODEL_DIR` (default `./checkpoints`, `/app/checkpoints`
-inside the production image) and `HF_TOKEN` (only needed for **private** repos).
+To add a retrained model to the ensemble (or replace a checkpoint), drop the
+`.pth` into `checkpoints/`, `git add` it and commit — `.gitattributes` routes
+`checkpoints/*.pth` through Git LFS automatically, and
+`services/model-api/models_registry.py` plus the frontend model selector are
+its registration point. Every `checkpoints/**/*.pth` beyond the tracked files
+stays local-only by default, so intermediate training outputs are not
+committed by accident.
 
 > Note: `checkpoints/xray_orientation_resnet18.pth` is a
 > local helper only used by the MIDRC preprocessing pipeline; it is intentionally
@@ -550,10 +541,11 @@ Unterschiede zur Entwicklung:
 - **Multi-Stage-Images**: kein Live-Reload, keine Volume-Mounts, der Code liegt im Image.
   Das Backend läuft als statisches Binary, das Frontend als Node-Server (`adapter-node`).
 - **Modelling**: die trainierten Modelle (`covnext348.pth`, `swin-224px_final.pth`)
-  werden beim Docker-Build vom Hugging Face Hub nach `/app/checkpoints` geladen
-  (`scripts/download_models.py`, Standard-Repo `leoniejkr/lt-models`) und so ins
-  Image gebacken; gestartet wird es als gunicorn-Worker. Für ein privates
-  Modell-Repo beim Build `HF_TOKEN` setzen (siehe Abschnitt *Model files*).
+  liegen als Git-LFS-Dateien im Repo (`checkpoints/`) und werden beim Docker-Build
+  direkt mitkopiert (`.dockerignore` filtert auf genau diese zwei Dateien, ein
+  Guard bricht den Build ab, falls nur LFS-Pointer statt der Gewichte im Clone
+  liegen — also vorher `git lfs install && git lfs pull`). Gestartet wird das
+  Image als gunicorn-Worker.
 - **Ports**: Frontend und Backend sind intern (nur `nginx` publiziert `80`); `db`, `orthanc`
   und `ollama` sind sogar gar nicht von außen erreichbar.
 

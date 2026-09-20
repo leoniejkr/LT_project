@@ -9,4 +9,3 @@ grad-cam>=1.4.0
 opencv-python-headless>=4.8.0
 numpy>=1.24.0
 requests>=2.31.0
-huggingface_hub>=0.24.0

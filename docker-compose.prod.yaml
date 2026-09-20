@@ -88,10 +88,6 @@ services:
     build:
       context: .
       dockerfile: services/model-api/Dockerfile.prod
-      args:
-        MODEL_REPO: ${CHECKPOINT_REPO:-leoniejkr/lt-models}
-        HF_TOKEN: ${HF_TOKEN:-}
-        MODEL_FILES: ${MODEL_FILES:-}
     expose:
       - "5000"
     environment:

@@ -43,7 +43,7 @@ data_hybrid/midrc_images_before
 # Serving checkpoints: the default ones (covnext348.pth, swin-224px_final.pth)
 # are versioned via Git LFS (see .gitattributes), so a fresh clone works out of
 # the box. Any further checkpoint file (re-downloaded, newly trained, temp)
-# stays local-only and is obtained via scripts/download_models.py.
+# stays local-only unless explicitly added.
 checkpoints/**/*.pth
 
 /backend/tmp/
