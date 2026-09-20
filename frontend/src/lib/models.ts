@@ -25,6 +25,11 @@ export const CLASSIFIER_MODELS: ClassifierModelOption[] = [
         label: 'Swin-B Transformer (hybrid)',
         description: 'Swin-B trained on NIH + MIDRC, 224px black-padded.',
     },
+    {
+        id: 'ensemble',
+        label: 'Ensemble (ConvNeXt + Swin)',
+        description: 'Averaged predictions of ConvNeXt-Base (384px) and Swin-B (224px).',
+    },
 ];
 
 export const LLM_MODELS: LLMModelOption[] = [

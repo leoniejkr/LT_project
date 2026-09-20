@@ -35,14 +35,17 @@ The backend then validates the request data.
 If the request is valid, the backend then stores the uploaded images into the Orthanc database via a POST request to the Orthanc endpoint /tools/create-dicom and creates a patient record in Postgresql, where the Orthanc instance IDs of the images are subsequently added into the patient row. Moreover, the images are forwarded to the deep learning modelling service via a POST request to the /predict endpoint of the model. 
 
 The modelling service parses the data and loads the classifier selected in the
-frontend settings (ConvNeXt-Base by default, so the extended setup also
-supports the Swin-B transformer). Each classifier applies its own
-training-matching preprocessing (the selected model's `INPUT_SIZE` + dataset
-normalization) and uses it to identify possible abnormalities and calculate a
-confidence score for each prediction. The confidence score is a certainty
-estimation showing how certain the model is for each prediction. It also
-generates heatmaps in png format that indicate which image regions influenced
-the model's decision. 
+frontend settings (ConvNeXt-Base by default; the extended setup also supports
+the Swin-B transformer and an **ensemble** that averages the probabilities of
+all other registered classifiers — currently ConvNeXt + Swin soft-voting,
+which typically lifts ROC-AUC; no retraining, the members are the same
+checkpoints). Each classifier applies its own training-matching preprocessing
+(the selected model's `INPUT_SIZE` + dataset normalization) and uses it to
+identify possible abnormalities and
+calculate a confidence score for each prediction. The confidence score is a
+certainty estimation showing how certain the model is for each prediction. It
+also generates heatmaps in png format that indicate which image regions
+influenced the model's decision. 
 
 The patient metadata is not used for the model classification but is instead forwarded to the LLM as metadata. The LLM can help the user better regarding possible questions with the metadata. 
 

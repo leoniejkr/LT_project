@@ -27,10 +27,16 @@ def _swin() -> object:
     return get_swin_model()
 
 
+def _ensemble() -> object:
+    from ensemble import get_ensemble_model
+    return get_ensemble_model()
+
+
 # id -> factory returning an eval-mode torch model.
 CLASSIFIER_REGISTRY = {
     "convnext": _convnext,
     "swin": _swin,
+    "ensemble": _ensemble,
 }
 
 DEFAULT_CLASSIFIER = "convnext"
