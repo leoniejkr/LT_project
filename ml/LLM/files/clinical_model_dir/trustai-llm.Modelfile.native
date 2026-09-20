@@ -1,7 +1,7 @@
 # Ollama Modelfile fuer das nativ auf dem Mac laufende Ollama (Metal/GPU).
 #
 # Registrieren (aus dem Projekt-Root):
-#   ollama create trustai-llm -f src/LLM/files/clinical_model_dir/trustai-llm.Modelfile.native
+#   ollama create trustai-llm -f ml/LLM/files/clinical_model_dir/trustai-llm.Modelfile.native
 #
 # FROM ist relativ zum Modelfile-Verzeichnis -> GGUF liegt daneben.
 

@@ -9,11 +9,11 @@ import pytorch_lightning as pl
 
 logger = logging.getLogger(__name__)
 
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 # Normalization statistics used during hybrid-dataset training. These come from
-# src/model/train/dataset_stats.json (computed over the NIH + MIDRC images) and
+# ml/model/train/dataset_stats.json (computed over the NIH + MIDRC images) and
 # MUST be used at inference so inputs match the training distribution exactly.
 RESOLUTION = 384
 DATASET_MEAN = [0.49688172340393066, 0.49688172340393066, 0.49688172340393066]
@@ -43,7 +43,7 @@ class ChestClassifier:
 class ResizeLongest:
     """Scale an image so its longer side becomes `size`, preserving aspect ratio.
 
-    Mirrors src/model/train/train.py. Never distorts anatomy: a portrait 2925px
+    Mirrors ml/model/train/train.py. Never distorts anatomy: a portrait 2925px
     image becomes (733, 1024), a landscape one (1024, 800), etc. The result is
     then made square by SquarePad before entering the network.
     """
@@ -86,7 +86,7 @@ class SquarePad:
 class ConvNeXtChestModel(ChestClassifier, pl.LightningModule):
     """ConvNeXt-Base classifier trained on the NIH + MIDRC hybrid dataset.
 
-    Mirrors src/model/train/models/chest_model.py. Input geometry is exactly
+    Mirrors ml/model/train/models/chest_model.py. Input geometry is exactly
     what training produced: the longer side is scaled to INPUT_SIZE, the shorter
     side is padded with black to a square, then normalized with the dataset
     mean/std from dataset_stats.json. Any input image -- square, portrait,

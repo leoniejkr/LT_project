@@ -100,10 +100,10 @@ model defaults if set to a non-None value.
 
 ## Dependencies / flow
 
-- `combined_master.csv` is produced by `src/model/construct_data/blend_data.py`
+- `combined_master.csv` is produced by `ml/model/construct_data/blend_data.py`
   (NIH balanced + only orientation-fixed MIDRC images).
 - MIDRC fixed PNGs are huge (up to ~4400x3610 px, ~48 GB in total). Run
-  `src/model/construct_data/resize_midrc.py` once to pre-downscale them to
+  `ml/model/construct_data/resize_midrc.py` once to pre-downscale them to
   `data_hybrid/midrc_fixed_1024/` (~1024 px long side). Without this the
   DataLoader re-decodes full-res X-rays every epoch, thrashing a 24 GB RAM
   machine into swap (training collapses to minutes per batch).
@@ -112,7 +112,7 @@ model defaults if set to a non-None value.
   mean/std — run the script first** so chest X-rays are normalized correctly.
   The stats script applies the same `ResizeLongest`+`SquarePad` pipeline as
   training (pass `--resolution` to match the selected model's `INPUT_SIZE`):
-  `python src/model/train/compute_dataset_stats.py --csv data_hybrid/combined_master.csv --resolution 384`
+  `python ml/model/train/compute_dataset_stats.py --csv data_hybrid/combined_master.csv --resolution 384`
 - ConvNeXt-Base pretrained weights are downloaded automatically on first use
   into `~/.cache/torch/hub/checkpoints/` (~354 MB).
 

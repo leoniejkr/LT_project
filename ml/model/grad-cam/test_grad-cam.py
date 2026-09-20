@@ -83,7 +83,7 @@ plt.axis('off')
 plt.tight_layout()
 
 # Save the dashboard safely with auto-incrementing naming logic 
-folder_path = "src/grad-cam/test_images"
+folder_path = "ml/model/grad-cam/test_images"
 file_base = "covid_gradcam_dashboard"
 extension = ".png"
 os.makedirs(folder_path, exist_ok=True)

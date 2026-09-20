@@ -79,7 +79,7 @@ services:
         exec ollama serve
 
   modelling:
-    build: ./modelling
+    build: ./services/model-api
     ports:
       - "5000:5000"
     volumes:

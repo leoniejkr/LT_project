@@ -7,7 +7,7 @@
 #   modelling:
 #     build:
 #       context: .
-#       dockerfile: modelling/Dockerfile.prod
+#       dockerfile: services/model-api/Dockerfile.prod
 #
 FROM python:3.11-slim AS prod
 
@@ -18,11 +18,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY modelling/requirements.txt .
+COPY services/model-api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Quellcode des Modelling-Service
-COPY modelling/*.py .
+COPY services/model-api/*.py .
 
 # Modellgewichte sind NICHT in git (zu gross fuer GitHub). Sie werden beim
 # Build vom Hugging Face Hub geladen (siehe scripts/download_models.py), damit

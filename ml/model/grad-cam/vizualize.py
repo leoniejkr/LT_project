@@ -102,7 +102,7 @@ for idx, class_name in enumerate(ALL_CLASSES):
 plt.tight_layout()
 
 # 6. Save the dashboard safely with auto-incrementing naming logic 
-folder_path = "src/grad-cam/test_images"
+folder_path = "ml/model/grad-cam/test_images"
 file_base = "all_pathologies_gradcam_dashboard"
 extension = ".png"
 os.makedirs(folder_path, exist_ok=True)

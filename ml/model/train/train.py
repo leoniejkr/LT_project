@@ -90,7 +90,7 @@ class SquarePad:
         return f"{self.__class__.__name__}(fill={self.fill})"
 
 
-def load_dataset_stats(stats_path="src/model/train/dataset_stats.json"):
+def load_dataset_stats(stats_path="ml/model/train/dataset_stats.json"):
     if os.path.exists(stats_path):
         with open(stats_path) as f:
             stats = json.load(f)
@@ -99,7 +99,7 @@ def load_dataset_stats(stats_path="src/model/train/dataset_stats.json"):
         return mean, std
     else:
         print(f"WARNING: {stats_path} not found. Using ImageNet defaults.")
-        print(f"Run: python src/model/train/compute_dataset_stats.py")
+        print(f"Run: python ml/model/train/compute_dataset_stats.py")
         return [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
 

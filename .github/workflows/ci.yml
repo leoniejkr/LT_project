@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: modelling
+        working-directory: services/model-api
     steps:
       - uses: actions/checkout@v4
 
@@ -53,7 +53,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: modelling/requirements.txt
+          cache-dependency-path: services/model-api/requirements.txt
 
       - run: pip install -r requirements.txt
       - run: python -m py_compile main.py
@@ -96,8 +96,7 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: modelling/Dockerfile.prod
+          file: services/model-api/Dockerfile.prod
           push: false
           cache-from: type=gha,scope=modelling
           cache-to: type=gha,scope=modelling,mode=max
-

@@ -568,7 +568,7 @@ def build_jsonl_fine_tuning(flat_records, output_jsonl_path):
 # 4. EXECUTION & LOCATION REPORT
 # -------------------------------------------------------------------------
 if __name__ == "__main__":
-    json_files = glob.glob("src/LLM/files/raw_data/*.json")
+    json_files = glob.glob("ml/LLM/files/raw_data/*.json")
     print(f"🔍 Found {len(json_files)} JSON file(s) to process.")
 
     if not json_files:
@@ -627,16 +627,16 @@ if __name__ == "__main__":
             if col in df.columns:
                 df[col] = df[col].apply(to_string_list)
 
-        df.to_csv("src/LLM/files/medical_dataset_flattened.csv", index=False)
-        build_jsonl_fine_tuning(records, "src/LLM/files/fine_tuning_ready.jsonl")
+        df.to_csv("ml/LLM/files/medical_dataset_flattened.csv", index=False)
+        build_jsonl_fine_tuning(records, "ml/LLM/files/fine_tuning_ready.jsonl")
 
         # AUDIT REPORT WITH FILE LOCATIONS
         print("\n" + "=" * 65)
         print("              DATASET VERIFICATION & FILE LOCATION AUDIT             ")
         print("=" * 65)
         print(f"✅ Total rows generated in CSV: {len(df)}")
-        print(f"📄 Saved CSV to: 'src/LLM/files/medical_dataset_flattened.csv'")
-        print(f"📄 Saved JSONL to: 'src/LLM/files/fine_tuning_ready.jsonl'\n")
+        print(f"📄 Saved CSV to: 'ml/LLM/files/medical_dataset_flattened.csv'")
+        print(f"📄 Saved JSONL to: 'ml/LLM/files/fine_tuning_ready.jsonl'\n")
 
         if unrec_top:
             print("⚠️ UNRECOGNIZED TOP-LEVEL KEYS & THEIR SOURCE FILES:")

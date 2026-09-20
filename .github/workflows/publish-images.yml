@@ -69,7 +69,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: modelling/Dockerfile.prod
+          file: services/model-api/Dockerfile.prod
           push: true
           tags: |
             ghcr.io/${{ steps.meta.outputs.repo_lower }}-modelling:latest

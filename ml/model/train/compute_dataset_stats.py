@@ -9,9 +9,9 @@ SquarePad) so the stats match what the model actually sees at train time,
 and so equal-sized batches stack correctly despite mixed source resolutions.
 
 Usage:
-    python src/model/train/compute_dataset_stats.py \
+    python ml/model/train/compute_dataset_stats.py \
         --csv data_hybrid/combined_master.csv \
-        --output src/model/train/dataset_stats.json \
+        --output ml/model/train/dataset_stats.json \
         --resolution 384
 """
 
@@ -105,7 +105,7 @@ def compute_stats(csv_path: str, resolution: int, batch_size: int = 64, num_work
 def main():
     parser = argparse.ArgumentParser(description="Compute dataset mean/std for normalization")
     parser.add_argument("--csv", default="data_hybrid/combined_master.csv")
-    parser.add_argument("--output", default="src/model/train/dataset_stats.json")
+    parser.add_argument("--output", default="ml/model/train/dataset_stats.json")
     parser.add_argument("--resolution", type=int, default=384,
                         help="Target square size (must match train.py's model INPUT_SIZE).")
     parser.add_argument("--batch-size", type=int, default=64)

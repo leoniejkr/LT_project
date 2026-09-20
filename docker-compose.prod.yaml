@@ -87,7 +87,7 @@ services:
     image: trustai/modelling:latest
     build:
       context: .
-      dockerfile: modelling/Dockerfile.prod
+      dockerfile: services/model-api/Dockerfile.prod
       args:
         MODEL_REPO: ${CHECKPOINT_REPO:-leoniejkr/lt-models}
         HF_TOKEN: ${HF_TOKEN:-}

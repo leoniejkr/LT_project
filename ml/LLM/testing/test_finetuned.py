@@ -2,7 +2,7 @@ from llama_cpp import Llama
 
 # Load the model
 llm = Llama(
-    model_path="src/LLM/files/clinical_model_dir/llama-3-8b-Instruct.Q4_K_M.gguf",
+    model_path="ml/LLM/files/clinical_model_dir/llama-3-8b-Instruct.Q4_K_M.gguf",
     n_ctx=2048,      # Context size
     n_gpu_layers=-1  # Offload all layers to Apple Metal GPU
 )
