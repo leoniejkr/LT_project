@@ -17,7 +17,10 @@ Previous analysis results can be viewed and deleted on the history page of the a
 #### General information
 
 The application is build as a web app without any authentication. We decided not to implement authentication services such as Keycloak because we do not plan on hosting this application ourself, but to make it available for private and local use via Docker.
-It is divided into a frontend, which is built with Typescript and SvelteKit (on top of Vite), a backend, which is built with Golang, and a separate modelling service. The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for X-Ray and heatmap storage.
+
+It is divided into a frontend (located in /frontend), which is built with Typescript and SvelteKit (on top of Vite), a backend (located in /backend), which is built with Golang, and a separate modelling service (located in services/model-api). The model and LLM code is located under ml/model and ml/LLM respectively.
+
+The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for X-Ray and heatmap storage.
 The OpenAPI standard in combination with Swagger are used to construct the REST API and its' specification.
 
 #### User centric workflow 
@@ -286,37 +289,37 @@ Each step reads the output of the previous one. Run from the project root.
 
 ```bash
 # Step 1: Download NIH dataset to Kaggle cache + create pointer file (skips if cached)
-python src/model/construct_data/get_nih_data.py
+python ml/model/construct_data/get_nih_data.py
 
 # Step 2: Query MIDRC cloud API → generates download manifest (skips if manifest exists)
-python src/model/construct_data/get_midrc_data.py          # add --force to re-query
+python ml/model/construct_data/get_midrc_data.py          # add --force to re-query
 
 # Step 3: Download DICOM zips via gen3-client → data_hybrid/midrc_dicoms/ (skips completed)
-python src/model/construct_data/download_midrc_data.py
+python ml/model/construct_data/download_midrc_data.py
 
 # Step 4: Convert DICOMs → 512×512 PNGs with CLAHE + auto-rotation (skips existing PNGs)
-python src/model/construct_data/processing.py
+python ml/model/construct_data/processing.py
 
 # One-time prerequisite for step 5 if the orientation checkpoint does not exist.
 # Point --image-dir at a directory containing upright NIH images.
-python src/model/fix/train_rotation_classifier.py \
+python ml/model/fix/train_rotation_classifier.py \
   --image-dir /path/to/nih/images_001/images \
   --out checkpoints/xray_orientation_resnet18.pth
 
 # Step 5: Apply the learned orientation correction to the MIDRC PNGs
-python src/model/fix/fix_midrc_orientation.py
+python ml/model/fix/fix_midrc_orientation.py
 
 # Step 6: Create memory-efficient working copies in midrc_fixed_1024/
-python src/model/construct_data/resize_midrc.py
+python ml/model/construct_data/resize_midrc.py
 
 # Step 7: Cap class counts and merge NIH + MIDRC into combined_master.csv
-python src/model/construct_data/blend_data.py
+python ml/model/construct_data/blend_data.py
 
-# Step 8: Compute normalization statistics at train.py's current 288px resolution
-python src/model/train/compute_dataset_stats.py --resolution 288
+# Step 8: Compute the shared normalization statistics at the model's 384px resolution
+python -m ml.model.train.compute_dataset_stats --resolution 384
 
 # Step 9: Train the model
-python src/model/train/train.py
+python -m ml.model.train.train
 ```
 
 The download and initial DICOM conversion steps reuse or skip existing files.
@@ -402,10 +405,10 @@ full GPU speed (typically 10-50x faster than Docker CPU):
    Modelfile before running `ollama create`:
    ```bash
    curl -L --fail -C - \
-     -o src/LLM/files/clinical_model_dir/llama-3-8b-Instruct.Q4_K_M.gguf \
+     -o ml/LLM/files/clinical_model_dir/llama-3-8b-Instruct.Q4_K_M.gguf \
      https://huggingface.co/leoniejkr/trustai-llm-gguf/resolve/main/llama-3-8b-Instruct.Q4_K_M.gguf
    ollama create trustai-llm -f \
-     src/LLM/files/clinical_model_dir/trustai-llm.Modelfile.native
+     ml/LLM/files/clinical_model_dir/trustai-llm.Modelfile.native
    ollama pull phi3:mini
    ```
 4. **Point the containers at the host Ollama** (`.env` is gitignored):
@@ -432,7 +435,7 @@ Notes:
 
 The fine-tuned LLM (`trustai-llm:latest`) is registered in the `ollama` container at startup from a GGUF file hosted on Hugging Face. No local model file needs to be present on the developer's machine. The downloaded GGUF is cached in the `llm_models` volume and the registered model in `ollama_data`; the download/registration is skipped if the model already exists.
 
-- **Base model (before fine-tuning):** `unsloth/llama-3-8b-Instruct-bnb-4bit` — the Llama-3-8B-Instruct base model (Meta) in the 4-bit quantized Unsloth variant, used in `src/LLM/ollama_finetune.py`
+- **Base model (before fine-tuning):** `unsloth/llama-3-8b-Instruct-bnb-4bit` — the Llama-3-8B-Instruct base model (Meta) in the 4-bit quantized Unsloth variant, used in `ml/LLM/ollama_finetune.py`
 - **Fine-tuned GGUF repo:** `leoniejkr/trustai-llm-gguf` (public, read-only for everyone — only the account owner can modify the weights)
 - **Default GGUF:** `llama-3-8b-Instruct.Q4_K_M.gguf`
 
