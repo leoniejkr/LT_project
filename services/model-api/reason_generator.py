@@ -8,26 +8,59 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini")
 logger = logging.getLogger(__name__)
 
 
+def _build_patient_context(patient: dict) -> str:
+    if not patient:
+        return ""
+    age = patient.get("age", "unknown")
+    gender = patient.get("gender", "unknown")
+    symptoms = patient.get("symptoms", [])
+    history = patient.get("history", [])
+
+    patient_info = f"Patient: {age} years old, {gender}."
+    if symptoms:
+        patient_info += f" Symptoms: {', '.join(symptoms)}."
+    if history:
+        patient_info += (
+            f" Known conditions, relevant history and risk factors: "
+            f"{', '.join(history)}."
+        )
+
+    # Explicit risk-context cues derived from the metadata, so the LLM reliably
+    # recognizes special groups (age brackets, pregnancy, smoking) even when it
+    # is a small local model.
+    hints = []
+    try:
+        age_val = int(age)
+        if age_val < 2:
+            hints.append("the patient is an infant (under 2 years)")
+        elif age_val < 18:
+            hints.append("the patient is a child or adolescent")
+        elif age_val >= 65:
+            hints.append("the patient is an older adult (65+)")
+    except (TypeError, ValueError):
+        pass
+
+    history_lower = " ".join(history).lower()
+    if "pregnan" in history_lower:
+        hints.append("the patient is pregnant")
+    if "smok" in history_lower:
+        hints.append("the patient has a smoking/exposure history")
+
+    if hints:
+        patient_info += (
+            " Risk context: " + "; ".join(hints) + "."
+        )
+
+    return patient_info
+
+
 def generate_reasons(predictions: list[dict], patient: dict, model: str | None = None) -> list[dict]:
     if not predictions:
         return []
 
     llm_model = model or OLLAMA_MODEL
 
-    patient_info = ""
-    if patient:
-        age = patient.get("age", "unknown")
-        gender = patient.get("gender", "unknown")
-        symptoms = patient.get("symptoms", [])
-        history = patient.get("history", [])
-        patient_info = f"Patient: {age} years old, {gender}."
-        if symptoms:
-            patient_info += f" Symptoms: {', '.join(symptoms)}."
-        if history:
-            patient_info += (
-                f" Known conditions, relevant history and risk factors: "
-                f"{', '.join(history)}."
-            )
+    patient_info = _build_patient_context(patient)
 
     predictions_text = "\n".join(
         f"- {p['class']} (confidence: {p['confidence']:.0%})"
@@ -41,7 +74,9 @@ def generate_reasons(predictions: list[dict], patient: dict, model: str | None =
 The AI model detected the following conditions:
 {predictions_text}
 
-For EACH condition listed above, provide a brief 1-2 sentence clinical assessment explaining what the finding means and why it is significant. Be concise and professional.
+For EACH condition listed above, provide a brief 1-2 sentence clinical assessment explaining what the finding means and why it is significant for THIS patient.
+
+IMPORTANT: Pay close attention to the patient's medical history and risk factors above and factor them into every assessment. If the patient's metadata matches a known high-risk or special group (for example pregnancy, infancy or early childhood, advanced age, smoking, or immunosuppression), explicitly say how that changes the picture for this patient and what to watch for. Do not write generic statements that ignore the patient context above.
 
 Respond in this exact JSON format:
 [

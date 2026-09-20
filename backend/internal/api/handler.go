@@ -160,7 +160,10 @@ func buildContextMessage(context map[string]any) (chat.Message, bool) {
 		Role: chat.SystemRole,
 		Content: "Known patient context for this conversation " +
 			"(age, checked symptoms, medical history and risk factors, analysis findings). " +
-			"Use it when answering questions about this patient:\n" + string(payload),
+			"Use it when answering questions about this patient; always weigh the " +
+			"medical history and risk factors (e.g. pregnancy, infancy or early " +
+			"childhood, advanced age, smoking, immunosuppression) and call out when a " +
+			"finding affects a high-risk group for this patient:\n" + string(payload),
 	}, true
 }
 
