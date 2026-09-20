@@ -72,29 +72,31 @@ NIH: https://www.kaggle.com/datasets/nih-chest-xrays/data
 #### Prerequisites for running the application
 
 The application runs all required services in containers, so no separate installation of any programming language or database is needed if you only want to run the application.
+The development setup requires Python with `huggingface_hub` once to download the X-ray classifier before the first start. The production image downloads this checkpoint automatically during its build.
 For most OS just install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/). If you use NixOS or Arch-based systems just install the Docker Engine. For MacOS you can install Colima instead to your liking.
 
 #### Starting the application
-Open a terminal in the project root directory and run:
+For the first development start, open a terminal in the project root directory and download the X-ray classifier before starting the containers:
 
 ```bash
+python scripts/download_models.py
 docker compose build
 docker compose up
 ```
 
-The first command builds the application images and only has to be executed once, as long as the code stays unchanged. The second command starts the images and has to be executed every time the application is to be started.
+The download script places `covnext348.pth` in the local `./checkpoints` directory, which is mounted read-only into the modelling container. It reuses the local Hugging Face cache when possible and can safely be run again.
+
+The first docker command builds the application images and only has to be executed once, as long as the code stays unchanged. The second command starts the images and has to be executed every time the application is to be started.
 It may take a few minutes until the models are downloaded and the application is built.
-
-To combine both commands you can run:
-
+To combine both docker commands you can run:
 ```bash
 docker compose up -d --build
 ```
 
-For this development setup, the X-ray classifier is mounted from `./checkpoints` into the modelling container. If that directory is empty, download the model once before starting (see the *Model files* section below):
+For subsequent starts, run:
 
 ```bash
-python scripts/download_models.py
+docker compose up -d
 ```
 
 Then, open [http://localhost:5173](http://localhost:5173) in a browser.
