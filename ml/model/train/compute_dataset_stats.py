@@ -31,12 +31,14 @@ from torch.utils.data import DataLoader, Dataset
 
 from models.chest_model import ChestModel
 from models.ViT_model import SwinTransformerChestModel
+from models.densenet_model import DenseNetChestModel
 
 # Same model classes (and default) as train.py, so the stats are automatically
 # computed at the geometry of whichever backbone is being trained.
 STATS_MODEL_CLASSES = {
     "convnext": ChestModel,
     "swin": SwinTransformerChestModel,
+    "densenet": DenseNetChestModel,
 }
 DEFAULT_STATS_MODEL = "convnext"  # must mirror train.py's default MODEL_CLASS
 
