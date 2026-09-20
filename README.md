@@ -10,13 +10,15 @@ Users can upload one or multiple X-ray images and patient information. The model
 
 On the results page, the dashboard displays heatmaps which highlight the image regions that have contributed to each prediction. For more information, the user can use a medical viewport to take a closer look at the X-Rays or interact with an integrated chatbot. The chatbot has knowledge about the supported diseases and has access to the patient metadata and model findings.
 
+Previous analysis results can be viewed and deleted on the history page of the application.
+
 ### Workflow of the application
 
 #### General information
 
 The application is build as a web app without any authentication. We decided not to implement authentication services such as Keycloak because we do not plan on hosting this application ourself, but to make it available for private and local use via Docker.
-It is divided into a frontend, which is built with Typescript and SvelteKit (on top of Vite), a backend, which is built with Golang, and a separate modelling service. The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for medical image storage
-The OpenAPI standard in combination with Swagger are used to construct the REST API and its specification.
+It is divided into a frontend, which is built with Typescript and SvelteKit (on top of Vite), a backend, which is built with Golang, and a separate modelling service. The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for X-Ray and heatmap storage.
+The OpenAPI standard in combination with Swagger are used to construct the REST API and its' specification.
 
 #### User centric workflow 
 
@@ -24,7 +26,9 @@ The user starts by uploading one or more chest X-Ray .png images and entering pa
 
 The frontend sends the images and patient metadata to the Go backend. For this, the frontend builds the form data, which consists of the image files, the JSON string with the metadata, the classifier model and the llm model and sends this as a POST request to the backend via the /api/analysis REST endpoint. 
 
-The backend then coordinates the analysis workflow. It reads the request and checks if the request size is under 50 MiB and if the request is valid. if the request is not valid a 400 error is returned to the frontend.
+The backend then coordinates the analysis workflow. 
+In the production deployment, Nginx rejects request size over 200 MiB. Too much memory usage can lead to crashes due to out-of-memory conditions. The Go backend parses the multipart form, keeping up to 50 MiB of uploaded file data in memory and storing any excess temporarily on disk. 
+The backend then validates the request data.
 If the request is valid, the backend then stores the uploaded images into the Orthanc database via a POST request to the Orthanc endpoint /tools/create-dicom and creates a patient record in Postgresql, where the Orthanc instance IDs of the images are subsequently added into the patient row. Moreover, the images are forwarded to the deep learning modelling service via a POST request to the /predict endpoint of the model. 
 
 The modelling service parses the data and loads the classifier, which is currently a ConvNeXt-Base classifier. Then it preprocesses the images by resizing every image, and uses the trained multi-label model to identify possible abnormalities and calculate a confidence score for each prediction. The confidence store is a certainty estimation showing how certain the model is for each prediction. It also generates heatmaps in png format that indicate which image regions influenced the model's decision. 
@@ -37,7 +41,8 @@ The application presents two types of prediction results. Aggregated results and
 
 The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.
 
-Right now, patient data and analysis results are deleted after every new analysis to comply with regulations. But the repository lays the ground work for future contributors to implement persistent databases, as they are already included as Dockerfiles and implementations exist in the backend.
+The patient data, X-Ray images and analysis results are stored in Postgresql and Orthanc and can be re-viewed on the history page of the application at a later point.
+The history page shows all previous analysis results. These can be deleted individually via the /api/patient/{id} endpoint with a DELETE request or collectively via the /api/analysis enpoint with a DELETE request. 
 
 For more precise information about the frontend and backend workflow see [Frontend](#frontend) and [Backend](#backend).
 
@@ -46,8 +51,6 @@ For more precise information about the frontend and backend workflow see [Fronte
 see [Data](#data)
 
 #### Prediction model
-
-<!-- noch aktuell? -->
 
 The prediction model was trained on the mixed data of MIDRC: Open-A1 and the NIH Chest X-Ray Dataset.
 
@@ -76,12 +79,17 @@ Open a terminal in the project root directory and run:
 
 ```bash
 docker compose build
-docker compose up -d
-<!-- Dieses exec ding muss man eigentlich nicht machen oder?? -->
-docker compose exec ollama ollama pull phi3:mini 
+docker compose up
 ```
 
-The first command builds the application images and only has to be executed once, as long as the code stays unchanged. The second command starts the images and has to be executed every time the application is to be started. The last command downloads the language model used by the chatbot and is only required once.
+The first command builds the application images and only has to be executed once, as long as the code stays unchanged. The second command starts the images and has to be executed every time the application is to be started.
+It may take a few minutes until the models are downloaded and the application is built.
+
+To combine both commands you can run:
+
+```bash
+docker compose up -d --build
+```
 
 For this development setup, the X-ray classifier is mounted from `./checkpoints` into the modelling container. If that directory is empty, download the model once before starting (see the *Model files* section below):
 
@@ -109,19 +117,23 @@ only when you intentionally want to delete these volumes and their data.
 #### Where the models come from
 
 **No model weights are stored in git.** GitHub rejects files above 100 MB, so all
-model files are hosted on the Hugging Face Hub and downloaded automatically.
+model files are hosted on the Hugging Face Hub. Whether they are downloaded
+automatically depends on the setup.
 
 | Model | Purpose | Size | Hugging Face repo | File |
 |-------|---------|------|-------------------|------|
 | X-ray classifier | Predicts 15 conditions per image (ConvNeXt-Base) | 334 MB | `leoniejkr/lt-models` | `covnext348.pth` |
 | Chatbot LLM | Fine-tuned Llama-3-8B-Instruct | 4.9 GB | `leoniejkr/trustai-llm-gguf` | `llama-3-8b-Instruct.Q4_K_M.gguf` |
 
-Both are downloaded automatically during the normal Docker workflow, so for the
-plain `docker compose up` route **you normally do not need to do anything**:
+The model download differs between the development and production setups:
 
 - **LLM:** the `ollama` container downloads the GGUF from Hugging Face at startup
   and registers the model `trustai-llm:latest`. In a native-Ollama setup you register
   it yourself with `ollama create` (see [LLM model configuration](#llm-model-configuration)).
+- **Classifier, development:** `docker-compose.yaml` mounts the local
+  `./checkpoints` directory into the modelling container. Download
+  `covnext348.pth` once with `python scripts/download_models.py` before starting
+  the application.
 - **Classifier, production:** the production image downloads the checkpoint at build
   time into `/app/checkpoints` (see [Production-Deployment](#production-deployment-und-docker-hub)).
 
@@ -136,8 +148,7 @@ python scripts/download_models.py
 ```
 
 The script places `covnext348.pth` into `./checkpoints`, which is gitignored.
-It is idempotent (re-running is harmless) and skips nothing, simply overwriting/
-re-fetching missing files. To fetch it (or additional models) explicitly:
+It is idempotent and `hf_hub_download` reuses its local cache when possible instead of downloading an unchanged file again. To fetch the checkpoint (or additional models) explicitly:
 
 ```bash
 MODEL_REPO=leoniejkr/lt-models MODEL_DIR=./checkpoints \
@@ -150,13 +161,13 @@ The build/server environment variables are `MODEL_REPO` (default
 `leoniejkr/lt-models`), `MODEL_DIR` (default `./checkpoints`, `/app/checkpoints`
 inside the production image) and `HF_TOKEN` (only needed for **private** repos).
 
-> Note: `checkpoints/orientation_classifier/xray_orientation_resnet18.pth` is a
+> Note: `checkpoints/xray_orientation_resnet18.pth` is a
 > local helper only used by the MIDRC preprocessing pipeline; it is intentionally
 > not distributed.
 
 ## General Information for backend and brontend and how to contribute
 
-The frontend and backend Docker images can be used for development purposes as well since live reloading is integrated into both images. The frontend uses Vite as a build tool and for live reloading and the backend uses Air. The instruction on how to set up Docker and run the images are written in [Starting the application](##starting-the-application). 
+The frontend and backend Docker images can be used for development purposes since live reloading is integrated into both images. The frontend uses Vite as a build and live reloading tool and the backend uses Air. The instruction on how to set up Docker and run the images are written in [Starting the application](#starting-the-application). 
 
 ### Frontend
 
@@ -188,6 +199,7 @@ npm run test
 ```
 Starts the unit tests, which are implemented using vitest as recommended by the Svelte team [https://svelte.dev/docs/svelte/testing](https://svelte.dev/docs/svelte/testing).
 
+TODO: ACHTUNG NICHT IMPLEMENTIERT!!!
 ```bash
 npm run test:e2e
 ```
@@ -259,6 +271,8 @@ data_hybrid/
 │   └── path.txt                     ← Pointer to Kaggle cache (run get_nih_data.py first)
 ├── midrc_dicoms/                    ← Raw MIDRC DICOM zips
 ├── midrc_images/                    ← Converted 512×512 PNGs
+├── midrc_fixed_images/              ← Orientation-corrected MIDRC PNGs
+├── midrc_fixed_1024/                ← Working copies used by blend_data.py
 ├── midrc_download_manifest.json     ← gen3-client download list
 ├── midrc_processed_manifest.csv     ← Processed image manifest
 └── combined_master.csv              ← Final training dataset
@@ -279,19 +293,33 @@ python src/model/construct_data/get_midrc_data.py          # add --force to re-q
 python src/model/construct_data/download_midrc_data.py
 
 # Step 4: Convert DICOMs → 512×512 PNGs with CLAHE + auto-rotation (skips existing PNGs)
-python src/model/train/processing.py
+python src/model/construct_data/processing.py
 
-# Step 5: Merge NIH + MIDRC into combined_master.csv (2:1 ratio, patient-level)
+# One-time prerequisite for step 5 if the orientation checkpoint does not exist.
+# Point --image-dir at a directory containing upright NIH images.
+python src/model/fix/train_rotation_classifier.py \
+  --image-dir /path/to/nih/images_001/images \
+  --out checkpoints/xray_orientation_resnet18.pth
+
+# Step 5: Apply the learned orientation correction to the MIDRC PNGs
+python src/model/fix/fix_midrc_orientation.py
+
+# Step 6: Create memory-efficient working copies in midrc_fixed_1024/
+python src/model/construct_data/resize_midrc.py
+
+# Step 7: Cap class counts and merge NIH + MIDRC into combined_master.csv
 python src/model/construct_data/blend_data.py
 
-# Step 6: Compute dataset-specific normalization (mean/std)
-python src/model/train/compute_dataset_stats.py
+# Step 8: Compute normalization statistics at train.py's current 288px resolution
+python src/model/train/compute_dataset_stats.py --resolution 288
 
-# Step 7: Train the model
+# Step 9: Train the model
 python src/model/train/train.py
 ```
 
-All steps are idempotent — re-running any step skips work already done.
+The download and initial DICOM conversion steps reuse or skip existing files.
+The orientation correction, resize, dataset merge, statistics calculation and
+training steps rewrite their outputs when run again.
 
 ### What Each Step Does
 
@@ -301,9 +329,12 @@ All steps are idempotent — re-running any step skips work already done.
 | 2 | `get_midrc_data.py` | MIDRC Gen3 API | `midrc_download_manifest.json` | Skips if manifest exists (`--force` to re-query) |
 | 3 | `download_midrc_data.py` | manifest JSON | `data_hybrid/midrc_dicoms/` | `--skip-completed` flag |
 | 4 | `processing.py` | DICOM zips | 512×512 PNGs + `midrc_processed_manifest.csv` | Skips if output PNG already exists |
-| 5 | `blend_data.py` | NIH cache + MIDRC manifest | `combined_master.csv` | Always rewrites (deterministic, fast) |
-| 6 | `compute_dataset_stats.py` | `combined_master.csv` | `dataset_stats.json` | Always rewrites (deterministic, fast) |
-| 7 | `train.py` | `combined_master.csv` + stats | `covnext348.pth` | Resumes from checkpoint if available |
+| Prerequisite | `train_rotation_classifier.py` | Upright NIH images | `checkpoints/xray_orientation_resnet18.pth` | Needed once; overwrites the checkpoint when rerun |
+| 5 | `fix_midrc_orientation.py` | MIDRC PNGs + orientation checkpoint | `data_hybrid/midrc_fixed_images/` | Rewrites corrected images |
+| 6 | `resize_midrc.py` | Corrected MIDRC PNGs | `data_hybrid/midrc_fixed_1024/` | Rewrites or copies working images |
+| 7 | `blend_data.py` | NIH cache + corrected MIDRC images | `combined_master.csv` | Always rewrites (deterministic) |
+| 8 | `compute_dataset_stats.py` | `combined_master.csv` | `dataset_stats.json` | Always rewrites |
+| 9 | `train.py` | `combined_master.csv` + stats | `dual_view_checkpoint.pth` and `checkpoint.pth` | Trains from scratch and overwrites checkpoints |
 
 ### Processing Details
 
@@ -311,22 +342,32 @@ All steps are idempotent — re-running any step skips work already done.
 - MONAI `ScaleIntensityRangePercentiles(0.5, 99.5)` windowing
 - CLAHE adaptive histogram equalization (clip_limit=0.02)
 - MONOCHROME1 photometric inversion (both Strategy A and fallback)
-- Auto-rotation of landscape images to portrait (width > height → rotate 90°)
+- Portrait normalization and content-based vertical/horizontal orientation correction
 - Resize to 512×512, saved as 8-bit grayscale
 
-**Data Blending (Step 5)** applies:
-- NIH: 14 pathologies from `Data_Entry_2017.csv`, filtered to PA/AP views only
-- MIDRC: COVID=1, all other pathologies=0
-- 2:1 ratio (NIH:MIDRC) via patient-level random sampling
-- Stratified by patient (not image) to prevent data leakage
+**Orientation and resizing (Steps 5–6)** applies:
+- A four-class ResNet-18 corrects remaining 0°/90°/180°/270° rotations
+- `resize_midrc.py` creates aspect-preserving working copies whose longest side
+  is at most 1024 pixels
 
-**Training (Step 7)** uses:
+**Data Blending (Step 7)** applies:
+- NIH: 14 pathologies from `Data_Entry_2017.csv`, filtered to PA/AP views only
+- Each NIH pathology and the MIDRC COVID set are capped separately at
+  `BALANCE_N` images (7000 by default); there is no fixed NIH:MIDRC ratio
+- NIH `No Finding` images are retained as the negative backbone
+- MIDRC rows contain a COVID label; their other pathology fields are treated as
+  unknown and masked out of the loss during training
+
+**Training (Step 9)** uses:
 - ConvNeXt-Base backbone (pretrained)
-- 384×384 resolution
-- Dataset-specific normalization (computed in Step 6)
-- sqrt-scaled `pos_weight` BCE loss for class imbalance
+- 288×288 resolution in the current `train.py` configuration
+- Dataset-specific normalization (computed in Step 8 at the same resolution)
+- Partial-label masked BCE loss with sqrt-scaled `pos_weight` for class imbalance
 - CosineAnnealing LR scheduler
-- Patient-stratified 80/10/10 train/val/test split
+- Patient-level 80/10/10 train/validation/test split, stratified by the combined
+  COVID/Effusion key
+- A fresh training run each time; intermediate weights are written to
+  `dual_view_checkpoint.pth` and final weights to `checkpoint.pth`
 
 
 ### Fast path (recommended): native Ollama
@@ -354,9 +395,13 @@ full GPU speed (typically 10-50x faster than Docker CPU):
    # Linux
    ollama serve &   # or via systemd
    ```
-3. **Register the fine-tuned model** (uses the GGUF in the repo, no extra download) and
-   pull the fallback model:
+3. **Download and register the fine-tuned model**, then pull the fallback model.
+   The GGUF is not stored in this Git repository, so save it next to the native
+   Modelfile before running `ollama create`:
    ```bash
+   curl -L --fail -C - \
+     -o src/LLM/files/clinical_model_dir/llama-3-8b-Instruct.Q4_K_M.gguf \
+     https://huggingface.co/leoniejkr/trustai-llm-gguf/resolve/main/llama-3-8b-Instruct.Q4_K_M.gguf
    ollama create trustai-llm -f \
      src/LLM/files/clinical_model_dir/trustai-llm.Modelfile.native
    ollama pull phi3:mini
@@ -368,15 +413,16 @@ full GPU speed (typically 10-50x faster than Docker CPU):
    ```
 
 The Docker `ollama` service stays in compose (internal-only, no published port) as the
-default for pure-Docker setups; when `LLM_URL` is set the app uses the native Ollama and
-the container simply sits idle.
+default for pure-Docker setups. Setting `LLM_URL` routes backend and modelling requests
+to the native Ollama instance, but the Docker `ollama` service is still started because
+it remains a Compose dependency. On its first start it therefore still downloads and
+registers the configured models.
 
 The fine-tuned model (`trustai-llm:latest`) is registered automatically when the `ollama` container starts (downloaded from Hugging Face, see [LLM model configuration](#llm-model-configuration)). The fallback model `phi3:mini` is pulled automatically as well, so both options in the **Settings → LLM Model** dropdown work out of the box. On the native path, pull it once with `ollama pull phi3:mini`, otherwise the app will return an error when that model is selected.
 
 Notes:
 - the models are stored in the ``ollama_data`` volume (container) or ``~/.ollama`` (native), so they survive restarts; re-download only after ``docker compose down -v``
 - on the native path both models must be present in the host Ollama: `ollama create trustai-llm -f ...` and `ollama pull phi3:mini` (both one-time per machine)
-- optional, to enable the fallback model: ``docker compose exec ollama ollama pull phi3:mini``
 - the backend connects to the LLM via ``OLLAMA_URL``/``OLLAMA_MODEL`` — ``OLLAMA_URL`` is ``http://ollama:11434`` by default and overridden by the ``LLM_URL`` env var (see above)
 - quick test without the UI: ``curl -X POST http://localhost:8080/chat -H "Content-Type: application/json" -d '{"message": "hello", "history": []}'``
 
@@ -390,8 +436,8 @@ The fine-tuned LLM (`trustai-llm:latest`) is registered in the `ollama` containe
 
 **Important:** the 4.9 GB model file is **not committed to git** (GitHub rejects files > 100 MB).
 Every developer/teacher gets the weights from the HF repo instead — either automatically in
-the `ollama` container (see above) or via `ollama create trustai-llm -f ...` in the native
-setup. Only code/config lives in git.
+the `ollama` container (see above) or by downloading the GGUF and then running
+`ollama create trustai-llm -f ...` in the native setup. Only code/config lives in git.
 
 The download is skipped if the file already exists (cached in `/models`), and the model is only re-created when necessary. Both sources can be overridden via environment variables:
 
@@ -404,13 +450,11 @@ environment:
 
 If you host your own copy (e.g. a fork on your own HF account), just point `HF_MODEL_REPO` at it. A **private** repo requires authentication inside the container; for the default **public** repo no token is needed.
 
-The Go backend and the modelling service use `OLLAMA_MODEL` (default `trustai-llm:latest`) to talk to the LLM. The model actually used per request is chosen in the **Settings → LLM Model** dropdown of the web app (`trustai-llm:latest` or `phi3:mini`); `phi3:mini` must be pulled manually if you want to use it.
+The Go backend and the modelling service use `OLLAMA_MODEL` (default `trustai-llm:latest`) to talk to the LLM. The model actually used per request is chosen in the **Settings → LLM Model** dropdown of the web app (`trustai-llm:latest` or `phi3:mini`). In the Docker setup both models are installed automatically when the `ollama` container starts. In a native-Ollama setup, download/register `trustai-llm` and pull `phi3:mini` once on the host.
 
-## Production-Deployment und Docker Hub
+## Production-Deployment and Docker Hub
 
-Der Dev-Workflow (`docker-compose.yaml`: Live-Reload + Volume-Mounts) ist nicht zum
-Publizieren gedacht. Dafür gibt es separate Production-Builds (in den Dockerfiles als
-`target: prod`) und ein eigenes Compose-File.
+The "normal" docker-compose.yaml is not for publishing. The project contains a seperate compose file and seperate production builds that have the keys "target: prod"
 
 ### Produktions-Stack lokal starten
 
@@ -456,7 +500,9 @@ umbauen und die Secrets `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` anlegen.
 
 ### Images manuell publizieren (z. B. Docker Hub)
 
-1. Registry-Namespace im Compose-File setzen (`laterne/trustai-...` → `<user>/<name>`).
+1. Die `image:`-Namen in `docker-compose.prod.yaml` (`trustai/backend`,
+   `trustai/frontend`, `trustai/modelling` und `trustai/ollama`) auf den eigenen
+   Registry-Namespace umstellen (`<user>/<name>`).
 2. `docker login`
 3. `docker compose -f docker-compose.prod.yaml build`
 4. `docker compose -f docker-compose.prod.yaml push`
@@ -468,4 +514,4 @@ ausgerollt werden.
 
 ### ORM
 
-Object relational mapping is a strategy with which one can map object oriented programming structures into relational database structures. This has to be done, because relational databases store object information in data tables and Go stores object information in structs which can not be automatically mapped into data tables. 
+Object relational mapping is a strategy with which one can map object oriented programming structures into relational database structures. This has to be done, because relational databases store object information in data tables and Go stores object information in structs which can not be automatically mapped into data tables.
