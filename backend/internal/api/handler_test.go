@@ -643,6 +643,50 @@ func TestChat_WithContext(t *testing.T) {
 	}
 }
 
+func TestChat_WithPregnancyContextDerivesPregnancy(t *testing.T) {
+	var receivedMessages []map[string]string
+	ollamaSrv := setupOllama(t, func(messages []map[string]string) (string, int) {
+		receivedMessages = messages
+		return "Test reply", http.StatusOK
+	})
+	defer ollamaSrv.Close()
+	t.Setenv("OLLAMA_URL", ollamaSrv.URL)
+
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+
+	body := `{"message": "Am I at risk for severe Covid?", "context": {"patient": {"age": 45, "gender": "Female", "symptoms": [], "history": ["Pregnancy (including repeat pregnancies)"]}}}`
+	req := httptest.NewRequest(http.MethodPost, "/chat", strings.NewReader(body))
+	w := httptest.NewRecorder()
+
+	handler.Chat(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+	}
+
+	var systemContent string
+	for _, m := range receivedMessages {
+		if m["role"] == "system" {
+			systemContent = m["content"]
+		}
+	}
+
+	if systemContent == "" {
+		t.Fatal("expected a system message sent to Ollama")
+	}
+	if !strings.Contains(systemContent, "Pregnancy (including repeat pregnancies)") {
+		t.Error("expected the submitted pregnancy history entry in the patient context")
+	}
+	if !strings.Contains(systemContent, "the patient is pregnant") {
+		t.Error("expected a derived 'the patient is pregnant' cue in the system message")
+	}
+	if !strings.Contains(systemContent, "MUST be treated as fact") {
+		t.Error("expected the system message to mark patient metadata as confirmed facts")
+	}
+}
+
 func TestChat_MissingMessage(t *testing.T) {
 	ollamaSrv := setupOllama(t, func(messages []map[string]string) (string, int) {
 		return "", http.StatusOK

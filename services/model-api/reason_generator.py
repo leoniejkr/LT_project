@@ -16,12 +16,16 @@ def _build_patient_context(patient: dict) -> str:
     symptoms = patient.get("symptoms", [])
     history = patient.get("history", [])
 
-    patient_info = f"Patient: {age} years old, {gender}."
+    patient_info = (
+        "The following is the patient's CONFIRMED metadata, submitted by the "
+        "user. Treat every entry as fact about this patient:\n"
+    )
+    patient_info += f"Patient: {age} years old, {gender}."
     if symptoms:
-        patient_info += f" Symptoms: {', '.join(symptoms)}."
+        patient_info += f"\nSymptoms: {', '.join(symptoms)}."
     if history:
         patient_info += (
-            f" Known conditions, relevant history and risk factors: "
+            f"\nMedical history and risk factors: "
             f"{', '.join(history)}."
         )
 
@@ -47,9 +51,7 @@ def _build_patient_context(patient: dict) -> str:
         hints.append("the patient has a smoking/exposure history")
 
     if hints:
-        patient_info += (
-            " Risk context: " + "; ".join(hints) + "."
-        )
+        patient_info += "\nRisk context: " + "; ".join(hints) + "."
 
     return patient_info
 
@@ -76,7 +78,7 @@ The AI model detected the following conditions:
 
 For EACH condition listed above, provide a brief 1-2 sentence clinical assessment explaining what the finding means and why it is significant for THIS patient.
 
-IMPORTANT: Pay close attention to the patient's medical history and risk factors above and factor them into every assessment. If the patient's metadata matches a known high-risk or special group (for example pregnancy, infancy or early childhood, advanced age, smoking, or immunosuppression), explicitly say how that changes the picture for this patient and what to watch for. Do not write generic statements that ignore the patient context above.
+IMPORTANT: The patient metadata above is CONFIRMED fact about this patient and MUST be reflected in every assessment. Treat every listed symptom and history entry as true (for example, if "Pregnancy" is listed, the patient IS pregnant). If the patient's metadata matches a known high-risk or special group (for example pregnancy, infancy or early childhood, advanced age, smoking, or immunosuppression), explicitly say how that changes the picture for this patient and what to watch for. Never claim that a listed risk factor or condition does not apply to this patient, and do not write generic statements that contradict the patient context above.
 
 Respond in this exact JSON format:
 [

@@ -156,15 +156,72 @@ func buildContextMessage(context map[string]any) (chat.Message, bool) {
 	if err != nil || len(payload) == 0 {
 		return chat.Message{}, false
 	}
+
+	derived := riskCueMessage(context)
 	return chat.Message{
 		Role: chat.SystemRole,
 		Content: "Known patient context for this conversation " +
 			"(age, checked symptoms, medical history and risk factors, analysis findings). " +
-			"Use it when answering questions about this patient; always weigh the " +
-			"medical history and risk factors (e.g. pregnancy, infancy or early " +
-			"childhood, advanced age, smoking, immunosuppression) and call out when a " +
-			"finding affects a high-risk group for this patient:\n" + string(payload),
+			"The patient metadata below is CONFIRMED information about this patient and MUST be " +
+			"treated as fact: every entry in the patient's history is a real condition, risk " +
+			"factor, or exposure of this patient (for example, if \"Pregnancy\" is listed, the " +
+			"patient IS pregnant). Never state that a high-risk factor such as pregnancy, infancy " +
+			"or early childhood, advanced age, smoking, or immunosuppression does NOT apply to " +
+			"this patient when it is listed in the history or in the derived cues. Always base " +
+			"your answer on THIS patient's actual data first, then on general medical " +
+			"knowledge:\n" + string(payload) + derived,
 	}, true
+}
+
+// riskCueMessage derives explicit, easy-to-follow risk statements from the
+// patient block, mirroring the analysis prompt in reason_generator.py. Small
+// local LLMs often skim raw JSON, so the crucial facts are restated in plain
+// language that cannot be ignored.
+func riskCueMessage(context map[string]any) string {
+	cues := []string{}
+	if patient, ok := context["patient"].(map[string]any); ok {
+		if age, ok := patient["age"].(float64); ok && age > 0 {
+			switch {
+			case age < 2:
+				cues = append(cues, "the patient is an infant (under 2 years)")
+			case age < 18:
+				cues = append(cues, "the patient is a child or adolescent")
+			case age >= 65:
+				cues = append(cues, "the patient is an older adult (65+)")
+			}
+		}
+		history := toStringSlice(patient["history"])
+		joined := strings.ToLower(strings.Join(history, " "))
+		if strings.Contains(joined, "pregnan") {
+			cues = append(cues, "the patient is pregnant")
+		}
+		if strings.Contains(joined, "smok") {
+			cues = append(cues, "the patient has a smoking/exposure history")
+		}
+	}
+	if len(cues) == 0 {
+		return ""
+	}
+	return "\n\nDerived patient risk cues (CONFIRMED): " + strings.Join(cues, "; ") + "."
+}
+
+// toStringSlice normalizes a JSON-decoded ([]any) or Go-typed ([]string)
+// patient list field into a []string.
+func toStringSlice(v any) []string {
+	switch t := v.(type) {
+	case []string:
+		return t
+	case []any:
+		out := make([]string, 0, len(t))
+		for _, e := range t {
+			if s, ok := e.(string); ok {
+				out = append(out, s)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
 }
 
 // Chat godoc
