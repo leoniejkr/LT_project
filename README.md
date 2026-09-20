@@ -315,11 +315,11 @@ python ml/model/construct_data/resize_midrc.py
 # Step 7: Cap class counts and merge NIH + MIDRC into combined_master.csv
 python ml/model/construct_data/blend_data.py
 
-# Step 8: Compute the shared normalization statistics at the model's 384px resolution
-python -m ml.model.train.compute_dataset_stats --resolution 384
+# Step 8: Compute normalization statistics at train.py's current 288px resolution
+python ml/model/train/compute_dataset_stats.py --resolution 288
 
 # Step 9: Train the model
-python -m ml.model.train.train
+python ml/model/train/train.py
 ```
 
 The download and initial DICOM conversion steps reuse or skip existing files.
