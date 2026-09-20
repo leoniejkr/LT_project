@@ -40,9 +40,10 @@ data_hybrid/midrc_images_before
 *.wandb
 /wandb
 
-# Model weights are NOT versioned (too large for GitHub). They are downloaded
-# from the Hugging Face Hub (leoniejkr/lt-models) at Docker build time via
-# scripts/download_models.py. Keep checkpoint files local-only.
+# Serving checkpoints: the default ones (covnext348.pth, swin-224px_final.pth)
+# are versioned via Git LFS (see .gitattributes), so a fresh clone works out of
+# the box. Any further checkpoint file (re-downloaded, newly trained, temp)
+# stays local-only and is obtained via scripts/download_models.py.
 checkpoints/**/*.pth
 
 /backend/tmp/

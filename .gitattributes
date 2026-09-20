@@ -1,0 +1,7 @@
+# CNN serving checkpoints ship with the repo via Git LFS so the default
+# classifier(s) work right after `git clone` + `git lfs pull` (or with the LFS
+# client installed). The repo only stores <2 KB pointer files; GitHub LFS holds
+# the actual weights (each file stays well below the 2 GB per-file limit).
+# Any other model file (retraining output, alternates) is not tracked here and
+# is fetched from Hugging Face via scripts/download_models.py.
+checkpoints/*.pth filter=lfs diff=lfs merge=lfs -text

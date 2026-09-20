@@ -86,22 +86,38 @@ NIH: https://www.kaggle.com/datasets/nih-chest-xrays/data
 #### Prerequisites for running the application
 
 The application runs all required services in containers, so no separate installation of any programming language or database is needed if you only want to run the application.
-The development setup requires Python with `huggingface_hub` once to download the X-ray classifiers (ConvNeXt + Swin, `scripts/download_models.py`) before the first start. The production image downloads the checkpoints automatically during its build.
+The two X-ray classifiers (ConvNeXt + Swin) ship directly in the repository via **Git LFS** (see [Model files](#model-files-x-ray-classifier-llm)); install the Git LFS client once with `git lfs install` so the model files are fetched with the clone. No Hugging Face access is needed for the default models. The fine-tuned LLM is downloaded automatically from Hugging Face by the `ollama` container on its first start.
 For most OS just install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/). If you use NixOS or Arch-based systems just install the Docker Engine. For MacOS you can install Colima instead to your liking.
 
 #### Starting the application
-For the first development start, open a terminal in the project root directory and download the X-ray classifier before starting the containers:
+
+The X-ray classifier checkpoints are part of the repository (Git LFS), so a
+fresh clone already contains them. The only setup step is making Git LFS fetch
+the model files:
 
 ```bash
-python scripts/download_models.py
+git lfs install
+```
+
+> If you cloned the repository **before** installing Git LFS, the checkpoints
+> arrive as small pointer files (~130 bytes instead of ~330 MB). Fix it with
+> `git lfs pull` or re-fetch them with `python scripts/download_models.py`
+> (see [Getting the classifier](#getting-the-classifier-for-local-development)).
+
+Then build and start the application from the project root:
+
+```bash
 docker compose build
 docker compose up
 ```
 
-The download script places `covnext348.pth` in the local `./checkpoints` directory, which is mounted read-only into the modelling container. It reuses the local Hugging Face cache when possible and can safely be run again.
-
-The first docker command builds the application images and only has to be executed once, as long as the code stays unchanged. The second command starts the images and has to be executed every time the application is to be started.
-It may take a few minutes until the models are downloaded and the application is built.
+The `docker compose build` command builds the application images and only has to
+be executed once, as long as the code stays unchanged. The `docker compose up`
+command starts the images and has to be executed every time the application is
+to be started. The GGUF language model is downloaded by the `ollama` container
+automatically on its first start, so no model file has to be prepared manually.
+It may take a few minutes until the models are downloaded and the application
+is built.
 To combine both docker commands you can run:
 ```bash
 docker compose up -d --build
@@ -132,15 +148,23 @@ only when you intentionally want to delete these volumes and their data.
 
 #### Where the models come from
 
-**No model weights are stored in git.** GitHub rejects files above 100 MB, so all
-model files are hosted on the Hugging Face Hub. Whether they are downloaded
-automatically depends on the setup.
+**GitHub rejects files above 100 MB**, so model weights are distributed in two
+ways:
 
-| Model | Purpose | Size | Hugging Face repo | File |
-|-------|---------|------|-------------------|------|
-| X-ray classifier (ConvNeXt-Base) | Predicts 15 conditions per image, 384px input | 334 MB | `leoniejkr/lt-models` | `covnext348.pth` |
-| X-ray classifier (Swin-B) | Same 15 conditions, 224px transformer backbone | 331 MB | `leoniejkr/lt-models` | `swin-224px_final.pth` |
-| Chatbot LLM | Fine-tuned Llama-3-8B-Instruct | 4.9 GB | `leoniejkr/trustai-llm-gguf` | `llama-3-8b-Instruct.Q4_K_M.gguf` |
+- **In the repository via Git LFS:** the two default X-ray classifiers ship
+  with every clone, so the app works out of the box. The git history only
+  contains small pointer files; GitHub LFS serves the actual weights (each file
+  is well below the 2 GB per-file limit).
+- **From Hugging Face on demand:** everything else (the LLM, or re-downloaded /
+  newly trained classifier variants) is fetched automatically — the `ollama`
+  container downloads the GGUF at startup, `scripts/download_models.py`
+  downloads individual classifier files.
+
+| Model | Purpose | Size | Ships in repo (Git LFS) | Hugging Face repo | File |
+|-------|---------|------|------------------------|-------------------|------|
+| X-ray classifier (ConvNeXt-Base) | Predicts 15 conditions per image, 384px input | 334 MB | ✅ | `leoniejkr/lt-models` | `covnext348.pth` |
+| X-ray classifier (Swin-B) | Same 15 conditions, 224px transformer backbone | 331 MB | ✅ | `leoniejkr/lt-models` | `swin-224px_final.pth` |
+| Chatbot LLM | Fine-tuned Llama-3-8B-Instruct | 4.9 GB | ❌ (too large for Git LFS) | `leoniejkr/trustai-llm-gguf` | `llama-3-8b-Instruct.Q4_K_M.gguf` |
 
 The model download differs between the development and production setups:
 
@@ -148,24 +172,28 @@ The model download differs between the development and production setups:
   and registers the model `trustai-llm:latest`. In a native-Ollama setup you register
   it yourself with `ollama create` (see [LLM model configuration](#llm-model-configuration)).
 - **Classifier, development:** `docker-compose.yaml` mounts the local
-  `./checkpoints` directory into the modelling container. Download
-  `covnext348.pth` and `swin-224px_final.pth` once with `python scripts/download_models.py`
-  before starting the application.
-- **Classifier, production:** the production image downloads both checkpoints at
-  build time into `/app/checkpoints` (see [Production-Deployment](#production-deployment-und-docker-hub)).
+  `./checkpoints` directory into the modelling container. The two default
+  checkpoint files already exist after `git clone`/`git lfs pull`; use
+  `scripts/download_models.py` only to re-fetch or replace them.
+- **Classifier, production:** the production image downloads **all** classifier
+  checkpoints at build time into `/app/checkpoints` (see
+  [Production-Deployment](#production-deployment-und-docker-hub)).
 
 #### Getting the classifier for local development
 
 The development setup (`docker-compose.yaml`) mounts `./checkpoints` into the modelling
-container, so the file has to exist on your machine. It is a **public** Hugging Face
-repo, so no login is required. From the project root run once:
+container, so the checkpoint files have to exist on your machine. For the two default
+classifiers they come from Git LFS (`git lfs install && git lfs pull`); anything else
+can be fetched from Hugging Face. It is a **public** repo, so no login is required.
+From the project root run once:
 
 ```bash
 python scripts/download_models.py
 ```
 
 The script places `covnext348.pth` and `swin-224px_final.pth` into
-`./checkpoints`, which is gitignored.
+`./checkpoints` (overwriting the LFS versions is fine, they are identical) —
+useful when Git LFS pointers were not fetched, or to grab extra model files.
 It is idempotent and `hf_hub_download` reuses its local cache when possible instead of downloading an unchanged file again. To fetch the checkpoints (or additional models) explicitly:
 
 ```bash
