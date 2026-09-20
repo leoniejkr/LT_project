@@ -17,9 +17,10 @@ type Message struct {
 // from the Modelfile defaults (200 / 2048) so long clinical answers are not
 // cut off mid-sentence and the system prompt + history fit into the context.
 type Options struct {
-	Temperature float64 `json:"temperature,omitempty"`
-	NumPredict  int     `json:"num_predict,omitempty"`
-	NumCtx      int     `json:"num_ctx,omitempty"`
+	Temperature   float64 `json:"temperature,omitempty"`
+	NumPredict    int     `json:"num_predict,omitempty"`
+	NumCtx        int     `json:"num_ctx,omitempty"`
+	RepeatPenalty float64 `json:"repeat_penalty,omitempty"`
 }
 
 type ChatRequest struct {
