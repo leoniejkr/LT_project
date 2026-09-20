@@ -66,7 +66,7 @@ services:
             curl -L --fail -C - --retry 5 --retry-delay 5 -o "$${HF_GGUF_FILE}" \
               "https://huggingface.co/$${HF_MODEL_REPO}/resolve/main/$${HF_GGUF_FILE}"
           fi
-          printf 'FROM /models/%s\n\n# Konservative Inferenz-Parameter fuer die klinische Analyse.\nPARAMETER temperature 0.3\nPARAMETER num_ctx 8192\nPARAMETER num_predict 1024\n\nSYSTEM """You are a medical AI assistant analyzing chest X-ray findings. Provide concise, professional clinical assessments of the detected conditions. Only answer based on the information provided in the prompt. Be accurate and do not invent conditions. Answer in short, focused sentences."""\n' "$${HF_GGUF_FILE}" > Modelfile
+          printf 'FROM /models/%s\n\n# Konservative Inferenz-Parameter fuer die klinische Analyse.\nPARAMETER temperature 0.3\nPARAMETER num_ctx 8192\nPARAMETER num_predict 1024\nPARAMETER repeat_penalty 1.25\n\nSYSTEM """You are a medical AI assistant analyzing chest X-ray findings. Provide concise, professional clinical assessments of the detected conditions. Only answer based on the information provided in the prompt. Be accurate and do not invent conditions. Answer in short, focused sentences."""\n' "$${HF_GGUF_FILE}" > Modelfile
           ollama create trustai-llm -f Modelfile
         fi
         # Fallback-Modell phi3:mini sicherstellen (idempotent, nur falls fehlt).
