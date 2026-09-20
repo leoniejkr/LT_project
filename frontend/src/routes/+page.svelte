@@ -2,10 +2,7 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import * as Card from "$lib/components/ui/card/index.js";
-  import * as Tabs from "$lib/components/ui/tabs/index.js";
-  import * as Accordion from "$lib/components/ui/accordion/index.js";
   import { Separator } from "$lib/components/ui/separator/index.js";
-  import * as Alert from "$lib/components/ui/alert/index.js";
   import { ArrowRight, Upload, Stethoscope, FileText, Info } from "lucide-svelte";
   import "../app.css";
 
@@ -90,71 +87,33 @@
 
   <Separator />
 
-  <Tabs.Root value="info" class="w-full">
-    <Tabs.List class="w-full justify-start">
-      <Tabs.Trigger value="info">Info</Tabs.Trigger>
-      <Tabs.Trigger value="howto">How to use it</Tabs.Trigger>
-    </Tabs.List>
-
-    <Tabs.Content value="info">
-      <Alert.Root>
-        <Info class="size-4" />
-        <Alert.Title>Supported formats &amp; Pathologies &amp; Imaging Findings</Alert.Title>
-        <Alert.Description class="mt-2 space-y-3">
-          <p>
-            Supported image format for upload: PNG. Analysis of chest X-ray
-            images to detect abnormalities and provide risk assessment based on AI
-            models.
-          </p>
-          <p>
-            Pathologies &amp; Imaging Findings: Atelectasis, Cardiomegaly,
-            Consolidation, Edema, Effusion, Emphysema, Fibrosis, Hernia,
-            Infiltration, Mass, Nodule, Pleural Thickening, Pneumonia,
-            Pneumothorax, Covid
-          </p>
-        </Alert.Description>
-      </Alert.Root>
-    </Tabs.Content>
-
-    <Tabs.Content value="howto">
-      <Card.Root>
-        <Card.Content>
-          <Accordion.Root type="single">
-            <Accordion.Item value="step-1">
-              <Accordion.Trigger>1. Open the upload page</Accordion.Trigger>
-              <Accordion.Content>
-                Select the X-ray files you want to analyze.
-              </Accordion.Content>
-            </Accordion.Item>
-            <Accordion.Item value="step-2">
-              <Accordion.Trigger>2. Enter patient details</Accordion.Trigger>
-              <Accordion.Content>
-                Provide age, gender and relevant symptoms or medical history.
-              </Accordion.Content>
-            </Accordion.Item>
-            <Accordion.Item value="step-3">
-              <Accordion.Trigger>3. Start analysis</Accordion.Trigger>
-              <Accordion.Content>
-                Let the AI generate predictions and insights based on the provided information.
-              </Accordion.Content>
-            </Accordion.Item>
-            <Accordion.Item value="step-4">
-              <Accordion.Trigger>4. Use the result view</Accordion.Trigger>
-              <Accordion.Content>
-                Understand the prediction, examine the images and heatmaps manually and use the
-                chat for further information and help.
-              </Accordion.Content>
-            </Accordion.Item>
-          </Accordion.Root>
-        </Card.Content>
-        <Card.Footer>
-          <Button href="/upload" class="gap-2">
-            Go to Upload <ArrowRight size={16} />
-          </Button>
-        </Card.Footer>
-      </Card.Root>
-    </Tabs.Content>
-  </Tabs.Root>
+  <Card.Root class="p-5">
+    <Card.Header class="p-0">
+      <div class="flex items-center gap-3">
+        <div
+          class="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+        >
+          <Info size={18} />
+        </div>
+        <Card.Title class="text-lg font-semibold">
+          <h2>Supported formats &amp; Pathologies &amp; Imaging Findings</h2>
+        </Card.Title>
+      </div>
+      <Card.Description class="mt-3 space-y-3">
+        <p>
+          Supported image format for upload: PNG. Analysis of chest X-ray
+          images to detect abnormalities and provide risk assessment based on AI
+          models.
+        </p>
+        <p>
+          Pathologies &amp; Imaging Findings: Atelectasis, Cardiomegaly,
+          Consolidation, Edema, Effusion, Emphysema, Fibrosis, Hernia,
+          Infiltration, Mass, Nodule, Pleural Thickening, Pneumonia,
+          Pneumothorax, Covid
+        </p>
+      </Card.Description>
+    </Card.Header>
+  </Card.Root>
 </div>
 
 <style lang="postcss">
