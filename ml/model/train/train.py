@@ -1,3 +1,4 @@
+import argparse
 import json
 import os
 
@@ -30,16 +31,54 @@ config = {
     "classifier_lr": 1e-4,
     "architecture": "ConvNeXt-Base",
     "dataset": "NIH-MIDRC-Hybrid-PatientContext",
-    "resolution": 288  # None -> use selected model's INPUT_SIZE (see below)
+    # None -> use the selected model's INPUT_SIZE, so serving and training
+    # geometry can never drift apart (see the "Modell trainieren" README note:
+    # serving preprocesses each model at exactly its INPUT_SIZE).
+    "resolution": None  # None -> use selected model's INPUT_SIZE (see below)
 }
 
 # Resolution and batch size are now model-specific: each model class declares
 # its expected input size and a sensible batch size (see models/*.py
 # `INPUT_SIZE` / `BATCH_SIZE`). Transforms are built from the selected model so
 # we never squeeze/downsample to a fixed value that might not fit the backbone
-# (e.g. Swin/ViT wants its pre-trained grid). Override per run by editing
-# `MODEL_CLASS` or setting `config["batch_size"]` to a non-None value.
-MODEL_CLASS = ChestModel
+# (e.g. Swin/ViT wants its pre-trained grid). Select the backbone with
+# `--model convnext|swin|densenet` or `TRAIN_MODEL=...` (default: convnext).
+def _select_model_class(name):
+    """Map a short model id to its training LightningModule."""
+    name = (name or "").strip().lower()
+    if name == "densenet":
+        from models.densenet_model import DenseNetChestModel
+        return DenseNetChestModel
+    if name == "swin":
+        from models.ViT_model import SwinTransformerChestModel
+        return SwinTransformerChestModel
+    return ChestModel  # convnext (default)
+
+
+def _parse_cli():
+    parser = argparse.ArgumentParser(description="Train a multi-label chest X-ray classifier")
+    parser.add_argument(
+        "--model", choices=["convnext", "swin", "densenet"], default=None,
+        help="backbone to train (default: convnext, or $TRAIN_MODEL)",
+    )
+    parser.add_argument(
+        "--resolution", type=int, default=None,
+        help="override the model's input resolution",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=None,
+        help="override the model's default batch size",
+    )
+    args, _unknown = parser.parse_known_args()
+    if args.resolution is not None:
+        config["resolution"] = args.resolution
+    if args.batch_size is not None:
+        config["batch_size"] = args.batch_size
+    return args
+
+
+ARGS = _parse_cli()
+MODEL_CLASS = _select_model_class(ARGS.model or os.environ.get("TRAIN_MODEL", "convnext"))
 RESOLUTION = config["resolution"] if config["resolution"] else MODEL_CLASS.INPUT_SIZE
 BATCH_SIZE = config["batch_size"] if config["batch_size"] else MODEL_CLASS.BATCH_SIZE
 
@@ -185,7 +224,7 @@ if __name__ == '__main__':
 
     wandb.init(
         project="hybrid-xray-covid", 
-        name="convnext-384px", 
+        name=os.environ.get("WANDB_RUN_NAME", f"{MODEL_CLASS.__name__}-{RESOLUTION}px"), 
         config=config,
         settings=wandb.Settings(start_method="fork")
     )
