@@ -37,6 +37,9 @@ func TestSendMessage_Success(t *testing.T) {
 		if req.Options.NumCtx != 8192 {
 			t.Errorf("num_ctx = %d, want 8192", req.Options.NumCtx)
 		}
+		if req.Options.RepeatPenalty < 1.2 {
+			t.Errorf("repeat_penalty = %v, want >= 1.2 (reduce duplicated sections)", req.Options.RepeatPenalty)
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(ChatResponse{

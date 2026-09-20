@@ -9,6 +9,7 @@
 	import * as Item from "$lib/components/ui/item/index.js";
 	import { cn } from "$lib/utils.js";
 	import { llmModel } from "$lib/models";
+	import { renderMarkdown } from "./markdown";
 
 	let {
 		class: className,
@@ -191,16 +192,20 @@
 									</Item.Media>
 								{/if}
 								<Item.Content>
-									<Item.Description
-										class={cn(
-											"line-clamp-none",
-											msg.role === "user"
-												? "text-right"
-												: "",
-										)}
-									>
+<Item.Description
+									class={cn(
+										"line-clamp-none",
+										msg.role === "user"
+											? "text-right"
+											: "chat-md",
+									)}
+								>
+									{#if msg.role === "assistant"}
+										{@html renderMarkdown(msg.content)}
+									{:else}
 										{msg.content}
-									</Item.Description>
+									{/if}
+								</Item.Description>
 								</Item.Content>
 								{#if msg.role === "user"}
 									<Item.Media variant="icon">
@@ -258,3 +263,63 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.chat-md {
+		line-height: 1.55;
+		overflow-wrap: anywhere;
+	}
+
+	.chat-md :global(p) {
+		margin: 0.4rem 0;
+	}
+
+	.chat-md :global(p:first-child) {
+		margin-top: 0;
+	}
+
+	.chat-md :global(p:last-child) {
+		margin-bottom: 0;
+	}
+
+	.chat-md :global(h3) {
+		font-size: 0.95rem;
+		font-weight: 650;
+		margin: 0.6rem 0 0.25rem;
+	}
+
+	.chat-md :global(h4) {
+		font-size: 0.85rem;
+		font-weight: 650;
+		margin: 0.5rem 0 0.2rem;
+	}
+
+	.chat-md :global(h5) {
+		font-size: 0.8rem;
+		font-weight: 600;
+		margin: 0.4rem 0 0.15rem;
+	}
+
+	.chat-md :global(ul),
+	.chat-md :global(ol) {
+		margin: 0.35rem 0;
+		padding-left: 1.15rem;
+		list-style: revert;
+	}
+
+	.chat-md :global(li) {
+		margin: 0.15rem 0;
+	}
+
+	.chat-md :global(code) {
+		font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+		font-size: 0.82em;
+		background: hsl(var(--muted));
+		border-radius: 0.25rem;
+		padding: 0.1rem 0.3rem;
+	}
+
+	.chat-md :global(strong) {
+		font-weight: 650;
+	}
+</style>
