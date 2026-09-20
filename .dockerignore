@@ -1,0 +1,14 @@
+*
+!.dockerignore
+!services/
+services/*
+!services/model-api/
+!services/model-api/**
+!ml/
+ml/*
+!ml/__init__.py
+!ml/common/
+!ml/common/**
+!scripts/
+scripts/*
+!scripts/download_models.py
