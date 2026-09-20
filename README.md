@@ -164,6 +164,7 @@ follows:
 |-------|---------|------|------------------------|------|
 | X-ray classifier (ConvNeXt-Base) | Predicts 15 conditions per image, 384px input | 334 MB | ✅ | `checkpoints/covnext348.pth` |
 | X-ray classifier (Swin-B) | Same 15 conditions, 224px transformer backbone | 331 MB | ✅ | `checkpoints/swin-224px_final.pth` |
+| X-ray classifier (DenseNet-121 / CheXNet) | Same 15 conditions, 224px dense backbone | ~31 MB | ❌ (trained locally via Step 9, then committed) | `checkpoints/densenet-224px_final.pth` |
 | Chatbot LLM | Fine-tuned Llama-3-8B-Instruct (from `leoniejkr/trustai-llm-gguf`) | 4.9 GB | ❌ (too large for Git LFS) | `llama-3-8b-Instruct.Q4_K_M.gguf` |
 
 The model download differs between the development and production setups:
@@ -197,6 +198,14 @@ To add a retrained model to the ensemble (or replace a checkpoint), drop the
 its registration point. Every `checkpoints/**/*.pth` beyond the tracked files
 stays local-only by default, so intermediate training outputs are not
 committed by accident.
+
+Three architectures are registered end-to-end (`convnext`, `swin`, `densenet`).
+`densenet` is brand-new: its serving factory expects the checkpoint at exactly
+`checkpoints/densenet-224px_final.pth`, so training it via [Step 9](#pipeline-execution-order)
+and saving the result under that name makes it selectable in the frontend and
+lets it join the ensemble automatically. The ensemble skips any registered
+member whose checkpoint file does not exist yet (with a warning), so a not-yet-
+trained `densenet` never breaks the `ensemble` selection.
 
 > Note: `checkpoints/xray_orientation_resnet18.pth` is a
 > local helper only used by the MIDRC preprocessing pipeline; it is intentionally
@@ -354,22 +363,23 @@ python ml/model/construct_data/blend_data.py
 # on the size (SquarePad's black fill is scale-invariant), so re-running per
 # model is optional.
 python ml/model/train/compute_dataset_stats.py
-# (for a Swin-B training run:  python ml/model/train/compute_dataset_stats.py --model swin)
+# (for a Swin-B or DenseNet training run:  python ml/model/train/compute_dataset_stats.py --model swin|densenet)
 
 # Step 9: Train the model
-python ml/model/train/train.py
+python ml/model/train/train.py --model convnext     # or: --model swin / --model densenet
 ```
 
 The download and initial DICOM conversion steps reuse or skip existing files.
 The orientation correction, resize, dataset merge, statistics calculation and
 training steps rewrite their outputs when run again.
 
-The training codebase is shared by both backbones: train the ConvNeXt model with
-`MODEL_CLASS = ChestModel` in `ml/model/train/train.py` and the Swin-B model with
-`MODEL_CLASS = SwinTransformerChestModel` (from `models.ViT_model`); resolution
-and batch size then adapt automatically as described under *Training (Step 9)*.
-The newer trainer additionally exposes this as a CLI flag
-(`--model convnext` / `--model swin`).
+The training codebase is shared by all architectures: train the ConvNeXt model with
+`--model convnext` (`ChestModel`, the default), Swin-B with `--model swin`
+(`SwinTransformerChestModel` from `models.ViT_model`), and the new DenseNet-121 /
+CheXNet-style backbone with `--model densenet` (`DenseNetChestModel` from
+`models.densenet_model`); resolution and batch size then adapt automatically as
+described under *Training (Step 9)*. The same selection is available as the
+`TRAIN_MODEL` environment variable.
 
 ### What Each Step Does
 
@@ -418,13 +428,17 @@ The newer trainer additionally exposes this as a CLI flag
   |----------|--------------|--------------|------------------|
   | ConvNeXt-Base (`ChestModel`) | 384 | 32 | fully-convolutional → resolution-flexible; higher input keeps more X-ray detail |
   | Swin-B (`SwinTransformerChestModel`) | 224 | 24 | matches the ImageNet-1K pre-training grid (safer than interpolating the relative-position bias); transformers need more memory per image |
+  | DenseNet-121 (`DenseNetChestModel`, CheXNet-style) | 224 | 32 | dense connectivity is a third, distinct inductive bias for ensemble diversity; tiny and fast on MPS |
 
   `train.py` resolves `RESOLUTION = config["resolution"] or MODEL_CLASS.INPUT_SIZE`
   and `BATCH_SIZE = config["batch_size"] or MODEL_CLASS.BATCH_SIZE`. The current
-  `main` configuration pins ConvNeXt to 288 px / batch 16; setting those config
-  keys to `None` falls back to the class defaults above. Both backbones share the
-  same data handling otherwise (same `combined_master.csv`, same 15 classes, same
-  masked partial labels, same patient splits).
+  `main` configuration leaves `resolution` at `None` so every model trains at its
+  own `INPUT_SIZE` — which is also exactly what the serving-side `preprocess`
+  uses, so training and serving geometry can never drift apart (see the model
+  table above for the serving inputs). Batch size is pinned conservatively to 16
+  for MPS memory safety. All architectures share the same data handling
+  otherwise (same `combined_master.csv`, same 15 classes, same masked partial
+  labels, same patient splits).
 - Aspect-preserving geometry: longer side resized to the model's resolution,
   shorter side black-padded to a square (never distorted).
 - Dataset-specific normalization (Step 8 mean/std; one set of statistics serves
@@ -540,9 +554,10 @@ Unterschiede zur Entwicklung:
 
 - **Multi-Stage-Images**: kein Live-Reload, keine Volume-Mounts, der Code liegt im Image.
   Das Backend läuft als statisches Binary, das Frontend als Node-Server (`adapter-node`).
-- **Modelling**: die trainierten Modelle (`covnext348.pth`, `swin-224px_final.pth`)
+- **Modelling**: die trainierten Modelle (`covnext348.pth`, `swin-224px_final.pth`,
+  nach dem ersten Training zusätzlich `densenet-224px_final.pth`)
   liegen als Git-LFS-Dateien im Repo (`checkpoints/`) und werden beim Docker-Build
-  direkt mitkopiert (`.dockerignore` filtert auf genau diese zwei Dateien, ein
+  direkt mitkopiert (`.dockerignore` filtert auf genau diese drei Dateien, ein
   Guard bricht den Build ab, falls nur LFS-Pointer statt der Gewichte im Clone
   liegen — also vorher `git lfs install && git lfs pull`). Gestartet wird das
   Image als gunicorn-Worker.
