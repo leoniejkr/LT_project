@@ -67,12 +67,13 @@
             });
             if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
             patients = patients.filter((entry) => entry.id !== patient.id);
+            deleteDialogOpen = false;
+            selectedPatient = undefined;
         } catch (cause) {
             console.error(`Failed to delete patient ${patient.id}:`, cause);
             deleteError = `Analysis #${patient.id} could not be deleted.`;
         } finally {
             deletingPatientId = undefined;
-            selectedPatient = undefined;
         }
     }
 
@@ -84,6 +85,7 @@
             const response = await fetch("/api/analysis", { method: "DELETE" });
             if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
             patients = [];
+            deleteAllDialogOpen = false;
         } catch (cause) {
             console.error("Failed to delete all analyses:", cause);
             deleteError = "The analysis history could not be deleted.";
@@ -298,9 +300,14 @@
             <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
             <AlertDialog.Action
                 variant="destructive"
+                disabled={deletingPatientId !== undefined}
                 onclick={() => selectedPatient && void deletePatient(selectedPatient)}
             >
-                <Trash2 /> Delete
+                {#if deletingPatientId !== undefined}
+                    <LoaderCircle class="animate-spin" /> Deleting
+                {:else}
+                    <Trash2 /> Delete
+                {/if}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>
@@ -319,9 +326,14 @@
             <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
             <AlertDialog.Action
                 variant="destructive"
+                disabled={deletingAll}
                 onclick={() => void deleteAllPatients()}
             >
-                <Trash2 /> Delete all
+                {#if deletingAll}
+                    <LoaderCircle class="animate-spin" /> Deleting
+                {:else}
+                    <Trash2 /> Delete all
+                {/if}
             </AlertDialog.Action>
         </AlertDialog.Footer>
     </AlertDialog.Content>
