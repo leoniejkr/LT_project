@@ -1,5 +1,3 @@
-# Ollama-Image um curl erweitert, damit beim Start das GGUF-Modell vom
-# Hugging Face Hub geladen werden kann (siehe docker-compose.yaml -> ollama).
 FROM ollama/ollama
 
 RUN apt-get update \
