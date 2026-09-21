@@ -5,7 +5,12 @@ import os
 # MPS safety: cap the PyTorch/MPS memory pool so it stops growing until the
 # 24 GB Mac swaps (previously MPS OOM'd at ~30 GiB mid-training, after the
 # machine had been thrashing at >100 s per batch). Must be set BEFORE torch.
-os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.55")
+# Both ratios are set EXPLICITLY: torch 2.11 derives the low watermark from the
+# high one when it is unset (0.55 -> "invalid low watermark ratio 1.4"), so a
+# single setdefault would crash MPS init. These override any inherited shell
+# values that may have been tweaked during earlier OOM experiments.
+os.environ["PYTORCH_MPS_HIGH_WATERMARK_RATIO"] = "0.55"
+os.environ["PYTORCH_MPS_LOW_WATERMARK_RATIO"] = "0.0"
 
 import pandas as pd
 import numpy as np

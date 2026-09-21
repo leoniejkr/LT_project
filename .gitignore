@@ -46,6 +46,10 @@ data_hybrid/midrc_images_before
 # stays local-only unless explicitly added.
 checkpoints/**/*.pth
 
+# Training artifacts in the repo root (the canonical copy lives under checkpoints/).
+/checkpoint.pth
+/dual_view_checkpoint.pth
+
 /backend/tmp/
 
 /data_hybrid/nih_images/*
