@@ -25,7 +25,7 @@ try:
     import torch
     import skimage.exposure as exposure
     from monai.transforms import (
-        Compose, LoadImage, EnsureChannelFirst, ScaleIntensityRangePercentiles, Resize
+        Compose, LoadImage, EnsureChannelFirst, ScaleIntensityRangePercentiles
     )
     from monai.data import ITKReader
     MONAI_AVAILABLE = True
@@ -263,12 +263,14 @@ def main():
     with open(manifest_json, "r") as f:
         manifest_data = json.load(f)
 
-    # Clean MONAI pipeline setup
+    # MONAI pipeline: decode the DICOM + intensity normalization only.
+    # Kept at native resolution on purpose: any downscale happens later
+    # in resize_midrc.py (1024 working copy) and the train/serving loader
+    # (ResizeLongest to the model input), not here.
     monai_pipeline = Compose([
-        LoadImage(image_only=False, reader=ITKReader()), 
-        EnsureChannelFirst(channel_dim='no_channel'), 
-        ScaleIntensityRangePercentiles(lower=0.5, upper=99.5, b_min=0.0, b_max=255.0, clip=True),
-        Resize(spatial_size=(512, 512), mode="bilinear")
+        LoadImage(image_only=False, reader=ITKReader()),
+        EnsureChannelFirst(channel_dim='no_channel'),
+        ScaleIntensityRangePercentiles(lower=0.5, upper=99.5, b_min=0.0, b_max=255.0, clip=True)
     ])
 
     processed_rows = []
