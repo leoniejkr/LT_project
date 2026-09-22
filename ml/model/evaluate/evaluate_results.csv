@@ -1,0 +1,13 @@
+,Atelectasis,Cardiomegaly,Consolidation,Edema,Effusion,Emphysema,Fibrosis,Hernia,Infiltration,Mass,Nodule,Pleural_Thickening,Pneumonia,Pneumothorax,Covid
+convnext,0.7967,0.8949,0.8123,0.9269,0.8829,0.9455,0.8267,0.8118,0.8105,0.853,0.7737,0.8067,0.7945,0.8832,1.0
+densenet,0.7863,0.8880,0.8121,0.9228,0.8792,0.9034,0.8066,0.8257,0.8062,0.823,0.7352,0.7916,0.7771,0.879,1.0
+ensemble,0.7954,0.9034,0.8188,0.9301,0.886,0.9418,0.8254,0.8371,0.8153,0.8537,0.7612,0.8121,0.7935,0.8893,1.0
+swin,0.7843,0.8948,0.8149,0.9254,0.8783,0.9251,0.8127,0.8529,0.8111,0.8449,0.7329,0.8112,0.7718,0.8776,1.0
+
+
+# General/overall performance (pooled across all conditions)
+model,macro-AUC,micro-AUC,micro-P@.5,micro-R@.5,micro-F1,micro-Acc,images,time(min)
+convnext,0.8546,0.8889,0.949,0.949,0.949,0.949,10151,25.1
+densenet,0.8424,0.8820,0.943,0.943,0.943,0.943,10151,3.7
+ensemble,0.8575,0.8935,0.947,0.947,0.947,0.947,10151,29.9
+swin,0.8492,0.8865,0.939,0.939,0.939,0.939,10151,9.1
