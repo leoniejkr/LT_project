@@ -61,15 +61,95 @@ def generate_reasons(predictions: list[dict], patient: dict, model: str | None =
         return []
 
     llm_model = model or OLLAMA_MODEL
-
     patient_info = _build_patient_context(patient)
 
+    # The fine-tuned LLM can only reliably reason about a handful of findings at
+    # once — with 15 conditions it drifts into prose and returns nothing
+    # parseable (→ everything falls back to the template). Chunk the request so
+    # each prompt stays small, then merge per-condition in original order.
+    CHUNK_SIZE = 6
+    covered = {}
+    for i in range(0, len(predictions), CHUNK_SIZE):
+        chunk = predictions[i:i + CHUNK_SIZE]
+        covered.update(_reason_chunk(chunk, patient_info, llm_model, covered))
+
+    result = []
+    for p in predictions:
+        result.append({
+            "class": p["class"],
+            "confidence": p["confidence"],
+            "reason": covered.get(p["class"]) or _fallback_reason(p),
+        })
+    return result
+
+
+def _reason_chunk(predictions: list[dict], patient_info: str, llm_model: str,
+                  covered: dict | None = None) -> dict:
+    """Fetch reasons for one chunk. Small models often omit a condition from
+    their JSON response or reuse the same sentence for two findings, so we
+    re-ask targeted follow-ups for whatever is still missing OR duplicated
+    (max 3 rounds). Returns {class: reason}."""
+    covered = dict(covered or {})
+    pending = list(predictions)
+    previous_round = None
+
+    for _ in range(3):
+        if not pending:
+            break
+        round_ids = sorted(id(p) for p in pending)
+        if round_ids == previous_round:
+            break
+        previous_round = round_ids
+
+        prompt = _build_prompt(patient_info, pending, covered)
+        text = _generate(prompt, llm_model)
+        if text is None:
+            break
+
+        entries = _extract_entries(text)
+        for p in pending:
+            reason = _match_entry(entries, p["class"])
+            if reason:
+                covered[p["class"]] = reason
+
+        pending = _uncovered_or_duplicate(predictions, covered)
+
+    return covered
+
+
+def _uncovered_or_duplicate(predictions: list[dict], covered: dict) -> list[dict]:
+    """Return the predictions that still need a reason: not yet covered, or
+    whose covered sentence equals another finding's sentence."""
+    result = []
+    for p in predictions:
+        cls = p["class"]
+        reason = covered.get(cls)
+        if reason is None:
+            result.append(p)
+            continue
+        if any(
+            other["class"] != cls and covered.get(other["class"]) == reason
+            for other in predictions
+        ):
+            result.append(p)
+    return result
+
+
+def _build_prompt(patient_info: str, predictions: list[dict], covered: dict | None = None) -> str:
     predictions_text = "\n".join(
         f"- {p['class']} (confidence: {p['confidence']:.0%})"
         for p in predictions
     )
 
-    prompt = f"""You are a medical AI assistant explaining the results of an automated chest X-ray analysis to a clinician.
+    used_sentences = ""
+    if covered:
+        used_sentences = (
+            "\nAlready-provided reasons that MUST NOT be reused or rephrased "
+            "for the conditions below (write something new for each):\n"
+            + "\n".join(f"- {u}" for u in sorted(set(r for r in covered.values() if r)))
+        )
+
+    return f"""You are a medical AI assistant explaining the results of an automated chest X-ray analysis to a clinician.
 
 PATIENT PROFILE (CONFIRMED metadata, treat every entry as fact about this patient):
 {patient_info}
@@ -81,8 +161,9 @@ Write EXACTLY ONE short sentence per detected condition. For each condition:
   • First say what that finding means on a chest X-ray in its own right (what the lung/mediastinum pattern usually indicates), based only on the condition name.
   • Then relate it to THIS patient: explicitly tie in the patient's symptoms, age, gender and history where relevant (e.g. connect a fever/cough symptom to a detected Pneumonia, Effusion or Consolidation; note advanced age as a modifier for a Nodule or Cardiomegaly). Use the symptoms eagerly — they are available and confirmed.
   • Mention the confidence score only when it changes the clinical message (e.g. "high confidence" vs "low confidence").
-  • Never repeat the same sentence for two different conditions — every finding must get its own distinct explanation.
+  • Never repeat or rephrase a sentence you already provided or used for another condition — every finding must get its own distinct explanation.
   • Do not invent conditions, symptoms, test results or treatments beyond what is listed.
+{used_sentences}
 
 Patient metadata is CONFIRMED fact: every listed symptom and history entry really applies (e.g. if "Pregnancy" is listed, the patient IS pregnant; never write that a listed risk factor does not apply). But each assessment must CENTER on the detected finding, not only on the patient background.
 
@@ -93,6 +174,8 @@ Respond with nothing but this exact JSON format:
 ]
 Only include the conditions listed above."""
 
+
+def _generate(prompt: str, llm_model: str) -> str | None:
     try:
         response = requests.post(
             f"{OLLAMA_URL}/api/generate",
@@ -108,13 +191,10 @@ Only include the conditions listed above."""
             timeout=60,
         )
         response.raise_for_status()
-
-        result_text = response.json().get("response", "")
-        return _parse_reasons(result_text, predictions)
-
+        return response.json().get("response", "")
     except Exception as e:
-        logger.warning("Ollama call failed, using fallback reasons: %s", e)
-        return _fallback_reasons(predictions)
+        logger.warning("Ollama call failed: %s", e)
+        return None
 
 
 def _first_sentence(text: str) -> str:
@@ -124,48 +204,43 @@ def _first_sentence(text: str) -> str:
     return m[0].strip()
 
 
-def _parse_reasons(text: str, predictions: list[dict]) -> list[dict]:
+def _norm_key(cls: str) -> str:
+    """Normalize a class name so 'Covid', 'COVID' and 'Covid-19' all match."""
+    import re
+    return re.sub(r"[^a-z0-9]+", " ", cls.lower()).strip()
+
+
+def _extract_entries(text: str) -> list:
+    """Extract (normalized class, reason) pairs from the model's JSON array."""
     import json
 
     try:
         start = text.index("[")
         end = text.rindex("]") + 1
         parsed = json.loads(text[start:end])
-
-        reasons_map = {}
-        for item in parsed:
-            reasons_map[item["class"]] = _first_sentence(item["reason"])
-
-        result = []
-        for p in predictions:
-            result.append({
-                "class": p["class"],
-                "confidence": p["confidence"],
-                "reason": reasons_map.get(
-                    p["class"],
-                    f"Condition '{p['class']}' detected with {p['confidence']:.0%} confidence.",
-                ),
-            })
-        return result
-
+        return [
+            (_norm_key(item["class"]), _first_sentence(item["reason"]))
+            for item in parsed
+            if item.get("class") and item.get("reason")
+        ]
     except (ValueError, json.JSONDecodeError):
-        return _fallback_reasons(predictions)
+        return []
 
 
-def _fallback_reasons(predictions: list[dict]) -> list[dict]:
-    result = []
-    for p in predictions:
-        conf = p["confidence"]
-        if conf > 0.95:
-            strength = "Strong evidence"
-        elif conf > 0.90:
-            strength = "Clear evidence"
-        else:
-            strength = "Moderate evidence"
+def _match_entry(entries: list, cls: str) -> str | None:
+    key = _norm_key(cls)
+    for entry_key, reason in entries:
+        if key == entry_key or key in entry_key or entry_key in key:
+            return reason
+    return None
 
-        result.append({
-            "class": p["class"],
-            "confidence": p["confidence"],
-            "reason": f"{strength} of {p['class']} detected with {conf:.0%} confidence in the chest X-ray analysis.",
-        })
-    return result
+
+def _fallback_reason(p: dict) -> str:
+    conf = p["confidence"]
+    if conf > 0.95:
+        strength = "Strong evidence"
+    elif conf > 0.90:
+        strength = "Clear evidence"
+    else:
+        strength = "Moderate evidence"
+    return f"{strength} of {p['class']} detected with {conf:.0%} confidence in the chest X-ray analysis."
