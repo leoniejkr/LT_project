@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/glebarez/sqlite v1.11.0
+	github.com/go-pdf/fpdf v0.9.0
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.6
 	gorm.io/driver/postgres v1.6.0

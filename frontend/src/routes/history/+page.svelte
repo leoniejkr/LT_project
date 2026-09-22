@@ -12,6 +12,7 @@
     import {
         ClipboardList,
         ChevronRight,
+        Download,
         LoaderCircle,
         Trash2,
         TriangleAlert,
@@ -27,6 +28,52 @@
     let selectedPatient = $state<PatientSummary>();
     let deletingPatientId = $state<number>();
     let deletingAll = $state(false);
+    let exportingPatientId = $state<number>();
+    let exportingAll = $state(false);
+    let exportError = $state("");
+
+    function triggerDownload(blob: Blob, filename: string) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    }
+
+    async function exportPatient(patient: PatientSummary) {
+        exportingPatientId = patient.id;
+        exportError = "";
+
+        try {
+            const response = await fetch(`/api/patients/${patient.id}/export`);
+            if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+            triggerDownload(await response.blob(), `analysis-${patient.id}.pdf`);
+        } catch (cause) {
+            console.error(`Failed to export patient ${patient.id}:`, cause);
+            exportError = `Analysis #${patient.id} could not be exported.`;
+        } finally {
+            exportingPatientId = undefined;
+        }
+    }
+
+    async function exportAllPatients() {
+        exportingAll = true;
+        exportError = "";
+
+        try {
+            const response = await fetch("/api/export");
+            if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+            triggerDownload(await response.blob(), "history-export.zip");
+        } catch (cause) {
+            console.error("Failed to export all analyses:", cause);
+            exportError = "The analysis history could not be exported.";
+        } finally {
+            exportingAll = false;
+        }
+    }
 
     async function loadPatients(signal?: AbortSignal) {
         loading = true;
@@ -118,9 +165,23 @@
                             {patients.length} {patients.length === 1 ? "analysis" : "analyses"}
                         </Badge>
                         <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={exportingAll || deletingAll || deletingPatientId !== undefined}
+                            onclick={() => void exportAllPatients()}
+                            aria-label="Export all analyses as PDF"
+                        >
+                            {#if exportingAll}
+                                <LoaderCircle class="animate-spin" />
+                            {:else}
+                                <Download />
+                            {/if}
+                            Export all
+                        </Button>
+                        <Button
                             variant="destructive"
                             size="sm"
-                            disabled={deletingAll || deletingPatientId !== undefined}
+                            disabled={deletingAll || exportingAll || deletingPatientId !== undefined || exportingPatientId !== undefined}
                             onclick={() => (deleteAllDialogOpen = true)}
                         >
                             {#if deletingAll}
@@ -140,6 +201,13 @@
                     <TriangleAlert />
                     <Alert.Title>Unable to delete analysis</Alert.Title>
                     <Alert.Description>{deleteError}</Alert.Description>
+                </Alert.Root>
+            {/if}
+            {#if exportError}
+                <Alert.Root variant="destructive" class="mb-4">
+                    <TriangleAlert />
+                    <Alert.Title>Unable to export analysis</Alert.Title>
+                    <Alert.Description>{exportError}</Alert.Description>
                 </Alert.Root>
             {/if}
             {#if loading}
@@ -259,10 +327,31 @@
                                                     {#snippet child({ props })}
                                                         <Button
                                                             {...props}
+                                                            variant="outline"
+                                                            size="icon-sm"
+                                                            aria-label="Export analysis for patient {patient.id} as PDF"
+                                                            disabled={deletingAll || deletingPatientId !== undefined || exportingAll || exportingPatientId !== undefined}
+                                                            onclick={() => void exportPatient(patient)}
+                                                        >
+                                                            {#if exportingPatientId === patient.id}
+                                                                <LoaderCircle class="animate-spin" />
+                                                            {:else}
+                                                                <Download />
+                                                            {/if}
+                                                        </Button>
+                                                    {/snippet}
+                                                </Tooltip.Trigger>
+                                                <Tooltip.Content>Export analysis as PDF</Tooltip.Content>
+                                            </Tooltip.Root>
+                                            <Tooltip.Root>
+                                                <Tooltip.Trigger>
+                                                    {#snippet child({ props })}
+                                                        <Button
+                                                            {...props}
                                                             variant="destructive"
                                                             size="icon-sm"
                                                             aria-label="Delete analysis for patient {patient.id}"
-                                                            disabled={deletingAll || deletingPatientId !== undefined}
+                                                            disabled={deletingAll || deletingPatientId !== undefined || exportingAll || exportingPatientId !== undefined}
                                                             onclick={() => confirmDelete(patient)}
                                                         >
                                                             {#if deletingPatientId === patient.id}

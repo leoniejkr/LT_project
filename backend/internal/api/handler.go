@@ -31,6 +31,8 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("DELETE /patients/{id}", h.DeletePatient)
 	router.HandleFunc("GET /patients/{id}/analysis", h.GetPatientAnalysis)
 	router.HandleFunc("GET /patients/{id}/images/{imageID}", h.GetPatientImage)
+	router.HandleFunc("GET /patients/{id}/export", h.ExportPatient)
+	router.HandleFunc("GET /export", h.ExportAll)
 	router.HandleFunc("POST /chat", h.Chat)
 }
 
