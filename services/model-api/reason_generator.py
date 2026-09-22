@@ -69,23 +69,29 @@ def generate_reasons(predictions: list[dict], patient: dict, model: str | None =
         for p in predictions
     )
 
-    prompt = f"""You are a medical AI assistant analyzing chest X-ray findings.
+    prompt = f"""You are a medical AI assistant explaining the results of an automated chest X-ray analysis to a clinician.
 
+PATIENT PROFILE (CONFIRMED metadata, treat every entry as fact about this patient):
 {patient_info}
 
-The AI model detected the following conditions:
+The chest X-ray model detected the following conditions, each with a confidence score (higher = more certain the condition is present):
 {predictions_text}
 
-For EACH condition listed above, provide a brief 1-2 sentence clinical assessment explaining what the finding means and why it is significant for THIS patient.
+Write EXACTLY ONE short sentence per detected condition. For each condition:
+  • First say what that finding means on a chest X-ray in its own right (what the lung/mediastinum pattern usually indicates), based only on the condition name.
+  • Then relate it to THIS patient: explicitly tie in the patient's symptoms, age, gender and history where relevant (e.g. connect a fever/cough symptom to a detected Pneumonia, Effusion or Consolidation; note advanced age as a modifier for a Nodule or Cardiomegaly). Use the symptoms eagerly — they are available and confirmed.
+  • Mention the confidence score only when it changes the clinical message (e.g. "high confidence" vs "low confidence").
+  • Never repeat the same sentence for two different conditions — every finding must get its own distinct explanation.
+  • Do not invent conditions, symptoms, test results or treatments beyond what is listed.
 
-IMPORTANT: The patient metadata above is CONFIRMED fact about this patient and MUST be reflected in every assessment. Treat every listed symptom and history entry as true (for example, if "Pregnancy" is listed, the patient IS pregnant). If the patient's metadata matches a known high-risk or special group (for example pregnancy, infancy or early childhood, advanced age, smoking, or immunosuppression), explicitly say how that changes the picture for this patient and what to watch for. Never claim that a listed risk factor or condition does not apply to this patient, and do not write generic statements that contradict the patient context above.
+Patient metadata is CONFIRMED fact: every listed symptom and history entry really applies (e.g. if "Pregnancy" is listed, the patient IS pregnant; never write that a listed risk factor does not apply). But each assessment must CENTER on the detected finding, not only on the patient background.
 
-Respond in this exact JSON format:
+Respond with nothing but this exact JSON format:
 [
-  {{"class": "ClassName", "reason": "Your assessment here."}},
+  {{"class": "ClassName", "reason": "One sentence."}},
   ...
 ]
-Only include the conditions listed above. Do not add extra conditions."""
+Only include the conditions listed above."""
 
     try:
         response = requests.post(
@@ -111,6 +117,13 @@ Only include the conditions listed above. Do not add extra conditions."""
         return _fallback_reasons(predictions)
 
 
+def _first_sentence(text: str) -> str:
+    """Return the text up to and including the first sentence-ending period."""
+    import re
+    m = re.split(r"(?<=[.!?])\s+", text.strip(), maxsplit=1)
+    return m[0].strip()
+
+
 def _parse_reasons(text: str, predictions: list[dict]) -> list[dict]:
     import json
 
@@ -121,7 +134,7 @@ def _parse_reasons(text: str, predictions: list[dict]) -> list[dict]:
 
         reasons_map = {}
         for item in parsed:
-            reasons_map[item["class"]] = item["reason"]
+            reasons_map[item["class"]] = _first_sentence(item["reason"])
 
         result = []
         for p in predictions:
