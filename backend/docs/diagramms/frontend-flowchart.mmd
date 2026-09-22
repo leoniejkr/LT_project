@@ -1,0 +1,27 @@
+flowchart LR
+    user["Student"]
+
+    subgraph frontend["SvelteKit Frontend"]
+        upload["Enter Patient Data and<br/>Upload X-rays"]
+        api["Build Form Data and Send Request to Backend"]
+        result["Display Results,<br/>Findings and Heatmaps"]
+        chat["Chatbot"]
+        history["Open Saved Analyses"]
+        settings["Select Model and<br/>Confidence Threshold"]
+    end
+
+    backend["Go Backend"]
+
+    user --> upload
+    user --> settings
+    settings --> upload
+    upload --> api
+    api --> |"HTTP Request (REST)"| backend
+    backend -->|"Analysis Result (JSON Response)"| result
+    result --> chat
+    chat <--> |"HTTP REST Request and JSON Response"| backend
+    user --> history
+    settings -->|"Confidence Threshold"| result
+    history <--> |"HTTP REST Request and JSON Response"| backend
+    history --> result
+    result <-->|"Load Saved Analysis and Images"| backend

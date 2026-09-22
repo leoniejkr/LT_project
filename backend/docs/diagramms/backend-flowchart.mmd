@@ -1,0 +1,32 @@
+
+flowchart LR
+    frontend["Frontend"]
+
+    subgraph backend["Go Backend"]
+      api["HTTP Router / REST Endpoints"]
+      services["Patient, Analysis,<br/>and Chat Logic"]
+      gorm["GORM"]
+    end
+
+    subgraph ai["LLM and Classifier"]
+      model["Python Model API<br/>Classification and Grad-CAM"]
+      ollama["Ollama<br/>Medical </br> LLM"]
+    end
+
+    subgraph databases["Databases"]
+      postgres[("PostgreSQL<br/>Patients and Results")]
+      orthanc[("Orthanc<br/>X-rays and Heatmaps")]
+    end
+
+    frontend -->|"HTTP Request"| api
+    api <--> services
+    services --> gorm
+    gorm <--> postgres
+    services <--> |"HTTP </br> Request </br> / JSON </br> Response"| orthanc
+    services -->|"X-ray Analysis"| model
+    model -->|"Explanation"| ollama
+    ollama -->|"Generated </br> Explanations"| model
+    model -->|"Predictions </br> and </br> Heatmaps"| services
+    ollama -->|"Chat </br> Response"| services
+    services -->|"HTTP Request (Chat)"| ollama
+    api -->|"JSON </br> Response"| frontend
