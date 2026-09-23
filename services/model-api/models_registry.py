@@ -33,16 +33,6 @@ def _densenet() -> object:
     return get_densenet_model()
 
 
-def _convnext224() -> object:
-    from model import get_convnext224_model
-    return get_convnext224_model()
-
-
-def _convnext21k() -> object:
-    from model import get_convnext21k_model
-    return get_convnext21k_model()
-
-
 def _convnext_ensemble() -> object:
     from model import REPO_ROOT
     from model import ConvNeXtChestModel, ConvNeXt224ChestModel, ConvNeXt21KChestModel
@@ -67,11 +57,11 @@ def _ensemble() -> object:
 # to avoid an ensemble-in-ensemble.
 ENSEMBLE_IDS = {"ensemble", "convnext_ensemble"}
 
-# id -> factory returning an eval-mode torch model.
+# Id -> factory returning an eval-mode torch model.
+# The application only exposes the three production classifiers and the two
+# ensembles; experimental variants are intentionally not registered.
 CLASSIFIER_REGISTRY = {
     "convnext": _convnext,
-    "convnext224": _convnext224,
-    "convnext21k": _convnext21k,
     "swin": _swin,
     "densenet": _densenet,
     "ensemble": _ensemble,

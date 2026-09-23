@@ -468,22 +468,6 @@ def _load_convnext_variant(cache_key, model_cls, default_filename, env_var=None)
     return model
 
 
-def get_convnext224_model() -> ConvNeXt224ChestModel:
-    """Load the retrained 224 px ConvNeXt-Base classifier (cached)."""
-    return _load_convnext_variant(
-        "convnext224", ConvNeXt224ChestModel, "convnext-224px_final_numero1.pth",
-        env_var="CONVNEXT224_CHECKPOINT_PATH",
-    )
-
-
-def get_convnext21k_model() -> ConvNeXt21KChestModel:
-    """Load the ImageNet-21K-pretrained ConvNeXt-Base classifier (cached)."""
-    return _load_convnext_variant(
-        "convnext21k", ConvNeXt21KChestModel, "convnext21k-224px_final.pth",
-        env_var="CONVNEXT21K_CHECKPOINT_PATH",
-    )
-
-
 def get_swin_model(checkpoint_path=None) -> SwinTransformerChestModel:
     """Load the trained Swin-B classifier (cached).
 
