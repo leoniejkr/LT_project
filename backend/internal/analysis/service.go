@@ -64,25 +64,12 @@ func (s *Service) storeHeatmaps(patientID uint, resp *ModelPredictionResponse) {
 }
 
 func (s *Service) persistAnalysis(patientID uint, resp *ModelPredictionResponse) error {
-	var prediction string
-	var confidence float64
-	var confidenceReason string
-
-	if len(resp.Predictions) > 0 {
-		prediction = resp.Predictions[0].Class
-		confidence = resp.Predictions[0].Confidence
-		confidenceReason = resp.Predictions[0].Reason
-	}
-
 	a := &Analysis{
-		PatientID:        patientID,
-		Prediction:       prediction,
-		Confidence:       confidence,
-		ConfidenceReason: confidenceReason,
-		Status:           resp.Status,
-		ModelVersion:     resp.ModelVersion,
-		Predictions:      resp.Predictions,
-		ImageResults:     withoutHeatmaps(resp.ImageResults),
+		PatientID:    patientID,
+		Status:       resp.Status,
+		ModelVersion: resp.ModelVersion,
+		Predictions:  resp.Predictions,
+		ImageResults: withoutHeatmaps(resp.ImageResults),
 	}
 	return s.repo.Create(a)
 }

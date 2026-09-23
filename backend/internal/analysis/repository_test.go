@@ -25,10 +25,11 @@ func TestCreate_Success(t *testing.T) {
 
 	a := &Analysis{
 		PatientID:    1,
-		Prediction:   "Pneumonia",
-		Confidence:   0.92,
 		Status:       "success",
 		ModelVersion: "v1.0",
+		Predictions: Predictions{
+			{Class: "Pneumonia", Confidence: 0.92},
+		},
 	}
 
 	if err := repo.Create(a); err != nil {
@@ -45,10 +46,11 @@ func TestFindByPatientID_Found(t *testing.T) {
 
 	expected := &Analysis{
 		PatientID:    42,
-		Prediction:   "Effusion",
-		Confidence:   0.88,
 		Status:       "success",
 		ModelVersion: "v1.0",
+		Predictions: Predictions{
+			{Class: "Effusion", Confidence: 0.88},
+		},
 	}
 	repo.Create(expected)
 
@@ -56,11 +58,14 @@ func TestFindByPatientID_Found(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if found.Prediction != "Effusion" {
-		t.Errorf("prediction = %q, want %q", found.Prediction, "Effusion")
+	if len(found.Predictions) != 1 {
+		t.Fatalf("predictions length = %d, want 1", len(found.Predictions))
 	}
-	if found.Confidence != 0.88 {
-		t.Errorf("confidence = %f, want 0.88", found.Confidence)
+	if found.Predictions[0].Class != "Effusion" {
+		t.Errorf("prediction = %q, want %q", found.Predictions[0].Class, "Effusion")
+	}
+	if found.Predictions[0].Confidence != 0.88 {
+		t.Errorf("confidence = %f, want 0.88", found.Predictions[0].Confidence)
 	}
 }
 
@@ -78,9 +83,9 @@ func TestDeletePatientAnalysis(t *testing.T) {
 	db := setupAnalysisDB(t)
 	repo := NewRepository(db)
 
-	repo.Create(&Analysis{PatientID: 1, Prediction: "A"})
-	repo.Create(&Analysis{PatientID: 1, Prediction: "B"})
-	repo.Create(&Analysis{PatientID: 2, Prediction: "C"})
+	repo.Create(&Analysis{PatientID: 1})
+	repo.Create(&Analysis{PatientID: 1})
+	repo.Create(&Analysis{PatientID: 2})
 
 	if err := repo.DeletePatientAnalysis(1); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -101,8 +106,8 @@ func TestDeletePatientAnalysis(t *testing.T) {
 func TestDeleteAll(t *testing.T) {
 	db := setupAnalysisDB(t)
 	repo := NewRepository(db)
-	repo.Create(&Analysis{PatientID: 1, Prediction: "A"})
-	repo.Create(&Analysis{PatientID: 2, Prediction: "B"})
+	repo.Create(&Analysis{PatientID: 1})
+	repo.Create(&Analysis{PatientID: 2})
 
 	if err := repo.DeleteAll(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -121,8 +126,6 @@ func TestCreate_WithPredictions(t *testing.T) {
 
 	a := &Analysis{
 		PatientID:    1,
-		Prediction:   "Pneumonia",
-		Confidence:   0.95,
 		Status:       "success",
 		ModelVersion: "v2.0",
 		Predictions: Predictions{

@@ -101,18 +101,21 @@ func TestGetAnalysis_PersistsToDB(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to find persisted analysis: %v", err)
 	}
-	if analysis.Prediction != "Effusion" {
-		t.Errorf("prediction = %q, want %q", analysis.Prediction, "Effusion")
+	if len(analysis.Predictions) != 1 {
+		t.Fatalf("predictions length = %d, want 1", len(analysis.Predictions))
 	}
-	if analysis.Confidence != 0.85 {
-		t.Errorf("confidence = %f, want 0.85", analysis.Confidence)
+	if analysis.Predictions[0].Class != "Effusion" {
+		t.Errorf("prediction = %q, want %q", analysis.Predictions[0].Class, "Effusion")
+	}
+	if analysis.Predictions[0].Confidence != 0.85 {
+		t.Errorf("confidence = %f, want 0.85", analysis.Predictions[0].Confidence)
 	}
 	if analysis.PatientID != 5 {
 		t.Errorf("patient_id = %d, want 5", analysis.PatientID)
 	}
 }
 
-func TestGetAnalysis_PersistsTopPrediction(t *testing.T) {
+func TestGetAnalysis_PersistsAllPredictions(t *testing.T) {
 	llmResp := ModelPredictionResponse{
 		Status: "success",
 		Predictions: Predictions{
@@ -130,11 +133,14 @@ func TestGetAnalysis_PersistsTopPrediction(t *testing.T) {
 	}
 
 	a, _ := svc.repo.FindByPatientID(1)
-	if a.Prediction != "First" {
-		t.Errorf("top prediction = %q, want %q", a.Prediction, "First")
+	if len(a.Predictions) != 2 {
+		t.Fatalf("predictions length = %d, want 2", len(a.Predictions))
 	}
-	if a.ConfidenceReason != "Top prediction" {
-		t.Errorf("confidence reason = %q, want %q", a.ConfidenceReason, "Top prediction")
+	if a.Predictions[0].Class != "First" || a.Predictions[0].Reason != "Top prediction" {
+		t.Errorf("first prediction = %+v, want class First with its reason", a.Predictions[0])
+	}
+	if a.Predictions[1].Class != "Second" || a.Predictions[1].Reason != "Second" {
+		t.Errorf("second prediction = %+v, want class Second with its reason", a.Predictions[1])
 	}
 }
 
@@ -153,8 +159,8 @@ func TestGetAnalysis_EmptyPredictions(t *testing.T) {
 	}
 
 	a, _ := svc.repo.FindByPatientID(1)
-	if a.Prediction != "" {
-		t.Errorf("expected empty prediction, got %q", a.Prediction)
+	if len(a.Predictions) != 0 {
+		t.Errorf("expected no predictions, got %d", len(a.Predictions))
 	}
 }
 

@@ -68,15 +68,12 @@ func (ir ImageResults) Value() (driver.Value, error) {
 }
 
 type Analysis struct {
-	ID               uint         `gorm:"primaryKey" json:"id"`
-	PatientID        uint         `gorm:"not null;index" json:"patientId"`
-	Prediction       string       `json:"prediction,omitempty"`
-	Confidence       float64      `json:"confidence,omitempty"`
-	ConfidenceReason string       `json:"confidenceReason,omitempty"`
-	Status           string       `json:"status"`
-	ModelVersion     string       `json:"modelVersion,omitempty"`
-	Predictions      Predictions  `gorm:"type:jsonb" json:"predictions"`
-	ImageResults     ImageResults `gorm:"type:jsonb" json:"imageResults"`
+	ID           uint         `gorm:"primaryKey" json:"id"`
+	PatientID    uint         `gorm:"not null;index" json:"patientId"`
+	Status       string       `json:"status"`
+	ModelVersion string       `json:"modelVersion,omitempty"`
+	Predictions  Predictions  `gorm:"type:jsonb" json:"predictions"`
+	ImageResults ImageResults `gorm:"type:jsonb" json:"imageResults"`
 }
 
 // ModelPredictionResponse is the response contract of the modelling service.
