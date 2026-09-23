@@ -20,12 +20,7 @@ class ChestModel(pl.LightningModule):
     self.save_hyperparameters(ignore=["pos_weight"])
 
     # Modern backbone replacement: ConvNeXt-Base or DenseNet121
-    self.backbone = models.convnext_base(
-        weights=models.ConvNeXt_Base_Weights.DEFAULT
-    )
-
-    num_ftrs = self.backbone.classifier[2].in_features
-    self.backbone.classifier[2] = nn.Linear(num_ftrs, num_classes)
+    self.backbone = self._build_backbone(num_classes)
 
     # Weighted Loss to tackle severe class imbalance
     # pos_weight should be a Tensor of shape [num_classes]
@@ -58,6 +53,26 @@ class ChestModel(pl.LightningModule):
   def forward(self, x):
     return self.backbone(x)
 
+  # Overridable so variants can swap the pre-trained source (e.g. ConvNeXt-Base
+  # trained on ImageNet-21K via timm) without touching the training plumbing.
+  def _build_backbone(self, num_classes):
+    backbone = models.convnext_base(
+        weights=models.ConvNeXt_Base_Weights.DEFAULT
+    )
+    num_ftrs = backbone.classifier[2].in_features
+    backbone.classifier[2] = nn.Linear(num_ftrs, num_classes)
+    return backbone
+
+  # (head_params, backbone_params) split for the differential-LR optimizer.
+  # Default: torchvision ConvNeXt registers its classifier under `.classifier`.
+  def _param_groups(self):
+    head_params = list(self.backbone.classifier.parameters())
+    backbone_params = [
+        p for n, p in self.backbone.named_parameters()
+        if not n.startswith("classifier")
+    ]
+    return head_params, backbone_params
+
   def training_step(self, batch, batch_idx):
     images, targets, masks = batch
     logits = self(images)
@@ -89,11 +104,7 @@ class ChestModel(pl.LightningModule):
   def configure_optimizers(self):
     # Differential learning rates: frozen-stable backbone features get a lower
     # lr than the freshly-initialized classification head.
-    head_params = list(self.backbone.classifier.parameters())
-    backbone_params = [
-        p for n, p in self.backbone.named_parameters()
-        if not n.startswith("classifier")
-    ]
+    head_params, backbone_params = self._param_groups()
     optimizer = torch.optim.AdamW(
         [
             {"params": backbone_params, "lr": self.hparams.lr * self.hparams.backbone_factor},
@@ -114,3 +125,29 @@ class ChestModel(pl.LightningModule):
     )
 
     return [optimizer], [scheduler]
+
+
+class ConvNext21KChestModel(ChestModel):
+  """ConvNeXt-Base pre-trained on ImageNet-21K (official facebookresearch
+  checkpoint via timm). Tuned for the 224 px pre-training grid, so it uses
+  INPUT_SIZE/BATCH_SIZE that match DenseNet/Swin runs."""
+
+  INPUT_SIZE = 224
+  BATCH_SIZE = 32
+
+  def _build_backbone(self, num_classes):
+    import timm
+    backbone = timm.create_model("convnext_base.fb_in22k", pretrained=True)
+    num_ftrs = backbone.head.fc.in_features
+    backbone.head.fc = nn.Linear(num_ftrs, num_classes, bias=True)
+    backbone.num_classes = num_classes
+    return backbone
+
+  def _param_groups(self):
+    # timm classes the trainable head under `.head`.
+    head_params = list(self.backbone.head.parameters())
+    backbone_params = [
+        p for n, p in self.backbone.named_parameters()
+        if not n.startswith("head")
+    ]
+    return head_params, backbone_params
