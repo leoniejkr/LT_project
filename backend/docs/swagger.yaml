@@ -44,8 +44,6 @@ definitions:
         type: string
       confidence:
         type: number
-      heatmap:
-        type: string
       orthancId:
         type: string
     type: object

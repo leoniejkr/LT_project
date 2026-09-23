@@ -384,9 +384,6 @@ const docTemplate = `{
                 "confidence": {
                     "type": "number"
                 },
-                "heatmap": {
-                    "type": "string"
-                },
                 "orthancId": {
                     "type": "string"
                 }

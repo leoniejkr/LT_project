@@ -24,7 +24,6 @@ type Prediction struct {
 type ImagePrediction struct {
 	Class      string  `json:"class"`
 	Confidence float64 `json:"confidence"`
-	Heatmap    string  `json:"heatmap,omitempty"`
 	OrthancID  string  `json:"orthancId,omitempty"`
 }
 
@@ -63,7 +62,10 @@ func newAnalysisResponse(status, modelVersion string, predictions analysis.Predi
 	for i, image := range imageResults {
 		predictions := make([]ImagePrediction, len(image.Predictions))
 		for j, prediction := range image.Predictions {
-			predictions[j] = ImagePrediction{Class: prediction.Class, Confidence: prediction.Confidence, Heatmap: prediction.Heatmap, OrthancID: prediction.OrthancID}
+			// Heatmap PNG data is only needed internally while it is transferred
+			// from the modelling service to Orthanc. The public API exposes its
+			// durable Orthanc reference, never the large base64 payload.
+			predictions[j] = ImagePrediction{Class: prediction.Class, Confidence: prediction.Confidence, OrthancID: prediction.OrthancID}
 		}
 		result.ImageResults[i] = ImageResult{Index: image.Index, Filename: image.Filename, Predictions: predictions}
 	}
