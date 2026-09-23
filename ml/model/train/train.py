@@ -54,6 +54,9 @@ def _select_model_class(name):
     if name == "densenet":
         from models.densenet_model import DenseNetChestModel
         return DenseNetChestModel
+    if name == "convnext21k":
+        from models.chest_model import ConvNext21KChestModel
+        return ConvNext21KChestModel
     if name == "swin":
         from models.ViT_model import SwinTransformerChestModel
         return SwinTransformerChestModel
@@ -63,7 +66,7 @@ def _select_model_class(name):
 def _parse_cli():
     parser = argparse.ArgumentParser(description="Train a multi-label chest X-ray classifier")
     parser.add_argument(
-        "--model", choices=["convnext", "swin", "densenet"], default=None,
+        "--model", choices=["convnext", "swin", "densenet", "convnext21k"], default=None,
         help="backbone to train (default: convnext, or $TRAIN_MODEL)",
     )
     parser.add_argument(
@@ -74,15 +77,26 @@ def _parse_cli():
         "--batch-size", type=int, default=None,
         help="override the model's default batch size",
     )
+    parser.add_argument(
+        "--epochs", type=int, default=None,
+        help="override the number of training epochs (default 5)",
+    )
+    parser.add_argument(
+        "--output", type=str, default=None,
+        help="final checkpoint output path (default: checkpoint.pth)",
+    )
     args, _unknown = parser.parse_known_args()
     if args.resolution is not None:
         config["resolution"] = args.resolution
     if args.batch_size is not None:
         config["batch_size"] = args.batch_size
+    if args.epochs is not None:
+        config["epochs"] = args.epochs
     return args
 
 
 ARGS = _parse_cli()
+OUTPUT_PATH = ARGS.output if ARGS.output else "checkpoint.pth"
 MODEL_CLASS = _select_model_class(ARGS.model or os.environ.get("TRAIN_MODEL", "convnext"))
 RESOLUTION = config["resolution"] if config["resolution"] else MODEL_CLASS.INPUT_SIZE
 BATCH_SIZE = config["batch_size"] if config["batch_size"] else MODEL_CLASS.BATCH_SIZE
@@ -472,8 +486,8 @@ if __name__ == '__main__':
             print("Training will continue locally; wandb will attempt background reconnection.")
             print("If the connection is back, the next epoch's log will flush the queue.")
 
-    torch.save(model.state_dict(), "checkpoint.pth")
-    print("Model weights successfully saved locally to checkpoint.pth!")
+    torch.save(model.state_dict(), OUTPUT_PATH)
+    print(f"Model weights successfully saved locally to {OUTPUT_PATH}!")
 
     try:
         wandb.finish()
