@@ -73,7 +73,7 @@ For more precise infomation on the handling process see [Data: Classifier finetu
 
 
 #### LLM 
-In constrast to the Prediction model, where we adapted preexisting datasets into a format suitable for our use-case, for the LLM we did not have any Data to begin with. The process of obtaining a fine-tuneable jsonl involved manually selecting webpages, extracting information, and structuring it. 
+In constrast to the Prediction model, where we adapted preexisting datasets into a format suitable for our use-case, for the LLM we did not have any Data to begin with. The process of obtaining a fine-tuneable jsonl involved manually selecting informative webpages, extracting information, and structuring it. 
 
 For more precise infomation on the handling process see [Data: LLM finefuning](#llm-finefuning-data).
 
@@ -210,7 +210,7 @@ trained `densenet` never breaks the `ensemble` selection.
 > local helper only used by the MIDRC preprocessing pipeline; it is intentionally
 > not distributed.
 
-## General Information for backend and brontend and how to contribute
+## General Information for backend and frontend and how to contribute
 
 The frontend and backend Docker images can be used for development purposes since live reloading is integrated into both images. The frontend uses Vite as a build and live reloading tool and the backend uses Air. The instruction on how to set up Docker and run the images are written in [Starting the application](#starting-the-application). 
 
@@ -295,20 +295,22 @@ Changing the API in any way requires you to update the API specification and doc
  ```
 Changing the API in the backend may require you to also make changes in the frontend.
 
-# Data
 
-## Classifier finetuning
+# Classifier finetuning
+
+## Data preprocessing
+
 
 An end-to-end pipeline that blends the NIH Chest X-Ray 14 dataset with the MIDRC COVID-19 dataset into a unified 15-class multi-label classification problem.
 
-### Dataset Sources
+#### Dataset Sources
 
 | Dataset | Source | Contents |
 |---------|--------|----------|
 | NIH Chest X-Ray | [Kaggle](https://www.kaggle.com/datasets/nih-chest-xrays/data) | ~112k images, 14 pathologies, no COVID |
 | MIDRC | [midrc.org](https://www.midrc.org/midrc-data) | COVID-19 positive chest X-rays |
 
-### Directory Structure
+#### Directory Structure
 
 ```
 data_hybrid/
@@ -323,7 +325,7 @@ data_hybrid/
 └── combined_master.csv              ← Final training dataset
 ```
 
-### Pipeline Execution Order
+#### Pipeline Execution Order
 
 Each step reads the output of the previous one. Run from the project root.
 
@@ -417,10 +419,8 @@ described under *Training (Step 9)*. The same selection is available as the
 - MIDRC rows contain a COVID label; their other pathology fields are treated as
   unknown and masked out of the loss during training
 
-## LLM finefuning Data
 
-# Training
-## Classifier
+## Training
 
 **Training (Step 9)** uses:
 - **Backbone-adaptive input geometry and batch size.** Each model class declares
@@ -457,7 +457,13 @@ described under *Training (Step 9)*. The same selection is available as the
 
 TODO
 
-## LLM
+
+# LLM finetuning
+
+## Data preprocessing
+
+
+## Training
 TODO
 
 
