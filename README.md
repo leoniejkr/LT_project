@@ -61,22 +61,21 @@ The history page shows all previous analysis results. These can be deleted indiv
 For more precise information about the frontend and backend workflow see [Frontend](#frontend) and [Backend](#backend).
 
 ### What did we do with which data
-
-see [Data](#data)
+The Data Collection, Processing, and Assembly stages differ greatly for the usecase of fine-tuning either the Classifier or the LLM.
 
 #### Prediction model
+The Classifier was trained on a merged Dataset, consisting of two preexisting sources: 1) MIDRC: Open-A1, 2) the NIH Chest X-Ray Dataset. The workflow centeralized around bringing the MIDRC part of the Dataset into a suitable format to fit images of NIH more, involving steps of obtaining, normalizing, rotating, and resizing images into suitable format. 
 
-The prediction model was trained on the mixed data of MIDRC: Open-A1 and the NIH Chest X-Ray Dataset.
-
-#### LLM -> Chatbot
-
-Data for the LLM
-
-### How did we collect the data
-
-Dataset sources \
-MIDRC: https://www.midrc.org/midrc-data \
+MIDRC: https://www.midrc.org/midrc-data 
 NIH: https://www.kaggle.com/datasets/nih-chest-xrays/data
+
+For more precise infomation on the handling process see [Data: Classifier finetuning](#hybrid-chest-x-ray-multi-label-training-pipeline).
+
+
+#### LLM 
+In constrast to the Prediction model, where we adapted preexisting datasets into a format suitable for our use-case, for the LLM we did not have any Data to begin with. The process of obtaining a fine-tuneable jsonl involved manually selecting webpages, extracting information, and structuring it. 
+
+For more precise infomation on the handling process see [Data: LLM finefuning](#llm-finefuning-data).
 
 
 ## How to run and start the application
@@ -298,7 +297,7 @@ Changing the API in the backend may require you to also make changes in the fron
 
 # Data
 
-## Hybrid Chest X-Ray Multi-Label Training Pipeline
+## Classifier finetuning
 
 An end-to-end pipeline that blends the NIH Chest X-Ray 14 dataset with the MIDRC COVID-19 dataset into a unified 15-class multi-label classification problem.
 
@@ -394,7 +393,7 @@ described under *Training (Step 9)*. The same selection is available as the
 | 6 | `resize_midrc.py` | Corrected MIDRC PNGs | `data_hybrid/midrc_fixed_1024/` | Rewrites or copies working images |
 | 7 | `blend_data.py` | NIH cache + corrected MIDRC images | `combined_master.csv` | Always rewrites (deterministic) |
 | 8 | `compute_dataset_stats.py` | `combined_master.csv` | `dataset_stats.json` | Always rewrites |
-| 9 | `train.py` | `combined_master.csv` + stats | `dual_view_checkpoint.pth` and `checkpoint.pth` | Trains from scratch and overwrites checkpoints |
+
 
 ### Processing Details
 
@@ -417,6 +416,11 @@ described under *Training (Step 9)*. The same selection is available as the
 - NIH `No Finding` images are retained as the negative backbone
 - MIDRC rows contain a COVID label; their other pathology fields are treated as
   unknown and masked out of the loss during training
+
+## LLM finefuning Data
+
+# Training
+## Classifier
 
 **Training (Step 9)** uses:
 - **Backbone-adaptive input geometry and batch size.** Each model class declares
@@ -449,8 +453,18 @@ described under *Training (Step 9)*. The same selection is available as the
 - Patient-level 80/10/10 train/validation/test split, stratified by the combined
   COVID/Effusion key
 - A fresh training run each time; intermediate weights are written to
-  `dual_view_checkpoint.pth` and final weights to `checkpoint.pth`
+  `temp_checkpoint.pth` and final weights to `checkpoint.pth`
 
+TODO
+
+## LLM
+TODO
+
+
+# Model integration
+## Classifier
+simply via git. alsready done
+# LLM
 
 ### Fast path (recommended): native Ollama
 
@@ -517,9 +531,7 @@ The fine-tuned LLM (`trustai-llm:latest`) is registered in the `ollama` containe
 - **Default GGUF:** `llama-3-8b-Instruct.Q4_K_M.gguf`
 
 **Important:** the 4.9 GB model file is **not committed to git** (GitHub rejects files > 100 MB).
-Every developer/teacher gets the weights from the HF repo instead — either automatically in
-the `ollama` container (see above) or by downloading the GGUF and then running
-`ollama create trustai-llm -f ...` in the native setup. Only code/config lives in git.
+Every developer/teacher gets the weights from the HF repo instead — either automatically in the `ollama` container (see above) or by downloading the GGUF and then running `ollama create trustai-llm -f ...` in the native setup. Only code/config lives in git.
 
 The download is skipped if the file already exists (cached in `/models`), and the model is only re-created when necessary. Both sources can be overridden via environment variables:
 
@@ -534,68 +546,9 @@ If you host your own copy (e.g. a fork on your own HF account), just point `HF_M
 
 The Go backend and the modelling service use `OLLAMA_MODEL` (default `trustai-llm:latest`) to talk to the LLM. The model actually used per request is chosen in the **Settings → LLM Model** dropdown of the web app (`trustai-llm:latest` or `phi3:mini`). In the Docker setup both models are installed automatically when the `ollama` container starts. In a native-Ollama setup, download/register `trustai-llm` and pull `phi3:mini` once on the host.
 
-## Production-Deployment and Docker Hub
 
-The "normal" docker-compose.yaml is not for publishing. The project contains a seperate compose file and seperate production builds that have the keys "target: prod"
+# Concepts
 
-### Produktions-Stack lokal starten
-
-```bash
-docker compose -f docker-compose.prod.yaml up -d
-```
-
-Danach läuft die App unter [http://localhost](http://localhost). Ein nginx-Reverse-Proxy
-ist der einzige Einstiegspunkt: `/` → Frontend (SvelteKit-SSR), `/api/*` → Go-Backend
-(das `/api`-Präfix wird entfernt), `/swagger/` → Swagger-UI. Das LLM (`trustai-llm:latest`)
-wird wie im Dev-Setup automatisch beim Start des `ollama`-Containers vom Hugging Face Hub
-geladen (siehe [LLM model configuration](#llm-model-configuration)).
-
-Unterschiede zur Entwicklung:
-
-- **Multi-Stage-Images**: kein Live-Reload, keine Volume-Mounts, der Code liegt im Image.
-  Das Backend läuft als statisches Binary, das Frontend als Node-Server (`adapter-node`).
-- **Modelling**: die trainierten Modelle (`covnext348.pth`, `swin-224px_final.pth`,
-  nach dem ersten Training zusätzlich `densenet-224px_final.pth`)
-  liegen als Git-LFS-Dateien im Repo (`checkpoints/`) und werden beim Docker-Build
-  direkt mitkopiert (`.dockerignore` filtert auf genau diese drei Dateien, ein
-  Guard bricht den Build ab, falls nur LFS-Pointer statt der Gewichte im Clone
-  liegen — also vorher `git lfs install && git lfs pull`). Gestartet wird das
-  Image als gunicorn-Worker.
-- **Ports**: Frontend und Backend sind intern (nur `nginx` publiziert `80`); `db`, `orthanc`
-  und `ollama` sind sogar gar nicht von außen erreichbar.
-
-### Images automatisch publizieren (GitHub Actions)
-
-`.github/workflows/publish-images.yml` baut die drei Produktions-Images und pusht sie nach
-**GHCR** — aber nur, wenn man es manuell auslöst, nicht bei jedem Push:
-
-1. Auf GitHub → *Actions → Publish Production Images → Run workflow* klicken.
-2. Der Job baut und pusht:
-   - `ghcr.io/leoniejkr/lt_project-backend`
-   - `ghcr.io/leoniejkr/lt_project-frontend`
-   - `ghcr.io/leoniejkr/lt_project-modelling`
-
-Die Pakete werden im Workflow automatisch auf *public* gesetzt (best effort). Für eigene
-Deployments können die `image:`-Namen in `docker-compose.prod.yaml` auf diese GHCR-Adressen
-umgestellt werden.
-
-Alternativ zu Docker Hub wechseln: im Workflow den Login auf `docker/login-action`
-umbauen und die Secrets `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` anlegen.
-
-### Images manuell publizieren (z. B. Docker Hub)
-
-1. Die `image:`-Namen in `docker-compose.prod.yaml` (`trustai/backend`,
-   `trustai/frontend`, `trustai/modelling` und `trustai/ollama`) auf den eigenen
-   Registry-Namespace umstellen (`<user>/<name>`).
-2. `docker login`
-3. `docker compose -f docker-compose.prod.yaml build`
-4. `docker compose -f docker-compose.prod.yaml push`
-
-Danach kann der Stack statt mit den `build:`-Blöcken mit den veröffentlichten `image:`-Namen
-ausgerollt werden.
-
-## Concepts
-
-### ORM
+## ORM
 
 Object relational mapping is a strategy with which one can map object oriented programming structures into relational database structures. This has to be done, because relational databases store object information in data tables and Go stores object information in structs which can not be automatically mapped into data tables.
