@@ -3,6 +3,7 @@ package api
 import (
 	"archive/zip"
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -53,13 +54,11 @@ func TestExportAll_ReturnsCompleteZIP(t *testing.T) {
 	}
 }
 
-func TestExportAll_ReportsFailedPatientInsteadOfPartialZIP(t *testing.T) {
+func TestExportAll_SkipsPatientsWithoutCompletedAnalysis(t *testing.T) {
 	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
 	defer llmSrv.Close()
 	defer orthancSrv.Close()
 
-	// Patients are listed newest first, so a valid report is assembled before
-	// the older patient without an analysis triggers an error.
 	missing, err := handler.patientService.CreatePatient(&patient.Patient{Age: 42, Gender: patient.GenderMale}, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -74,13 +73,33 @@ func TestExportAll_ReportsFailedPatientInsteadOfPartialZIP(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	handler.ExportAll(w, httptest.NewRequest(http.MethodGet, "/export", nil))
-	if w.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d, want %d: %s", w.Code, http.StatusInternalServerError, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d: %s", w.Code, http.StatusOK, w.Body.String())
 	}
-	if got := w.Header().Get("Content-Type"); got == "application/zip" {
-		t.Errorf("content type = %q, want error response", got)
+	archive, err := zip.NewReader(bytes.NewReader(w.Body.Bytes()), int64(w.Body.Len()))
+	if err != nil {
+		t.Fatalf("invalid ZIP: %v", err)
 	}
-	if !strings.Contains(w.Body.String(), "Failed to export patient 1") {
-		t.Errorf("error does not identify patient %d: %s", missing.ID, w.Body.String())
+	if len(archive.File) != 1 || archive.File[0].Name != fmt.Sprintf("patient-%d.pdf", complete.ID) {
+		t.Fatalf("ZIP entries = %v, want only patient-%d.pdf (patient %d is incomplete)", archive.File, complete.ID, missing.ID)
+	}
+}
+
+func TestExportAll_ReturnsNotFoundWhenNoAnalysisIsComplete(t *testing.T) {
+	handler, llmSrv, orthancSrv := setupHandler(t, defaultLLMHandler())
+	defer llmSrv.Close()
+	defer orthancSrv.Close()
+
+	if _, err := handler.patientService.CreatePatient(&patient.Patient{Age: 42, Gender: patient.GenderMale}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	handler.ExportAll(w, httptest.NewRequest(http.MethodGet, "/export", nil))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d: %s", w.Code, http.StatusNotFound, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "No completed analyses") {
+		t.Errorf("body = %q, want no completed analyses message", w.Body.String())
 	}
 }

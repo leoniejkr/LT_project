@@ -4,10 +4,13 @@ import (
 	"archive/zip"
 	"backend/internal/export"
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"gorm.io/gorm"
 )
 
 // ExportPatient godoc
@@ -56,14 +59,21 @@ func (h *Handler) ExportAll(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if len(patients) == 0 {
-		http.Error(w, "No completed analyses to export.", http.StatusNotFound)
-		return
-	}
-
 	var archive bytes.Buffer
 	zw := zip.NewWriter(&archive)
+	exported := 0
 	for _, p := range patients {
+		// Patients are created before their analysis is complete. Keep those
+		// in-progress records out of the history export, just as ListPatients
+		// keeps them out of the history page.
+		if _, err := h.analysisService.GetPatientAnalysis(p.ID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			}
+			http.Error(w, fmt.Sprintf("Failed to load analysis for patient %d: %v", p.ID, err), http.StatusInternalServerError)
+			return
+		}
+
 		report, err := h.buildSessionReport(p.ID)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to export patient %d: %v", p.ID, err), http.StatusInternalServerError)
@@ -78,6 +88,11 @@ func (h *Handler) ExportAll(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Failed to write ZIP entry: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+		exported++
+	}
+	if exported == 0 {
+		http.Error(w, "No completed analyses to export.", http.StatusNotFound)
+		return
 	}
 	if err := zw.Close(); err != nil {
 		http.Error(w, "Failed to finalize ZIP archive: "+err.Error(), http.StatusInternalServerError)
