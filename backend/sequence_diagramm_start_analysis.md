@@ -46,11 +46,14 @@ sequenceDiagram
         activate Backend
         Frontend ->> Backend: GET /patient/{patient_id}/images/{orthanc_id}
         Backend ->> Orthanc: GET /instances/{orthanc_id}/preview
+        activate Orthanc
         Orthanc -->> Backend: Return images
+        deactivate Orthanc
         Backend -->> Frontend: Return raw png byte stream
         deactivate Backend
         end
         
         Frontend -->> User: Combine all data in result page for user to see
         deactivate Frontend
+         
 ```
