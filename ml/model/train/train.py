@@ -475,7 +475,7 @@ if __name__ == '__main__':
         if epoch > 0:
             current_lrs = [param_group['lr'] for param_group in optimizer.param_groups]
             metrics_to_log["lr"] = current_lrs[0]
-            torch.save(model.state_dict(), "dual_view_checkpoint.pth")
+            torch.save(model.state_dict(), "temp_checkpoint.pth")
 
         print("\n")
         
