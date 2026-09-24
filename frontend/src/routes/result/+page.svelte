@@ -6,7 +6,7 @@
     import { patientImageUrl, withPersistedImageUrls } from "$lib/persisted-images";
     import { effectiveThreshold } from "$lib/settings";
     import { analysisResult, imageUrls, patientMetadata } from "$lib/stores.js";
-    import type { ImageResult, PatientMetadata, Prediction } from "$lib/types.js";
+    import type { ChatContext, ImageResult, PatientMetadata, Prediction } from "$lib/types.js";
     import { RotateCcw, Stethoscope } from "lucide-svelte";
     import { onMount } from "svelte";
     import "../../app.css";
@@ -40,7 +40,7 @@
     let filteredImageResults = $derived(
         filterImageResults(imageResults, threshold),
     );
-    let chatContext = $derived({
+    let chatContext: ChatContext = $derived({
         patient: {
             age: metadata?.age ?? null,
             gender: metadata?.gender ?? null,

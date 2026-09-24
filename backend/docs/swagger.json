@@ -144,6 +144,52 @@
                 }
             }
         },
+        "/export": {
+            "get": {
+                "description": "Generates one PDF report per saved analysis and bundles them into a single ZIP download.",
+                "produces": [
+                    "application/zip"
+                ],
+                "tags": [
+                    "history"
+                ],
+                "summary": "Export all sessions as PDFs in a ZIP archive",
+                "responses": {
+                    "200": {
+                        "description": "ZIP with one PDF per session",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "500": {
+                        "description": "Export generation failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Returns OK if the server is running",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "health"
+                ],
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/patients": {
             "get": {
                 "description": "Returns the patients with a persisted, completed analysis, newest first.",
@@ -255,6 +301,53 @@
                 }
             }
         },
+        "/patients/{id}/export": {
+            "get": {
+                "description": "Generates a PDF report (patient data, findings, original X-ray and heatmaps) for a saved analysis.",
+                "produces": [
+                    "application/pdf"
+                ],
+                "tags": [
+                    "history"
+                ],
+                "summary": "Export one session as PDF",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Patient ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "PDF export",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid patient ID",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Patient or analysis not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Export generation failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/patients/{id}/images/{imageID}": {
             "get": {
                 "description": "Proxies an original X-Ray or Grad-CAM heatmap from Orthanc after verifying it belongs to the patient.",
@@ -348,12 +441,70 @@
                 }
             }
         },
+        "api.ChatAnalysisContext": {
+            "type": "object",
+            "properties": {
+                "model_version": {
+                    "type": "string"
+                },
+                "predictions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.ChatPredictionContext"
+                    }
+                }
+            }
+        },
+        "api.ChatContext": {
+            "type": "object",
+            "properties": {
+                "analysis": {
+                    "$ref": "#/definitions/api.ChatAnalysisContext"
+                },
+                "patient": {
+                    "$ref": "#/definitions/api.ChatPatientContext"
+                }
+            }
+        },
+        "api.ChatPatientContext": {
+            "type": "object",
+            "properties": {
+                "age": {
+                    "type": "integer"
+                },
+                "gender": {
+                    "type": "string"
+                },
+                "history": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "symptoms": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "api.ChatPredictionContext": {
+            "type": "object",
+            "properties": {
+                "class": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "number"
+                }
+            }
+        },
         "api.ChatRequest": {
             "type": "object",
             "properties": {
                 "context": {
-                    "type": "object",
-                    "additionalProperties": {}
+                    "$ref": "#/definitions/api.ChatContext"
                 },
                 "history": {
                     "type": "array",

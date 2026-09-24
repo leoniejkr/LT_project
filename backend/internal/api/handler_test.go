@@ -719,13 +719,18 @@ func TestChat_InvalidJSON(t *testing.T) {
 	defer llmSrv.Close()
 	defer orthancSrv.Close()
 
-	req := httptest.NewRequest(http.MethodPost, "/chat", strings.NewReader("not json"))
-	w := httptest.NewRecorder()
+	for _, body := range []string{
+		"not json",
+		`{"message":"What is my risk?","context":{"patient":{"history":["Smoking",42]}}}`,
+	} {
+		req := httptest.NewRequest(http.MethodPost, "/chat", strings.NewReader(body))
+		w := httptest.NewRecorder()
 
-	handler.Chat(w, req)
+		handler.Chat(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusBadRequest)
+		if w.Code != http.StatusBadRequest {
+			t.Errorf("body = %q: status = %d, want %d", body, w.Code, http.StatusBadRequest)
+		}
 	}
 }
 

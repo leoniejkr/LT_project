@@ -30,7 +30,7 @@ export interface paths {
         };
       };
     };
-    /** Deletes all patient data and analysis results from the database */
+    /** Deletes all patient data, analysis results, and associated images from all application databases */
     delete: {
       responses: {
         /** Deletion successful */
@@ -69,6 +69,32 @@ export interface paths {
       };
     };
   };
+  "/export": {
+    /** Generates one PDF report per saved analysis and bundles them into a single ZIP download. */
+    get: {
+      responses: {
+        /** ZIP with one PDF per session */
+        200: {
+          schema: unknown;
+        };
+        /** Export generation failed */
+        500: {
+          schema: string;
+        };
+      };
+    };
+  };
+  "/health": {
+    /** Returns OK if the server is running */
+    get: {
+      responses: {
+        /** OK */
+        200: {
+          schema: string;
+        };
+      };
+    };
+  };
   "/patients": {
     /** Returns the patients with a persisted, completed analysis, newest first. */
     get: {
@@ -78,6 +104,33 @@ export interface paths {
           schema: definitions["api.PatientSummary"][];
         };
         /** Unable to load history */
+        500: {
+          schema: string;
+        };
+      };
+    };
+  };
+  "/patients/{id}": {
+    /** Deletes a patient, their analysis, and all associated images. */
+    delete: {
+      parameters: {
+        path: {
+          /** Patient ID */
+          id: number;
+        };
+      };
+      responses: {
+        /** Deletion successful */
+        204: never;
+        /** Invalid patient ID */
+        400: {
+          schema: string;
+        };
+        /** Patient or analysis not found */
+        404: {
+          schema: string;
+        };
+        /** Deletion failed */
         500: {
           schema: string;
         };
@@ -104,6 +157,35 @@ export interface paths {
         };
         /** Patient or analysis not found */
         404: {
+          schema: string;
+        };
+      };
+    };
+  };
+  "/patients/{id}/export": {
+    /** Generates a PDF report (patient data, findings, original X-ray and heatmaps) for a saved analysis. */
+    get: {
+      parameters: {
+        path: {
+          /** Patient ID */
+          id: number;
+        };
+      };
+      responses: {
+        /** PDF export */
+        200: {
+          schema: unknown;
+        };
+        /** Invalid patient ID */
+        400: {
+          schema: string;
+        };
+        /** Patient or analysis not found */
+        404: {
+          schema: string;
+        };
+        /** Export generation failed */
+        500: {
           schema: string;
         };
       };
@@ -154,8 +236,26 @@ export interface definitions {
     patient?: definitions["api.PatientResponse"];
     status?: string;
   };
+  "api.ChatAnalysisContext": {
+    model_version?: string;
+    predictions?: definitions["api.ChatPredictionContext"][];
+  };
+  "api.ChatContext": {
+    analysis?: definitions["api.ChatAnalysisContext"];
+    patient?: definitions["api.ChatPatientContext"];
+  };
+  "api.ChatPatientContext": {
+    age?: number;
+    gender?: string;
+    history?: string[];
+    symptoms?: string[];
+  };
+  "api.ChatPredictionContext": {
+    class?: string;
+    confidence?: number;
+  };
   "api.ChatRequest": {
-    context?: { [key: string]: unknown };
+    context?: definitions["api.ChatContext"];
     history?: definitions["chat.Message"][];
     message?: string;
     model?: string;
@@ -163,7 +263,6 @@ export interface definitions {
   "api.ImagePrediction": {
     class?: string;
     confidence?: number;
-    heatmap?: string;
     orthancId?: string;
   };
   "api.ImageResult": {

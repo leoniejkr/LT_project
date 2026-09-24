@@ -24,11 +24,48 @@ definitions:
       status:
         type: string
     type: object
+  api.ChatAnalysisContext:
+    properties:
+      model_version:
+        type: string
+      predictions:
+        items:
+          $ref: '#/definitions/api.ChatPredictionContext'
+        type: array
+    type: object
+  api.ChatContext:
+    properties:
+      analysis:
+        $ref: '#/definitions/api.ChatAnalysisContext'
+      patient:
+        $ref: '#/definitions/api.ChatPatientContext'
+    type: object
+  api.ChatPatientContext:
+    properties:
+      age:
+        type: integer
+      gender:
+        type: string
+      history:
+        items:
+          type: string
+        type: array
+      symptoms:
+        items:
+          type: string
+        type: array
+    type: object
+  api.ChatPredictionContext:
+    properties:
+      class:
+        type: string
+      confidence:
+        type: number
+    type: object
   api.ChatRequest:
     properties:
       context:
-        additionalProperties: {}
-        type: object
+        $ref: '#/definitions/api.ChatContext'
       history:
         items:
           $ref: '#/definitions/chat.Message'
@@ -222,6 +259,37 @@ paths:
       summary: Chat with medical AI
       tags:
       - chat
+  /export:
+    get:
+      description: Generates one PDF report per saved analysis and bundles them into
+        a single ZIP download.
+      produces:
+      - application/zip
+      responses:
+        "200":
+          description: ZIP with one PDF per session
+          schema:
+            type: file
+        "500":
+          description: Export generation failed
+          schema:
+            type: string
+      summary: Export all sessions as PDFs in a ZIP archive
+      tags:
+      - history
+  /health:
+    get:
+      description: Returns OK if the server is running
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: Health check
+      tags:
+      - health
   /patients:
     get:
       description: Returns the patients with a persisted, completed analysis, newest
@@ -295,6 +363,38 @@ paths:
           schema:
             type: string
       summary: Get a saved analysis
+      tags:
+      - history
+  /patients/{id}/export:
+    get:
+      description: Generates a PDF report (patient data, findings, original X-ray
+        and heatmaps) for a saved analysis.
+      parameters:
+      - description: Patient ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: PDF export
+          schema:
+            type: file
+        "400":
+          description: Invalid patient ID
+          schema:
+            type: string
+        "404":
+          description: Patient or analysis not found
+          schema:
+            type: string
+        "500":
+          description: Export generation failed
+          schema:
+            type: string
+      summary: Export one session as PDF
       tags:
       - history
   /patients/{id}/images/{imageID}:

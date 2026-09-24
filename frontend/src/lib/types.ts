@@ -42,6 +42,19 @@ export interface PatientSummary {
     gender: string;
 }
 
+export interface ChatContext {
+    patient: {
+        age: number | null;
+        gender: string | null;
+        symptoms: string[];
+        history: string[];
+    };
+    analysis: {
+        model_version: string | null;
+        predictions: Array<Pick<Prediction, "class" | "confidence">>;
+    };
+}
+
 export interface AnalysisResult {
     status: string;
     patient: PatientData;

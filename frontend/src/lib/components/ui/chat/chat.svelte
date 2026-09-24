@@ -9,6 +9,7 @@
 	import * as Item from "$lib/components/ui/item/index.js";
 	import { cn } from "$lib/utils.js";
 	import { llmModel } from "$lib/models";
+	import type { ChatContext } from "$lib/types";
 	import { renderMarkdown } from "./markdown";
 
 	let {
@@ -18,7 +19,7 @@
 	}: {
 		class?: string;
 		apiEndpoint?: string;
-		context?: Record<string, unknown>;
+		context?: ChatContext;
 	} = $props();
 
 	let open = $state(false);
