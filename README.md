@@ -23,7 +23,7 @@ https://github.com/user-attachments/assets/1a10ae43-8cf5-4fb7-8a14-c307b0627201
 
 #### General information
 
-The application is build as a web app without any authentication. We decided not to implement authentication services such as Keycloak because we do not plan on hosting this application ourself, but to make it available for private and local use via Docker.
+The application is build as a monorepo web app without any authentication. We decided not to implement authentication services such as Keycloak because we do not plan on hosting this application ourself, but to make it available for private and local use via Docker.
 
 It is divided into a frontend (located in /frontend), which is built with Typescript and SvelteKit (on top of Vite), a backend (located in /backend), which is built with Golang, and a separate modelling service (located in services/model-api). The model and LLM code is located under ml/model and ml/LLM respectively.
 
@@ -56,11 +56,11 @@ influenced the model's decision.
 
 The patient metadata is not used for the model classification but is instead forwarded to the LLM as metadata. The LLM can help the user better regarding possible questions with the metadata. 
 
-All analysis results and heatmap images are returned to the backend. The analysis results are saved in Postgresql and the heatmaps are saved in th Orthanc database. When the results from the POST request are received by the frontend, the frontend automatically navigates to the result page, where users can see the original images through a CornerstoneJS medical viewer. Furthermore, the analysis results such as the predictions, confidence scores and corresponding heatmaps can be reviewed.
+All analysis results and heatmap images are returned to the backend. The analysis results are saved in Postgresql and the heatmaps are saved in th Orthanc database. After the application/json results from the POST request are received by the frontend, the frontend extracts the Orthanc image ids of all images and sends a GET /patients/{id}/images{imageIds} to the backend. The backend sends the raw png byte stream back to the frontend. When all Orthanc images are returned, the frontend automatically navigates to the result page, where users can see the original images through a CornerstoneJS medical viewer. Furthermore, the analysis results such as the predictions, confidence scores and corresponding heatmaps can be reviewed.
 
 The application presents two types of prediction results. Aggregated results and individual results, which are both accompanied with confidence scores that are measured in percentages. The aggregated results are located at the top and show the aggregated, calculated classifications over all the uploaded X-Ray images, while the individual results at the bottom show the calculated classifications for each individual X-Ray image with their respective corresponding heatmaps. The classifications are ranked according to their confidence scores. The confidence threshold for shown classifications can be modified in the GUI with a slider in the results page after the calculation. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
 
-The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.
+**ACHTUNG!!!!!!!!??? The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.**
 
 The patient data, X-Ray images and analysis results are stored in Postgresql and Orthanc and can be re-viewed on the history page of the application at a later point.
 The history page shows all previous analysis results. These can be deleted individually via the /api/patient/{id} endpoint with a DELETE request or collectively via the /api/analysis enpoint with a DELETE request. 
