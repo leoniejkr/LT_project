@@ -67,24 +67,6 @@ The history page shows all previous analysis results. These can be deleted indiv
 
 For more precise information about the frontend and backend workflow see [Frontend](#frontend) and [Backend](#backend).
 
-### What did we do with which data
-The Data Collection, Processing, and Assembly stages differ greatly for the usecase of fine-tuning either the Classifier or the LLM.
-
-#### Prediction model
-The Classifier was trained on a merged Dataset, consisting of two preexisting sources: 1) MIDRC: Open-A1, 2) the NIH Chest X-Ray Dataset. The workflow centeralized around bringing the MIDRC part of the Dataset into a suitable format to fit images of NIH more, involving steps of obtaining, normalizing, rotating, and resizing images into suitable format. 
-
-MIDRC: https://www.midrc.org/midrc-data 
-NIH: https://www.kaggle.com/datasets/nih-chest-xrays/data
-
-For more precise infomation on the handling process see [Data: Classifier finetuning](#hybrid-chest-x-ray-multi-label-training-pipeline).
-
-
-#### LLM 
-In constrast to the Prediction model, where we adapted preexisting datasets into a format suitable for our use-case, for the LLM we did not have any Data to begin with. The process of obtaining a fine-tuneable jsonl involved manually selecting informative webpages, extracting information, and structuring it. 
-
-For more precise infomation on the handling process see [Data: LLM finefuning](#llm-finefuning-data).
-
-
 ## How to run and start the application
 
 ### Running the application
