@@ -30,6 +30,7 @@ from tqdm import tqdm
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.insert(0, os.path.join(REPO_ROOT, "services", "model-api"))
 from models_registry import CLASSIFIER_REGISTRY  # noqa: E402
+from ensemble import EnsembleChestModel  # noqa: E402
 
 ALL_CLASSES = [
     "Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Effusion",
@@ -106,7 +107,7 @@ def _collate(batch):
 def predict(model_id, loader, device, quiet=False):
     model = CLASSIFIER_REGISTRY[model_id]()
     model.eval()
-    is_ensemble = model_id == "ensemble"
+    is_ensemble = isinstance(model, EnsembleChestModel)
 
     all_labels, all_preds, all_masks = [], [], []
     t0 = time.time()

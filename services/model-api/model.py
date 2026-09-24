@@ -160,6 +160,60 @@ class ConvNeXtChestModel(ChestClassifier, pl.LightningModule):
         return transforms.Compose(transforms_list)
 
 
+class ConvNeXt224ChestModel(ConvNeXtChestModel):
+    """ConvNeXt-Base retrained at the ImageNet-1K pre-training grid (224 px).
+
+    Structurally identical to ConvNeXtChestModel (same torchvision backbone,
+    so the trained checkpoint strict-loads); only the input geometry differs.
+    """
+
+    INPUT_SIZE = 224
+
+
+class ConvNeXt21KChestModel(ChestClassifier, pl.LightningModule):
+    """ConvNeXt-Base pre-trained on ImageNet-21K (official facebookresearch
+    checkpoint via timm), then fine-tuned on the hybrid set at 224 px.
+
+    Structural mirror of `ConvNext21KChestModel` in
+    ml/model/train/models/chest_model.py: the timm backbone keeps its
+    ``head.norm`` + ``head.fc`` layout, so the trained checkpoint strict-loads.
+    ``timm`` is imported lazily so the offline serving container never breaks
+    just because this optional variant is registered.
+    """
+
+    INPUT_SIZE = 224
+    BATCH_SIZE = 16
+
+    def __init__(self, num_classes=15, pos_weight=None):
+        super().__init__()
+        import timm
+        self.backbone = timm.create_model("convnext_base.fb_in22k", pretrained=False)
+        num_ftrs = self.backbone.head.fc.in_features
+        self.backbone.head.fc = nn.Linear(num_ftrs, num_classes, bias=True)
+
+        if pos_weight is None:
+            pos_weight = torch.ones(num_classes)
+        self.register_buffer("pos_weight", pos_weight)
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
+
+    def forward(self, x):
+        return self.backbone(x)
+
+    @classmethod
+    def preprocess(cls, apply_normalize=True):
+        transforms_list = [
+            ResizeLongest(cls.INPUT_SIZE),
+            SquarePad(fill=0),
+            transforms.ToTensor(),
+        ]
+        if apply_normalize:
+            transforms_list.append(transforms.Normalize(
+                mean=DATASET_MEAN,
+                std=DATASET_STD,
+            ))
+        return transforms.Compose(transforms_list)
+
+
 class _SwinSpatialFeatures(nn.Module):
     """Swin encoder wrapped to the standard (B, C, H, W) map layout.
 
@@ -380,6 +434,37 @@ def get_convnext_model(checkpoint_path=None) -> ConvNeXtChestModel:
 
     logger.info("ConvNeXt model loaded successfully on %s", device)
     _model_instances["convnext"] = model
+    return model
+
+
+def _load_convnext_variant(cache_key, model_cls, default_filename, env_var=None):
+    """Strict-load a ConvNeXt variant checkpoint (cached per variant).
+
+    Shared by the 224 px and ImageNet-21K members; identical strict contract
+    to `get_convnext_model`. `env_var` optionally names an env var that
+    overrides the default path.
+    """
+    global _model_instances
+    if cache_key in _model_instances:
+        return _model_instances[cache_key]
+
+    device = _resolve_device()
+    logger.info("Using device: %s", device)
+
+    checkpoint_path = (os.getenv(env_var) if env_var else None) or os.path.join(
+        REPO_ROOT, "checkpoints", default_filename
+    )
+    logger.info("Loading %s checkpoint from %s", model_cls.__name__, checkpoint_path)
+
+    model = model_cls(num_classes=15)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    state_dict = checkpoint.get("state_dict", checkpoint)
+    model.load_state_dict(state_dict, strict=True)
+    model.to(device)
+    model.eval()
+
+    logger.info("%s loaded successfully on %s", model_cls.__name__, device)
+    _model_instances[cache_key] = model
     return model
 
 

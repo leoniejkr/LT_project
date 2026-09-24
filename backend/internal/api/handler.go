@@ -5,9 +5,12 @@ import (
 	"backend/internal/chat"
 	"backend/internal/patient"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
+
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 type Handler struct {
@@ -25,6 +28,8 @@ func NewHandler(patientService *patient.Service, chatService *chat.Service, anal
 }
 
 func (h *Handler) RegisterRoutes(router *http.ServeMux) {
+	router.HandleFunc("GET /health", h.HealthCheck)
+	router.Handle("/swagger/", httpSwagger.WrapHandler)
 	router.HandleFunc("POST /analysis", h.GetAnalysis)
 	router.HandleFunc("DELETE /analysis", h.DeleteAnalysis)
 	router.HandleFunc("GET /patients", h.ListPatients)
@@ -34,6 +39,18 @@ func (h *Handler) RegisterRoutes(router *http.ServeMux) {
 	router.HandleFunc("GET /patients/{id}/export", h.ExportPatient)
 	router.HandleFunc("GET /export", h.ExportAll)
 	router.HandleFunc("POST /chat", h.Chat)
+}
+
+// Health godoc
+// @Summary      Health check
+// @Description  Returns OK if the server is running
+// @Tags         health
+// @Produce      plain
+// @Success      200  {string}  string  "OK"
+// @Router       /health [get]
+func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "OK")
+
 }
 
 // GetAnalysis godoc

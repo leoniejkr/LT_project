@@ -107,10 +107,10 @@ def get_ensemble_model(member_ids=None) -> EnsembleChestModel:
     if _ensemble_instance is not None:
         return _ensemble_instance
 
-    from models_registry import CLASSIFIER_REGISTRY, get_classifier
+    from models_registry import CLASSIFIER_REGISTRY, ENSEMBLE_IDS, get_classifier
 
     member_ids = member_ids if member_ids is not None else [
-        id_ for id_ in CLASSIFIER_REGISTRY if id_ != "ensemble"
+        id_ for id_ in CLASSIFIER_REGISTRY if id_ not in ENSEMBLE_IDS
     ]
     members = []
     for id_ in member_ids:

@@ -27,13 +27,18 @@ export const CLASSIFIER_MODELS: ClassifierModelOption[] = [
     },
     {
         id: 'densenet',
-        label: 'DenseNet-121 / CheXNet (hybrid)',
+        label: 'DenseNet-121 (hybrid)',
         description: 'DenseNet-121 trained on NIH + MIDRC, 224px black-padded.',
     },
     {
         id: 'ensemble',
         label: 'Ensemble (ConvNeXt + Swin + DenseNet)',
         description: 'Averaged predictions of ConvNeXt-Base (384px), Swin-B (224px) and DenseNet-121 (224px).',
+    },
+    {
+        id: 'convnext_ensemble',
+        label: 'ConvNeXt Ensemble (3 checkpoints)',
+        description: 'Soft-vote across the three ConvNeXt checkpoints (384px + two 224px retrains).',
     },
 ];
 

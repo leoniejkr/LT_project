@@ -64,3 +64,7 @@ data_hybrid/combined_master.csv
 *.gguf
 
 /outputs
+
+# Eval prediction artifacts (npz/npy), regenerated on every evaluation run.
+ml/model/evaluate/preds/
+ml/model/evaluate/preds_val/

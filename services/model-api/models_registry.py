@@ -13,6 +13,7 @@ be updated so the model appears in the settings dropdown.
 """
 
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -32,17 +33,39 @@ def _densenet() -> object:
     return get_densenet_model()
 
 
+def _convnext_ensemble() -> object:
+    from model import REPO_ROOT
+    from model import ConvNeXtChestModel, ConvNeXt224ChestModel, ConvNeXt21KChestModel
+    from ensemble import build_ensemble_from_checkpoints
+    # Soft-vote across all three ConvNeXt checkpoints: the original 384 px
+    # torchvision model plus the two 224 px retrains (torchvision / 21K timm).
+    ckpt_dir = os.path.join(REPO_ROOT, "checkpoints")
+    return build_ensemble_from_checkpoints([
+        (ConvNeXt224ChestModel, os.path.join(ckpt_dir, "convnext-224px_final_numero1.pth")),
+        (ConvNeXt21KChestModel, os.path.join(ckpt_dir, "convnext21k-224px_final.pth")),
+        (ConvNeXtChestModel, os.path.join(ckpt_dir, "covnext348.pth")),
+    ])
+
+
 def _ensemble() -> object:
     from ensemble import get_ensemble_model
     return get_ensemble_model()
 
 
-# id -> factory returning an eval-mode torch model.
+# Ids that construct an ensemble rather than a single classifier. Memberships
+# are excluded from the default cross-architecture sweep in get_ensemble_model()
+# to avoid an ensemble-in-ensemble.
+ENSEMBLE_IDS = {"ensemble", "convnext_ensemble"}
+
+# Id -> factory returning an eval-mode torch model.
+# The application only exposes the three production classifiers and the two
+# ensembles; experimental variants are intentionally not registered.
 CLASSIFIER_REGISTRY = {
     "convnext": _convnext,
     "swin": _swin,
     "densenet": _densenet,
     "ensemble": _ensemble,
+    "convnext_ensemble": _convnext_ensemble,
 }
 
 DEFAULT_CLASSIFIER = "convnext"

@@ -13,8 +13,6 @@ import (
 	"backend/internal/platform"
 
 	_ "backend/docs"
-
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // @title           TrustAI API
@@ -53,19 +51,6 @@ func main() {
 	chatService := chat.NewService(ollamaURL, model, nil)
 	apiHandler := api.NewHandler(patientService, chatService, analysisService)
 	apiHandler.RegisterRoutes(router)
-
-	router.Handle("/swagger/", httpSwagger.WrapHandler)
-
-	// Health godoc
-	// @Summary      Health check
-	// @Description  Returns OK if the server is running
-	// @Tags         health
-	// @Produce      plain
-	// @Success      200  {string}  string  "OK"
-	// @Router       /health [get]
-	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "OK")
-	})
 
 	port := os.Getenv("PORT")
 	if port == "" {
