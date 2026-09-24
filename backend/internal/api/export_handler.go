@@ -2,6 +2,7 @@ package api
 
 import (
 	"archive/zip"
+	"backend/internal/export"
 	"bytes"
 	"fmt"
 	"net/http"
@@ -110,5 +111,5 @@ func (h *Handler) buildSessionReport(patientID uint) ([]byte, error) {
 		return nil, "", fmt.Errorf("image %s not found for patient %d", orthancID, patientID)
 	}
 
-	return buildSessionPDF(p, a, resolve)
+	return export.BuildSessionPDF(p, a, resolve)
 }

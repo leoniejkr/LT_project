@@ -1,4 +1,4 @@
-package api
+package export
 
 import (
 	"backend/internal/analysis"
@@ -10,17 +10,18 @@ import (
 	"github.com/go-pdf/fpdf"
 )
 
-// imageResolver returns the raw bytes of an Orthanc preview (original or
+// ImageResolver returns the raw bytes of an Orthanc preview (original or
 // heatmap) for embedding in the PDF. Implemented by the export handler so the
 // PDF builder stays free of service dependencies.
-type imageResolver func(orthancID string) ([]byte, string, error)
+type ImageResolver func(orthancID string) ([]byte, string, error)
 
 type rgb struct{ r, g, b int }
 
 var pdfHeaderFill = rgb{237, 242, 247}
 var pdfAltRowFill = rgb{246, 248, 250}
 
-func buildSessionPDF(p *patient.Patient, a *analysis.Analysis, resolve imageResolver) ([]byte, error) {
+// BuildSessionPDF renders a patient analysis as a PDF report.
+func BuildSessionPDF(p *patient.Patient, a *analysis.Analysis, resolve ImageResolver) ([]byte, error) {
 	pdf := fpdf.New("P", "mm", "A4", "")
 	pdf.SetTopMargin(15)
 	pdf.SetLeftMargin(15)
@@ -37,7 +38,7 @@ func buildSessionPDF(p *patient.Patient, a *analysis.Analysis, resolve imageReso
 	return buf.Bytes(), nil
 }
 
-func renderSession(pdf *fpdf.Fpdf, p *patient.Patient, a *analysis.Analysis, resolve imageResolver) {
+func renderSession(pdf *fpdf.Fpdf, p *patient.Patient, a *analysis.Analysis, resolve ImageResolver) {
 	pdf.SetFont("Helvetica", "B", 18)
 	pdf.SetTextColor(20, 20, 30)
 	pdf.CellFormat(0, 10, "Medical Analysis Report", "", 0, "L", false, 0, "")
@@ -127,7 +128,7 @@ func renderFindingsTable(pdf *fpdf.Fpdf, predictions analysis.Predictions) {
 	}
 }
 
-func renderImageSection(pdf *fpdf.Fpdf, index int, img analysis.ImageResult, p *patient.Patient, resolve imageResolver) {
+func renderImageSection(pdf *fpdf.Fpdf, index int, img analysis.ImageResult, p *patient.Patient, resolve ImageResolver) {
 	pdf.SetFont("Helvetica", "B", 12)
 	pdf.SetTextColor(20, 20, 30)
 	pdf.CellFormat(0, 7, fmt.Sprintf("Image %d: %s", index+1, img.Filename), "", 1, "L", false, 0, "")
@@ -165,7 +166,7 @@ func renderImageSection(pdf *fpdf.Fpdf, index int, img analysis.ImageResult, p *
 	pdf.Ln(4)
 }
 
-func embedImage(pdf *fpdf.Fpdf, resolve imageResolver, orthancID string, width float64, centeredLabel string) {
+func embedImage(pdf *fpdf.Fpdf, resolve ImageResolver, orthancID string, width float64, centeredLabel string) {
 	data, contentType, err := resolve(orthancID)
 	if err != nil || len(data) == 0 {
 		pdf.SetFont("Helvetica", "I", 9)
