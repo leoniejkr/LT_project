@@ -12,6 +12,8 @@ On the results page, the dashboard displays heatmaps which highlight the image r
 
 Previous analysis results can be viewed and deleted on the history page of the application.
 
+<video controls src="movie.mov" title="Title"></video>
+
 ### Workflow of the application
 
 #### General information
