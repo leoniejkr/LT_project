@@ -24,11 +24,13 @@ https://github.com/user-attachments/assets/1a10ae43-8cf5-4fb7-8a14-c307b0627201
 #### General information
 
 The application is build as a monorepo web app without any authentication. We decided not to implement authentication services such as Keycloak because we do not plan on hosting this application ourself, but to make it available for private and local use via Docker.
+Backend, frontend, LLM, and classifier each have their own Dockerfile and run in different containers.
 
 It is divided into a frontend (located in /frontend), which is built with Typescript and SvelteKit (on top of Vite), a backend (located in /backend), which is built with Golang, and a separate modelling service (located in services/model-api). The model and LLM code is located under ml/model and ml/LLM respectively.
 
 The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for X-Ray and heatmap storage.
 The OpenAPI standard in combination with Swagger are used to construct the REST API and its' specification.
+
 
 #### User centric workflow 
 
