@@ -2,6 +2,7 @@ package api
 
 import (
 	"archive/zip"
+	"bytes"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -54,41 +55,37 @@ func (h *Handler) ExportAll(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	if len(patients) == 0 {
+		http.Error(w, "No completed analyses to export.", http.StatusNotFound)
+		return
+	}
 
-	reports := make([]struct {
-		id     uint
-		report []byte
-	}, 0, len(patients))
+	var archive bytes.Buffer
+	zw := zip.NewWriter(&archive)
 	for _, p := range patients {
 		report, err := h.buildSessionReport(p.ID)
 		if err != nil {
-			continue
+			http.Error(w, fmt.Sprintf("Failed to export patient %d: %v", p.ID, err), http.StatusInternalServerError)
+			return
 		}
-		reports = append(reports, struct {
-			id     uint
-			report []byte
-		}{id: p.ID, report: report})
+		writer, err := zw.Create(fmt.Sprintf("patient-%d.pdf", p.ID))
+		if err != nil {
+			http.Error(w, "Failed to create ZIP entry: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if _, err := writer.Write(report); err != nil {
+			http.Error(w, "Failed to write ZIP entry: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
-
-	if len(reports) == 0 {
-		http.Error(w, "No completed analyses to export.", http.StatusNotFound)
+	if err := zw.Close(); err != nil {
+		http.Error(w, "Failed to finalize ZIP archive: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", `attachment; filename="history-export.zip"`)
-
-	zw := zip.NewWriter(w)
-	defer zw.Close()
-	for _, entry := range reports {
-		writer, err := zw.Create(fmt.Sprintf("patient-%d.pdf", entry.id))
-		if err != nil {
-			continue
-		}
-		if _, err := writer.Write(entry.report); err != nil {
-			continue
-		}
-	}
+	w.Write(archive.Bytes())
 }
 
 func (h *Handler) buildSessionReport(patientID uint) ([]byte, error) {
