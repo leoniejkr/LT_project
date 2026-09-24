@@ -28,9 +28,7 @@ func buildSessionPDF(p *patient.Patient, a *analysis.Analysis, resolve imageReso
 	pdf.SetAutoPageBreak(true, 18)
 	pdf.AddPage()
 
-	if !renderSession(pdf, p, a, resolve) {
-		return nil, fmt.Errorf("failed to render analysis %d", a.ID)
-	}
+	renderSession(pdf, p, a, resolve)
 
 	var buf bytes.Buffer
 	if err := pdf.Output(&buf); err != nil {
@@ -39,7 +37,7 @@ func buildSessionPDF(p *patient.Patient, a *analysis.Analysis, resolve imageReso
 	return buf.Bytes(), nil
 }
 
-func renderSession(pdf *fpdf.Fpdf, p *patient.Patient, a *analysis.Analysis, resolve imageResolver) bool {
+func renderSession(pdf *fpdf.Fpdf, p *patient.Patient, a *analysis.Analysis, resolve imageResolver) {
 	pdf.SetFont("Helvetica", "B", 18)
 	pdf.SetTextColor(20, 20, 30)
 	pdf.CellFormat(0, 10, "Medical Analysis Report", "", 0, "L", false, 0, "")
@@ -86,11 +84,8 @@ func renderSession(pdf *fpdf.Fpdf, p *patient.Patient, a *analysis.Analysis, res
 	}
 
 	for i, img := range a.ImageResults {
-		if !renderImageSection(pdf, i, img, p, resolve) {
-			return false
-		}
+		renderImageSection(pdf, i, img, p, resolve)
 	}
-	return true
 }
 
 func renderFindingsTable(pdf *fpdf.Fpdf, predictions analysis.Predictions) {
@@ -132,7 +127,7 @@ func renderFindingsTable(pdf *fpdf.Fpdf, predictions analysis.Predictions) {
 	}
 }
 
-func renderImageSection(pdf *fpdf.Fpdf, index int, img analysis.ImageResult, p *patient.Patient, resolve imageResolver) bool {
+func renderImageSection(pdf *fpdf.Fpdf, index int, img analysis.ImageResult, p *patient.Patient, resolve imageResolver) {
 	pdf.SetFont("Helvetica", "B", 12)
 	pdf.SetTextColor(20, 20, 30)
 	pdf.CellFormat(0, 7, fmt.Sprintf("Image %d: %s", index+1, img.Filename), "", 1, "L", false, 0, "")
@@ -143,9 +138,7 @@ func renderImageSection(pdf *fpdf.Fpdf, index int, img analysis.ImageResult, p *
 		originalID = p.OrthancIDs[index]
 	}
 	if originalID != "" {
-		if !embedImage(pdf, resolve, originalID, 95, "Original X-Ray") {
-			return false
-		}
+		embedImage(pdf, resolve, originalID, 95, "Original X-Ray")
 	} else {
 		pdf.SetFont("Helvetica", "I", 9)
 		pdf.SetTextColor(150, 150, 160)
@@ -157,7 +150,7 @@ func renderImageSection(pdf *fpdf.Fpdf, index int, img analysis.ImageResult, p *
 		pdf.SetFont("Helvetica", "I", 9)
 		pdf.SetTextColor(120, 120, 130)
 		pdf.CellFormat(0, 5, "No class activation images for this scan.", "", 1, "L", false, 0, "")
-		return true
+		return
 	}
 
 	pdf.SetFont("Helvetica", "B", 10)
@@ -167,21 +160,18 @@ func renderImageSection(pdf *fpdf.Fpdf, index int, img analysis.ImageResult, p *
 		if pred.OrthancID == "" {
 			continue
 		}
-		if !embedImage(pdf, resolve, pred.OrthancID, 52, fmt.Sprintf("%s (%.1f%%)", pred.Class, pred.Confidence*100)) {
-			return false
-		}
+		embedImage(pdf, resolve, pred.OrthancID, 52, fmt.Sprintf("%s (%.1f%%)", pred.Class, pred.Confidence*100))
 	}
 	pdf.Ln(4)
-	return true
 }
 
-func embedImage(pdf *fpdf.Fpdf, resolve imageResolver, orthancID string, width float64, centeredLabel string) bool {
+func embedImage(pdf *fpdf.Fpdf, resolve imageResolver, orthancID string, width float64, centeredLabel string) {
 	data, contentType, err := resolve(orthancID)
 	if err != nil || len(data) == 0 {
 		pdf.SetFont("Helvetica", "I", 9)
 		pdf.SetTextColor(150, 150, 160)
 		pdf.CellFormat(0, 5, "Image unavailable.", "", 1, "L", false, 0, "")
-		return true
+		return
 	}
 	imageType := detectImageType(data, contentType)
 
@@ -192,7 +182,7 @@ func embedImage(pdf *fpdf.Fpdf, resolve imageResolver, orthancID string, width f
 		pdf.SetFont("Helvetica", "I", 9)
 		pdf.SetTextColor(150, 150, 160)
 		pdf.CellFormat(0, 5, "Image could not be parsed.", "", 1, "L", false, 0, "")
-		return true
+		return
 	}
 
 	height := width * ht / wd
@@ -218,7 +208,6 @@ func embedImage(pdf *fpdf.Fpdf, resolve imageResolver, orthancID string, width f
 		pdf.CellFormat(labelWidth, 4, centeredLabel, "0", 0, "C", false, 0, "")
 	}
 	pdf.SetY(y + height + 6)
-	return true
 }
 
 func detectImageType(data []byte, contentType string) string {
