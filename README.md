@@ -12,7 +12,7 @@ On the results page, the dashboard displays heatmaps which highlight the image r
 
 Previous analysis results can be viewed and deleted on the history page of the application.
 
-#### Example Application:
+#### Application-Overview Example:
 
 https://github.com/user-attachments/assets/1a10ae43-8cf5-4fb7-8a14-c307b0627201
 
