@@ -67,7 +67,7 @@ The application presents two types of prediction results. Aggregated results and
 The patient data, X-Ray images and analysis results are stored in Postgresql and Orthanc and can be re-viewed on the history page of the application at a later point.
 The history page shows all previous analysis results. These can be deleted individually via the /api/patient/{id} endpoint with a DELETE request or collectively via the /api/analysis enpoint with a DELETE request. 
 
-For more precise information about the frontend and backend workflow see [Frontend](#frontend) and [Backend](#backend).
+For more precise information about the frontend and backend workflow see [Frontend](/frontend/README.md) and [Backend](/backend/README.md).
 
 ## How to run and start the application
 
