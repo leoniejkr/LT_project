@@ -20,13 +20,19 @@ The root layout is located in /src/routes/+layout.svelte. It loads the global st
 The frontend communicates with the backend via its REST API. It communicates with it using the /api prefix, which gets removed when requests are forwarded to the backend.
 In development the removal of the prefix is done by the Vite proxy and in production by Nginx.
 
-When starting an analysis the frontend builds multipart form that contains all provided information and sends it to POST /api/analysis. The answers from the backend are stored in Svelte stores. The stores are in-memory and allow data to be shared during client-side navigation. They do not persist reloads though.
+When starting an analysis the frontend builds a multipart form that contains all provided information and sends it to POST /api/analysis. The answers from the backend are stored in Svelte stores. The stores are in-memory and allow data to be shared during client-side navigation. They do not persist reloads though.
 
 The Orthanc IDs of the images, and the patient ID contained in the application/json response are being used to send GET /api/patient/{patient_id}/images/{orthanc_id} requests for all Orthanc images to get the images for the analysis result page. The image GET responses are raw png by data streams. 
-
+After receiving all necessary data, the user is forwarded automatically to the results page.
 The images are displayed using CornerstoneJS. 
 
 Historical results can be accessed via the history page and are loaded from GET /api/patients. When one patient analysis is clicked on, GET /api/patients/{patient_id}/analysis and GET /api/patients/{patient_id}/images/{orthanc_id} are called and the user is forwarded to a historical analysis result page.
+
+Through the settings page classifier and LLM can be changed, as well as the confidence threshold for the classifications. All selectable classifiers and LLMs are written down as IDs in models.ts.
+When starting an analysis, the classfier and LLM IDs that is to be used is sent with the rest of the request form data. The backend forwards the model IDs with the rest of the data to the classifier via the model API and LLM.
+The model API reads the classifier ID in main.py and forwards that information to models_registry.py where the actual model selection takes place.All model checkpoints are specified in the docker-compose.yaml, so the application knows where to look for the model. Models are loaded on the first selection and are then cached into the Python process for future reuse. Switching models does not delete already cached models.
+For the LLM switching, the backend forwards the model ID as part of the API POST request of the model API to the LLM, which then internally does the switching. If no model is sent explicitly, the application falls back to the trust-ai model.
+Settings are not saved after browser reloads or shutting down the Docker containers.
 
 ## Contributing
 
