@@ -87,46 +87,6 @@ trained `densenet` never breaks the `ensemble` selection.
 > local helper only used by the MIDRC preprocessing pipeline; it is intentionally
 > not distributed.
 
-## General Information for backend and frontend and how to contribute
-
-The frontend and backend Docker images can be used for development purposes since live reloading is integrated into both images. The frontend uses Vite as a build and live reloading tool and the backend uses Air. The instruction on how to set up Docker and run the images are written in [Starting the application](#starting-the-application). 
-
-### Frontend
-
-#### Structure of the Frontend
-The frontend is written in Typescript in combination with Svelte and SvelteKit as a build tool. SvelteKit is powered by Vite. 
-SvelteKit operates on a filesystem based router, which means that routes / URLs are defined by the directories in the frontend codebase. The frontend route/ directory is structured in a way to accomodate this. No manual router setup is needed.
-
-The lib directory contains different kinds of shared functions and components. The individual files are composed of services and utility logic that are used throughout the frontend. General UI components are located in /components. ShadCN for Svelte was used for the UI components. The /assets folder contains .svg files. 
-
-#### Contributing
-
-##### Prerequisites
-
-1. Install nvm and the current NodeJS version with npm as seen in the tutorial [https://nodejs.org/en/download/current](https://nodejs.org/en/download/current)
-2. Navigate into the frontend folder and execute 
-```bash
-npm install
-```
-to install all dependencies
-
-##### Running and Testing the Frontend
-
-If you only want to start and work on the frontend, execute ``npm run dev``. This command executes Vite, which is a build tool for web development. It comes with integrated live reloading, meaning you dont have to restart Vite after making changes to the code. Make sure the Docker images are not running or else the ports overlap.
-
-To to test the frontend there are multiple commands that serve different purposes. The most important two are:
-
-```bash
-npm run test
-```
-Starts the unit tests, which are implemented using vitest as recommended by the Svelte team [https://svelte.dev/docs/svelte/testing](https://svelte.dev/docs/svelte/testing).
-
-TODO: ACHTUNG NICHT IMPLEMENTIERT!!!
-```bash
-npm run test:e2e
-```
-Starts the E2E tests which are implemented using Playwright. Playwright is the de-facto standard nowadays for end-to-end tests as it is generally faster and more reliable than Selenium for example. 
-
 
 # Classifier finetuning
 
