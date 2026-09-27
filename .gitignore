@@ -40,11 +40,14 @@ data_hybrid/midrc_images_before
 *.wandb
 /wandb
 
-# Serving checkpoints: the default ones (covnext348.pth, swin-224px_final.pth)
-# are versioned via Git LFS (see .gitattributes), so a fresh clone works out of
-# the box. Any further checkpoint file (re-downloaded, newly trained, temp)
-# stays local-only unless explicitly added.
+# Serving checkpoints: the ones the app can select (covnext348.pth,
+# swin-224px_final.pth, densenet-224px_final.pth) plus the two ConvNeXt-224
+# members of `convnext_ensemble` are versioned via Git LFS (see .gitattributes),
+# so a fresh clone works out of the box. Any further checkpoint file
+# (re-downloaded, newly trained, temp) stays local-only unless explicitly added.
 checkpoints/**/*.pth
+!checkpoints/convnext-224px_final_numero1.pth
+!checkpoints/convnext21k-224px_final.pth
 
 # Training artifacts in the repo root (the canonical copy lives under checkpoints/).
 /checkpoint.pth
