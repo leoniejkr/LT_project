@@ -150,17 +150,19 @@ decodes previously pushed the machine into swap.
 
 ## Results
 
-Per-class AUROC and pooled metrics on the held-out test patients
-(10,151 images) via
-[`evaluate_models.py`](../evaluate/evaluate_models.py) →
-[`evaluate_results.csv`](../evaluate/evaluate_results.csv):
+Macro AUC on the held-out test patients (10,151 images, 3,570 patients never
+seen in training), measured by
+[`evaluate_models.py`](../evaluate/evaluate_models.py):
 
-| Model | macro AUC | micro AUC | micro F1 | images | eval time |
-|-------|-----------|-----------|----------|--------|-----------|
-| convnext | 0.855 | 0.889 | 0.949 | 10,151 | 25.1 min |
-| swin | 0.849 | 0.887 | 0.939 | 10,151 | 9.1 min |
-| densenet | 0.842 | 0.882 | 0.943 | 10,151 | 3.7 min |
-| ensemble (convnext + swin + densenet) | 0.858 | 0.893 | 0.947 | 10,151 | 29.9 min |
+| Model | macro AUC | micro AUC |
+|-------|-----------|-----------|
+| convnext | 0.855 | 0.889 |
+| swin | 0.849 | 0.887 |
+| densenet | 0.842 | 0.882 |
+| ensemble (convnext + swin + densenet) | 0.858 | 0.893 |
+
+Per-condition AUROC, precision/recall and the tuned clinical metrics are in the
+[evaluate README](../evaluate/README.md).
 
 Thresholds are not tuned per class by default — the served scores come from the
 raw sigmoid, so recall is low on rare classes

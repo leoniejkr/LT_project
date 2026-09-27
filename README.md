@@ -44,11 +44,12 @@ The backend then validates the request data.
 If the request is valid, the backend then stores the uploaded images into the Orthanc database via a POST request to the Orthanc endpoint /tools/create-dicom and creates a patient record in Postgresql, where the Orthanc instance IDs of the images are subsequently added into the patient row. Moreover, the images are forwarded to the deep learning modelling service via a POST request to the /predict endpoint of the model. 
 
 The modelling service parses the data and loads the classifier selected in the
-frontend settings (ConvNeXt-Base by default; the extended setup also supports
-the Swin-B transformer and an **ensemble** that averages the probabilities of
-all other registered classifiers — currently ConvNeXt + Swin soft-voting,
-which typically lifts ROC-AUC; no retraining, the members are the same
-checkpoints). Each classifier applies its own training-matching preprocessing
+frontend settings (ConvNeXt-Base by default). Alongside it, Swin-B and
+DenseNet-121 are available, plus two **ensembles** that average the sigmoid
+probabilities of their members — one across the three architectures, one across
+three ConvNeXt checkpoints — which lifts ROC-AUC slightly; no retraining, the
+members are the same checkpoints. Each classifier applies its own
+training-matching preprocessing
 (the selected model's `INPUT_SIZE` + dataset normalization) and uses it to
 identify possible abnormalities and
 calculate a confidence score for each prediction. The confidence score is a
@@ -58,14 +59,14 @@ influenced the model's decision.
 
 The patient metadata is not used for the model classification but is instead forwarded to the LLM as metadata. The LLM can help the user better regarding possible questions with the metadata. 
 
-All analysis results and heatmap images are returned to the backend. The analysis results are saved in Postgresql and the heatmaps are saved in th Orthanc database. After the application/json results from the POST request are received by the frontend, the frontend extracts the Orthanc image ids of all images and sends a GET /patients/{id}/images{imageIds} to the backend. The backend sends the raw png byte stream back to the frontend. When all Orthanc images are returned, the frontend automatically navigates to the result page, where users can see the original images through a CornerstoneJS medical viewer. Furthermore, the analysis results such as the predictions, confidence scores and corresponding heatmaps can be reviewed.
+All analysis results and heatmap images are returned to the backend. The analysis results are saved in Postgresql and the heatmaps are saved in the Orthanc database. After the application/json results from the POST request are received by the frontend, the frontend extracts the Orthanc image ids of all images and sends a GET /api/patients/{id}/images/{imageID} to the backend for each of them. The backend sends the raw png byte stream back to the frontend. When all Orthanc images are returned, the frontend automatically navigates to the result page, where users can see the original images through a CornerstoneJS medical viewer. Furthermore, the analysis results such as the predictions, confidence scores and corresponding heatmaps can be reviewed.
 
 The application presents two types of prediction results. Aggregated results and individual results, which are both accompanied with confidence scores that are measured in percentages. The aggregated results are located at the top and show the aggregated, calculated classifications over all the uploaded X-Ray images, while the individual results at the bottom show the calculated classifications for each individual X-Ray image with their respective corresponding heatmaps. The classifications are ranked according to their confidence scores. The confidence threshold for shown classifications can be modified in the GUI with a slider in the results page after the calculation. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
 
 **ACHTUNG!!!!!!!!??? The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.**
 
 The patient data, X-Ray images and analysis results are stored in Postgresql and Orthanc and can be re-viewed on the history page of the application at a later point.
-The history page shows all previous analysis results. These can be deleted individually via the /api/patient/{id} endpoint with a DELETE request or collectively via the /api/analysis enpoint with a DELETE request. 
+The history page shows all previous analysis results. These can be deleted individually via the /api/patients/{id} endpoint with a DELETE request or collectively via the /api/analysis endpoint with a DELETE request. A stored analysis can also be exported as a PDF via GET /api/patients/{id}/export, and the whole history as a ZIP via GET /api/export.
 
 For more precise information about the frontend and backend workflow see [Frontend](/frontend/README.md) and [Backend](/backend/README.md).
 

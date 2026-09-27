@@ -44,14 +44,13 @@ checkpoints/*.pth ──► services/model-api ──► POST /predict ──►
 | `convnext-224px_final_numero1.pth` | `convnext_ensemble` member | ConvNeXt-Base @ 224 | 224 | 334 MB |
 | `convnext21k-224px_final.pth` | `convnext_ensemble` member | ConvNeXt-Base, ImageNet-21K | 224 | 334 MB |
 
-The first three ship via **Git LFS** (`checkpoints/*.pth`), so `git lfs pull`
-makes them available in a fresh clone. The two ConvNeXt-224 variants are
-local-only (`.gitignore`), so `convnext_ensemble` needs them placed manually.
+All five ship via **Git LFS** (`checkpoints/*.pth`), so `git lfs pull` makes
+every selectable model — including both ensembles — work in a fresh clone.
 
 ## How the model is integrated into the app
 
-- **Ship** — the served checkpoints live in `checkpoints/`, the three defaults
-  coming with the repo via Git LFS. [`docker-compose.yaml`](../../docker-compose.yaml)
+- **Ship** — the served checkpoints live in `checkpoints/`, all of them coming
+  with the repo via Git LFS. [`docker-compose.yaml`](../../docker-compose.yaml)
   mounts the folder read-only into the `modelling` service and binds each id to
   its file through env vars — see the root
   [README](../../README.md#how-to-run-and-start-the-application).
