@@ -11,7 +11,7 @@ downscale instead of 4400->384, which is visually negligible but ~30x cheaper
 on memory and page cache.
 
 Usage:
-    python ml/model/construct_data/resize_midrc.py \
+    python ml/model/construct_data/fix/resize_midrc.py \
         --src data_hybrid/midrc_fixed_images \
         --dst data_hybrid/midrc_fixed_1024 \
         --size 1024

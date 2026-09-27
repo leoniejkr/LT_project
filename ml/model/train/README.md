@@ -1,128 +1,181 @@
-# Training Pipeline — Image Preprocessing
+# Model Training
 
-This document explains how images are loaded, resized and normalized before
-they enter the model, and why.
-
-## Source image characteristics
-
-The hybrid dataset mixes two sources with very different image geometries:
-
-| Source       | Resolution                  | Orientation |
-|--------------|-----------------------------|-------------|
-| NIH          | 1024 x 1024 (always square) | standardized |
-| MIDRC (fixed)| 80+ distinct sizes, e.g. 2800x3408, 3032x2520, 4400x3610 | standardized after `fix_midrc_orientation.py` |
-
-MIDRC PNGs are far from square and vary heavily. NIH images happen to be
-square, but the pipeline below does **not** assume that — it works for any
-aspect ratio, so nothing ever gets distorted.
-
-## The augmentation pipeline (`train.py`)
-
-Every image passes through this chain:
+Fine-tunes multi-label chest X-ray classifiers for 15 findings on the hybrid
+NIH + MIDRC dataset. `train.py` is the single entry point for every backbone —
+the architecture is chosen with `--model`, everything else is shared.
 
 ```
-ResizeLongest(384)  ->  SquarePad(fill=0)  ->  [train only: flips/rotation/affine]  ->  ToTensor  ->  Normalize
+combined_master.csv ──► patient split ──► transforms ──► backbone ──► 15 logits
+ (NIH + MIDRC)          (80/10/10)        (384²/224²)   (ConvNeXt/     (sigmoid)
+                                                          Swin/DenseNet)
 ```
 
-### 1. `ResizeLongest(384)` — aspect-preserving downscale
+![Training architecture](training_architecture.png)
 
-Scales the image so its **longer side** becomes exactly 384 px; the shorter
-side follows to preserve the true aspect ratio.
+Input PNG → preprocessing → ImageNet-pretrained backbone → fully connected head
+(`Linear → 15`) → one sigmoid score per finding. Only the head is randomly
+initialized; the backbone is pre-trained and fine-tuned at a lower learning rate.
 
-- Example: `2800x3408` -> `~315x384`, `3032x2520` -> `384x~318`,
-  `1024x1024` -> `384x384`.
-- **Why not `Resize((384, 384))`?** Squashing distorts anatomy — e.g. the
-  cardiothoracic ratio changes — which actively hurts classes that depend on
-  shape (Cardiomegaly, Cardiothoracic ratios) and warps fine structure.
-- **Why fix the longer side?** It guarantees the output is *at most* 384 on
-  both sides and that, after padding, **every** output is exactly
-  `384 x 384`. Fixing the shorter side instead would leave square outputs of
-  varying size (384x467 etc.), which breaks batching.
+## Task and dataset
 
-### 2. `SquarePad(fill=0)` — black border to square
+| Property | Value |
+|----------|-------|
+| Labels | 15 findings, multi-label (`ALL_CLASSES` in `train.py`), BCE-with-logits |
+| Master CSV | `data_hybrid/combined_master.csv` — 100,758 images / 35,700 patients |
+| Sources | 93,949 NIH ChestX-ray14 (fully labelled) + 6,809 MIDRC COVID-19 (Covid label only) |
+| Split | by **patient**, stratified on `Covid`+`Effusion`, 80 / 10 / 10 train / val / test, `random_state=42` |
+| Corrupt data | rows listed in `data_hybrid/bad_images.tsv` are dropped at load time |
 
-Pads the shorter side symmetrically with black (pixel value 0) so the image
-becomes a square.
+Splitting on `patient_id` (not on rows) keeps every study of a patient inside a
+single split, so no patient leaks between train, val and test.
 
-- **Why black?** Air outside the body is black on a radiograph, so a black
-  border is anatomically consistent, and it matches the `fill=0` already used
-  by the random-rotation/affine augmentations. A bright or mid-grey border
-  would look like tissue and create a visible seam.
-- This makes MIDRC portrait/landscape images uniform without any stretching.
+### Partial labels and the masked loss
 
-### 3. Train-only spatial augmentation
+MIDRC images are only annotated for Covid; a `0` in the other 14 columns means
+*unknown*, not *verified negative*. `train.py` therefore builds a per-sample
+`mask` (1 = label known, 0 = unknown) and the models use
+`masked_loss_fn()`, which zeroes masked entries before averaging:
 
-`RandomHorizontalFlip`, `RandomRotation(5, fill=0)`, `RandomAffine(...)` run
-on the already-square image. `fill=0` keeps the same black border semantics.
+```
+loss = Σ(bce_with_logits × mask) / Σ(mask)
+```
 
-### 4. `ToTensor` + `Normalize`
+Without this, every MIDRC image would teach the model that Covid-positive
+patients never have pneumonia or effusion. The same mask is applied to the
+validation AUC, so unknown labels never count as negatives.
 
-Converts to a `(3, RESOLUTION, RESOLUTION)` float tensor in `[0, 1]`, then
-normalizes with the dataset mean/std from `dataset_stats.json` (computed by
-`compute_dataset_stats.py`). Black border pixels become `-mean/std` after
-normalization — a constant, standard value the network learns to ignore.
+## Models
 
-## Why 384 instead of 1024?
+All backbones are ImageNet-pretrained `torchvision`/`timm` models with the
+classification head replaced by a `Linear → 15` layer, wrapped in a
+`pl.LightningModule` (per-class AUROC + `configure_optimizers`). The shared
+pipeline is drawn in [`training_architecture.png`](training_architecture.png);
+only the backbone in the table below changes.
 
-Config: `train.py` -> `config["resolution"] = None`, resolved from the selected
-model's `INPUT_SIZE` (default `ChestModel` -> 384).
+| `--model` | Class (file) | Backbone / pre-training | `INPUT_SIZE` | `BATCH_SIZE` | Checkpoint |
+|-----------|--------------|--------------------------|--------------|--------------|------------|
+| `convnext` (default) | [`ChestModel`](models/chest_model.py) | ConvNeXt-Base, ImageNet-1K | 384 | 32 | `checkpoints/covnext348.pth` |
+| `convnext21k` | [`ConvNext21KChestModel`](models/chest_model.py) | ConvNeXt-Base, ImageNet-21K (timm `fb_in22k`) | 224 | 32 | `checkpoints/convnext21k-224px_final.pth` |
+| `swin` | [`SwinTransformerChestModel`](models/ViT_model.py) | Swin-B, ImageNet-1K | 224 | 24 | `checkpoints/swin-224px_final.pth` |
+| `densenet` | [`DenseNetChestModel`](models/densenet_model.py) | DenseNet-121 (CheXNet-style) | 224 | 32 | `checkpoints/densenet-224px_final.pth` |
 
-- The default model is `ConvNeXt-Base`, which is fully convolutional and accepts
-  any input size. 384 exceeds the ~224 px ImageNet default and is a common
-  "high-res" setting. Upscaling to 1024 would hand the backbone ~7x the pixels
-  of 384^2, but the backbone was not tuned for that, so the extra detail mostly
-  increases compute without a proportional performance gain.
-- Cost: a 1024^2 input is ~7x more pixels than 384^2. With batch size 32 and
-  ~95k training images on CPU/MPS, that scales runtime and memory roughly 7x.
-- Use 512 or 640 as a middle ground if more detail is needed; 1024 is not
-  worth it for this backbone.
+`BATCH_SIZE` is the model default; `config["batch_size"] = 16` currently wins
+(see below). The same ids are registered for serving in
+[`services/model-api/models_registry.py`](../../../services/model-api/models_registry.py)
+(`convnext21k` is served as a member of `convnext_ensemble`).
 
-### Resolution is model-specific
+## Variable input resolution
 
-Different backbones have different resolution constraints, so the training
-resolution is declared **on the model class**, not hardcoded:
-
-| Model | `INPUT_SIZE` | `BATCH_SIZE` | Why |
-|-------|--------------|--------------|-----|
-| `ChestModel` (ConvNeXt-Base) | 384 | 32 | Fully convolutional — any size works; 384 balances detail vs cost |
-| `SwinTransformerChestModel` (Swin-B) | 224 | 24 | Swin accepts other sizes (relative-position bias is interpolated), but ImageNet-1K weights were tuned at 224; default keeps the pretrained bias intact |
-
-To train a different model, change `MODEL_CLASS` in `train.py`:
+`config["resolution"]` is `None` by default, which means *take the resolution
+from the selected model*:
 
 ```python
-MODEL_CLASS = SwinTransformerChestModel   # -> uses INPUT_SIZE=224, BATCH_SIZE=24
+MODEL_CLASS = _select_model_class(ARGS.model or os.environ.get("TRAIN_MODEL", "convnext"))
+RESOLUTION   = config["resolution"] if config["resolution"] else MODEL_CLASS.INPUT_SIZE
+BATCH_SIZE   = config["batch_size"]   if config["batch_size"]   else MODEL_CLASS.BATCH_SIZE
 ```
 
-The `ResizeLongest`/`SquarePad` transforms are then built from
-`MODEL_CLASS.INPUT_SIZE`, so every backbone gets the resolution it was
-configured for. `config["batch_size"]`/`config["resolution"]` can override the
-model defaults if set to a non-None value.
+- Each model class declares `INPUT_SIZE` / `BATCH_SIZE` as class attributes, so
+  the geometry travels *with the architecture* instead of being hardcoded in the
+  training script. Swin, DenseNet and the 21K ConvNeXt keep the 224 px grid they
+  were pre-trained on (their relative-position bias / patch grid was tuned
+  there); the fully convolutional ConvNeXt can take 384 px for more detail.
+- `RESOLUTION` is then the single source for the `ResizeLongest` / `SquarePad`
+  transforms, so the tensor shape can never drift from what the backbone expects.
+- The same value must be used at inference: `services/model-api/model.py`
+  declares an `INPUT_SIZE` per classifier and rebuilds the identical
+  `ResizeLongest` + `SquarePad` + normalize pipeline. Training and serving
+  geometry changing independently is the main way to silently destroy accuracy.
+- Override for experiments: `--resolution 512`, `--batch-size 8`, `--epochs 10`.
+  A resolution that does not match the serving `INPUT_SIZE` yields a checkpoint
+  that must be served with the same override.
 
-## Dependencies / flow
+## Preprocessing
 
-- `combined_master.csv` is produced by `ml/model/construct_data/blend_data.py`
-  (NIH balanced + only orientation-fixed MIDRC images).
-- MIDRC fixed PNGs are huge (up to ~4400x3610 px, ~48 GB in total). Run
-  `ml/model/construct_data/resize_midrc.py` once to pre-downscale them to
-  `data_hybrid/midrc_fixed_1024/` (~1024 px long side). Without this the
-  DataLoader re-decodes full-res X-rays every epoch, thrashing a 24 GB RAM
-  machine into swap (training collapses to minutes per batch).
-- `dataset_stats.json` is produced by `compute_dataset_stats.py` and loaded by
-  `train.py` for normalization. **If missing, train.py falls back to ImageNet
-  mean/std — run the script first** so chest X-rays are normalized correctly.
-  The stats script applies the same `ResizeLongest`+`SquarePad` pipeline as
-  training (pass `--resolution` to match the selected model's `INPUT_SIZE`):
-  `python ml/model/train/compute_dataset_stats.py --csv data_hybrid/combined_master.csv --resolution 384`
-- ConvNeXt-Base pretrained weights are downloaded automatically on first use
-  into `~/.cache/torch/hub/checkpoints/` (~354 MB).
+```
+ResizeLongest(RESOLUTION) ──► SquarePad(fill=0) ──► [train only] flip / rotate 5° /
+affine ──► ToTensor ──► Normalize(dataset_stats.json)
+```
 
-## Training configuration notes
+- `ResizeLongest` scales the **longer** side to `RESOLUTION` and keeps the aspect
+  ratio, so anatomy (e.g. cardiothoracic ratio) is never squashed; `SquarePad`
+  then adds a symmetric black border, because air outside the body is black on a
+  radiograph. Every output is exactly `RESOLUTION × RESOLUTION`, so batches stack.
+- Train-only augmentation: `RandomHorizontalFlip`, `RandomRotation(5, fill=0)`,
+  `RandomAffine(translate=(0.1, 0.05), scale=(0.85, 1.15), shear=5, fill=0)`.
+  Validation uses geometry + normalization only.
+- `dataset_stats.json` holds the dataset mean/std (`0.4969` / `0.2517`,
+  computed by [`compute_dataset_stats.py`](compute_dataset_stats.py)). If the
+  file is missing, training silently falls back to ImageNet stats — run the
+  script first.
 
-- **Learning rates** (`config["backbone_lr"]` / `config["classifier_lr"]`):
-  passed to the model, which builds a 2-param-group AdamW (backbone gets
-  `backbone_lr`, the classification head gets `classifier_lr`) plus a cosine
-  schedule whose `T_max` equals `config["epochs"]`.
-- **DataLoader**: `num_workers=4`, `pin_memory` auto-off on MPS/CPU (it only
-  helps on CUDA). Adjust to taste.
-- **Metrics**: AUROC metrics are set up in the model constructor and used by
-  `training_step`/`validation_step` when trained via Lightning.
+## Training setup
+
+| Setting | Value |
+|---------|-------|
+| Optimizer | AdamW, `weight_decay=1e-2`, two param groups |
+| Learning rates | head `1e-4`, backbone `1e-5` (`backbone_factor = backbone_lr / classifier_lr`) |
+| Scheduler | `CosineAnnealingLR(T_max=epochs, eta_min=1e-6)`, stepped once per epoch |
+| Class imbalance | `pos_weight = sqrt(neg / pos)` per class, computed on the train split |
+| Loss | masked BCE (see above) |
+| Epochs | `config["epochs"] = 5`, plus an **epoch 0 baseline validation pass** before any weight update |
+| Stability | non-finite loss → batch skipped; `clip_grad_norm_(max_norm=1.0)` |
+| Checkpoints | `temp_checkpoint.pth` each epoch, final weights to `--output` (default `checkpoint.pth`) |
+| Tracking | W&B project `hybrid-xray-covid`; logs val loss, macro AUC and per-class AUC |
+| Device | CUDA → MPS → CPU; MPS memory pool capped via `PYTORCH_MPS_*_WATERMARK_RATIO` |
+
+Only known labels are used for the logged AUCs, and `Covid` (MIDRC-only positives
+vs. NIH negatives) is the one class that is fully separable in this data
+setup — it reaches AUC 1.0 and should be read as a dataset artifact rather than
+a clinical result.
+
+## How to run
+
+```bash
+# 1. one-off dataset statistics (must match the resolution you train at)
+python ml/model/train/compute_dataset_stats.py --csv data_hybrid/combined_master.csv
+
+# 2. pre-downscale the full-res MIDRC PNGs (~48 GB) once
+python ml/model/construct_data/fix/resize_midrc.py
+
+# 3. train (default: ConvNeXt-Base at 384 px)
+python ml/model/train/train.py --model convnext --epochs 5 --output checkpoints/convnext-384px.pth
+python ml/model/train/train.py --model swin --epochs 2 --output checkpoints/swin-224px_final.pth
+```
+
+`TRAIN_MODEL`, `TRAIN_WORKERS` and `WANDB_RUN_NAME` can be set instead of the
+matching flags. Workers default to `1`: each worker imports torch (~250 MB) and
+the 24 GB unified memory is shared with MPS, so more workers plus full-res
+decodes previously pushed the machine into swap.
+
+## Results
+
+Per-class AUROC and pooled metrics on the held-out test patients
+(10,151 images) via
+[`evaluate_models.py`](../evaluate/evaluate_models.py) →
+[`evaluate_results.csv`](../evaluate/evaluate_results.csv):
+
+| Model | macro AUC | micro AUC | micro F1 | images | eval time |
+|-------|-----------|-----------|----------|--------|-----------|
+| convnext | 0.855 | 0.889 | 0.949 | 10,151 | 25.1 min |
+| swin | 0.849 | 0.887 | 0.939 | 10,151 | 9.1 min |
+| densenet | 0.842 | 0.882 | 0.943 | 10,151 | 3.7 min |
+| ensemble (convnext + swin + densenet) | 0.858 | 0.893 | 0.947 | 10,151 | 29.9 min |
+
+Thresholds are not tuned per class by default — the served scores come from the
+raw sigmoid, so recall is low on rare classes
+([`tune_thresholds.py`](../evaluate/tune_thresholds.py) explores per-class
+thresholds).
+
+## Related scripts
+
+| Script | Purpose |
+|--------|---------|
+| [`compute_dataset_stats.py`](compute_dataset_stats.py) | dataset mean/std for `Normalize` |
+| [`../construct_data/blend_data.py`](../construct_data/blend_data.py) | builds `combined_master.csv` (NIH balanced + orientation-fixed MIDRC) |
+| [`../construct_data/fix/resize_midrc.py`](../construct_data/fix/resize_midrc.py) | pre-downscales MIDRC PNGs to ~1024 px long side |
+| [`../construct_data/fix/fix_midrc_orientation.py`](../construct_data/fix/fix_midrc_orientation.py) | normalizes MIDRC orientation (L/PA vs. R/PA) |
+| [`../evaluate/evaluate_models.py`](../evaluate/evaluate_models.py) | per-class AUROC on the test split |
+| [`../grad-cam/`](../grad-cam/) | Grad-CAM visualizations |
+| [`datasets.py`](datasets.py) | patient-context multi-view dataset (currently unused; `train.py` uses its own `SingleViewXRayDataset`) |
+| [`lightning_module.py`](lightning_module.py) | generic Lightning wrapper (unused by `train.py`, which drives the loop manually) |

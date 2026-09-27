@@ -265,7 +265,7 @@ def main():
 
     # MONAI pipeline: decode the DICOM + intensity normalization only.
     # Kept at native resolution on purpose: any downscale happens later
-    # in resize_midrc.py (1024 working copy) and the train/serving loader
+    # in fix/resize_midrc.py (1024 working copy) and the train/serving loader
     # (ResizeLongest to the model input), not here.
     monai_pipeline = Compose([
         LoadImage(image_only=False, reader=ITKReader()),

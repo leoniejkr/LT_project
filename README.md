@@ -71,64 +71,23 @@ For more precise information about the frontend and backend workflow see [Fronte
 
 ## How to run and start the application
 
-### Running the application
+Everything runs in Docker containers, so the only thing to install locally is
+Docker itself ([Docker Desktop](https://www.docker.com/products/docker-desktop/),
+Docker Engine on NixOS/Arch, or Colima on macOS).
 
-#### Prerequisites for running the application
-
-The application runs all required services in containers, so no separate installation of any programming language or database is needed if you only want to run the application.
-The two X-ray classifiers (ConvNeXt + Swin) ship directly in the repository via **Git LFS** (see [Model files](#model-files-x-ray-classifier-llm)); install the Git LFS client once with `git lfs install` so the model files are fetched with the clone. No Hugging Face access is needed for the default models. The fine-tuned LLM is downloaded automatically from Hugging Face by the `ollama` container on its first start.
-For most OS just install and start [Docker Desktop](https://www.docker.com/products/docker-desktop/). If you use NixOS or Arch-based systems just install the Docker Engine. For MacOS you can install Colima instead to your liking.
-
-#### Starting the application
-
-The X-ray classifier checkpoints are part of the repository (Git LFS), so a
-fresh clone already contains them. The only setup step is making Git LFS fetch
-the model files:
+From the project root:
 
 ```bash
-git lfs install
-```
-
-> If you cloned the repository **before** installing Git LFS, the checkpoints
-> arrive as small pointer files (~130 bytes instead of ~330 MB). Fix it with
-> `git lfs pull`.
-
-Then build and start the application from the project root:
-
-```bash
-docker compose build
-docker compose up
-```
-
-The `docker compose build` command builds the application images and only has to
-be executed once, as long as the code stays unchanged. The `docker compose up`
-command starts the images and has to be executed every time the application is
-to be started. The GGUF language model is downloaded by the `ollama` container
-automatically on its first start, so no model file has to be prepared manually.
-It may take a few minutes until the models are downloaded and the application
-is built.
-To combine both docker commands you can run:
-```bash
+git lfs install    # X-ray checkpoints ship via Git LFS; without this they are pointer files
+git lfs pull
 docker compose up -d --build
 ```
 
-For subsequent starts, run:
+Then open [http://localhost:5173](http://localhost:5173) in a browser. The
+fine-tuned LLM is downloaded by the `ollama` container on its first start, so the
+first run takes a few minutes.
 
-```bash
-docker compose up -d
-```
-
-Then, open [http://localhost:5173](http://localhost:5173) in a browser.
-
-To stop the application, run:
-
-```bash
-docker compose down
-```
-
-The application data and downloaded language model are stored in Docker volumes and remain available after stopping the services. Use 
-
-```bash
-docker compose down -v
-``` 
-only when you intentionally want to delete these volumes and their data.
+After that `docker compose up -d` is enough — the build is only needed when the
+code changed. `docker compose down` stops the services; application data and the
+downloaded models live in Docker volumes and survive, so add `-v` only if you
+want to delete them too.

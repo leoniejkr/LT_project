@@ -133,7 +133,7 @@ df_midrc = pd.read_csv("data_hybrid/midrc_processed_manifest.csv")
 
 # ── MIDRC ORIENTATION FIX ───────────────────────────────────────────────
 # Use ONLY the orientation-corrected copies. These live in midrc_fixed_images/
-# as full-res PNGs (up to ~4400px); resize_midrc.py pre-downscales them to
+# as full-res PNGs (up to ~4400px); fix/resize_midrc.py pre-downscales them to
 # midrc_fixed_1024/ so the training DataLoader never re-decodes 48 GB of
 # full-res X-rays every epoch (that thrashed the 24 GB machine into swap).
 # Manifest rows without a fixed (and downscaled) copy are dropped.
