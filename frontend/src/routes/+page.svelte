@@ -2,8 +2,12 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import * as Card from "$lib/components/ui/card/index.js";
+  import * as Alert from "$lib/components/ui/alert/index.js";
   import { Separator } from "$lib/components/ui/separator/index.js";
-  import * as Accordion from "$lib/components/ui/accordion/index.js";
+  import * as Item from "$lib/components/ui/item/index.js";
+  import * as Table from "$lib/components/ui/table/index.js";
+  import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+  import { Progress } from "$lib/components/ui/progress/index.js";
   import {
     ArrowRight,
     Upload,
@@ -13,6 +17,8 @@
     Brain,
     Cpu,
     Sparkles,
+    ShieldCheck,
+    CircleHelp,
   } from "lucide-svelte";
   import "../app.css";
 
@@ -37,15 +43,12 @@
     },
   ];
 
-  let formatsOpen = $state<string | undefined>("formats");
-  let modelsOpen = $state<string | undefined>("models");
-
   /** Mean ROC-AUC per model on the held-out test split (10,151 images / 3,570 patients). */
   const classifierScores = [
-    { name: "ConvNeXt", score: "0.855" },
-    { name: "Swin-B", score: "0.849" },
-    { name: "DenseNet-121", score: "0.842" },
-    { name: "Ensemble", score: "0.858" },
+    { name: "ConvNeXt", architecture: "CNN", score: 0.855 },
+    { name: "Swin-B", architecture: "Transformer", score: 0.849 },
+    { name: "DenseNet-121", architecture: "CNN", score: 0.842 },
+    { name: "Ensemble", architecture: "Soft voting", score: 0.858 },
   ];
 </script>
 
@@ -53,7 +56,21 @@
   <Card.Root class="overflow-hidden p-0">
     <div class="grid gap-0 md:grid-cols-2">
       <Card.Content class="flex flex-col justify-center p-6 md:p-8 lg:p-10">
-        <Badge variant="secondary" class="mb-4 w-fit">TrustAI</Badge>
+        <div class="mb-4 flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">TrustAI</Badge>
+          <Tooltip.Root>
+            <Tooltip.Trigger>
+              {#snippet child({ props })}
+                <Badge {...props} variant="outline" class="cursor-help gap-1">
+                  <ShieldCheck /> Research prototype
+                </Badge>
+              {/snippet}
+            </Tooltip.Trigger>
+            <Tooltip.Content>
+              Decision support for research use; not a medical device.
+            </Tooltip.Content>
+          </Tooltip.Root>
+        </div>
         <Card.Header class="p-0">
           <Card.Title>
             <h1 class="text-3xl font-bold tracking-tight md:text-5xl">
@@ -88,133 +105,186 @@
   <div class="grid gap-4 md:grid-cols-3">
     {#each steps as step, i}
       {@const Icon = step.icon}
-      <Card.Root class="p-5">
-        <Card.Header class="p-0">
-          <div
-            class="mb-4 flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary"
+      <Card.Root class="p-2">
+        <Item.Root class="h-full items-start border-0 p-3">
+          <Item.Media
+            variant="icon"
+            class="flex size-10 rounded-xl bg-primary/10 text-primary"
           >
-            <Icon size={18} />
-          </div>
-          <Card.Title class="text-lg font-semibold">
-            <h2>{i + 1}. {step.title}</h2>
-          </Card.Title>
-          <Card.Description class="mt-2">
-            {step.description}
-          </Card.Description>
-        </Card.Header>
+            <Icon />
+          </Item.Media>
+          <Item.Content>
+            <Item.Title class="text-base">
+              <Badge variant="outline" class="mr-1">Step {i + 1}</Badge>
+              {step.title}
+            </Item.Title>
+            <Item.Description class="mt-1 leading-relaxed">
+              {step.description}
+            </Item.Description>
+          </Item.Content>
+        </Item.Root>
       </Card.Root>
     {/each}
   </div>
 
   <Separator />
 
-  <Accordion.Root type="single" bind:value={formatsOpen} class="bg-card">
-    <Accordion.Item value="formats">
-      <Accordion.Trigger class="items-center gap-3 hover:no-underline">
-        <span class="flex items-center gap-3">
-          <span
-            class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+  <Card.Root>
+    <Card.Header class="flex-row items-start gap-3">
+      <div
+        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+      >
+        <Info size={18} />
+      </div>
+      <div class="space-y-1">
+        <Card.Title>
+          <h2>Supported formats &amp; pathologies</h2>
+        </Card.Title>
+        <Card.Description>
+          PNG upload · upright, front-facing chest X-rays
+        </Card.Description>
+      </div>
+    </Card.Header>
+
+    <Card.Content class="space-y-3 text-sm text-muted-foreground">
+      <Separator class="mb-4" />
+      <p>
+        Supported image format for upload: PNG. Analysis of chest X-ray
+        images to detect abnormalities and provide risk assessment based on
+        AI models.
+      </p>
+      <p>
+        DICOM files are not accepted directly and must be
+        <strong class="text-foreground">converted to PNG first</strong>.
+        Images should be
+        <strong class="text-foreground">
+          front-facing (PA/AP view) and upright
+        </strong>
+        chest X-rays, as the models were trained on upright frontal
+        projections.
+      </p>
+      <p>
+        <strong class="text-foreground">Pathologies &amp; Imaging Findings:</strong>
+        Atelectasis, Cardiomegaly, Consolidation, Edema, Effusion,
+        Emphysema, Fibrosis, Hernia, Infiltration, Mass, Nodule, Pleural
+        Thickening, Pneumonia, Pneumothorax, Covid
+      </p>
+    </Card.Content>
+  </Card.Root>
+
+  <Card.Root>
+    <Card.Header class="flex-row items-start gap-3">
+      <div
+        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
+      >
+        <Sparkles size={18} />
+      </div>
+      <div class="space-y-1">
+        <Card.Title>
+          <h2>Fine-tuned models</h2>
+        </Card.Title>
+        <Card.Description>
+          Clinical LLM &amp; X-ray classifiers, trained by us
+        </Card.Description>
+      </div>
+    </Card.Header>
+
+    <Card.Content>
+      <Separator class="mb-5" />
+
+      <div class="grid gap-5 md:grid-cols-2">
+        <Item.Root variant="muted" class="items-start">
+          <Item.Media
+            variant="icon"
+            class="flex size-9 rounded-lg bg-background text-primary"
           >
-            <Info size={16} />
-          </span>
-          <span>
-            <span class="block text-sm font-semibold">
-              Supported formats &amp; pathologies
-            </span>
-            <span class="mt-0.5 block text-xs font-normal text-muted-foreground">
-              PNG upload · upright, front-facing chest X-rays
-            </span>
-          </span>
-        </span>
-      </Accordion.Trigger>
-
-      <Accordion.Content>
-        <div class="space-y-3 border-t pt-4 text-sm text-muted-foreground">
-          <p>
-            Supported image format for upload: PNG. Analysis of chest X-ray
-            images to detect abnormalities and provide risk assessment based on
-            AI models.
-          </p>
-          <p>
-            DICOM files are not accepted directly and must be
-            <strong class="text-foreground">converted to PNG first</strong>.
-            Images should be
-            <strong class="text-foreground">
-              front-facing (PA/AP view) and upright
-            </strong>
-            chest X-rays, as the models were trained on upright frontal
-            projections.
-          </p>
-          <p>
-            <strong class="text-foreground">Pathologies &amp; Imaging Findings:</strong>
-            Atelectasis, Cardiomegaly, Consolidation, Edema, Effusion,
-            Emphysema, Fibrosis, Hernia, Infiltration, Mass, Nodule, Pleural
-            Thickening, Pneumonia, Pneumothorax, Covid
-          </p>
-        </div>
-      </Accordion.Content>
-    </Accordion.Item>
-  </Accordion.Root>
-
-  <Accordion.Root type="single" bind:value={modelsOpen} class="bg-card">
-    <Accordion.Item value="models">
-      <Accordion.Trigger class="items-center gap-3 hover:no-underline">
-        <span class="flex items-center gap-3">
-          <span
-            class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-          >
-            <Sparkles size={16} />
-          </span>
-          <span>
-            <span class="block text-sm font-semibold">Fine-tuned models</span>
-            <span class="mt-0.5 block text-xs font-normal text-muted-foreground">
-              Clinical LLM &amp; X-ray classifiers, trained by us
-            </span>
-          </span>
-        </span>
-      </Accordion.Trigger>
-
-      <Accordion.Content>
-        <div class="grid gap-5 border-t pt-4 md:grid-cols-2">
-          <div>
-            <h3 class="flex items-center gap-2 text-sm font-semibold">
-              <Brain size={14} class="text-primary" />
-              Clinical LLM
-            </h3>
-            <p class="mt-1.5 text-sm text-muted-foreground">
+            <Brain />
+          </Item.Media>
+          <Item.Content>
+            <Item.Title>Clinical LLM</Item.Title>
+            <Item.Description class="mt-1 leading-relaxed">
               Fine-tuned for exactly these 15 pathologies. Explains every finding
               in clinical terms and reasons over the patient's own data. Runs
               locally.
-            </p>
-          </div>
+            </Item.Description>
+          </Item.Content>
+        </Item.Root>
 
-          <div>
-            <h3 class="flex items-center gap-2 text-sm font-semibold">
-              <Cpu size={14} class="text-primary" />
-              X-ray classifiers
-            </h3>
-            <p class="mt-1.5 text-sm text-muted-foreground">
+        <Item.Root variant="muted" class="items-start">
+          <Item.Media
+            variant="icon"
+            class="flex size-9 rounded-lg bg-background text-primary"
+          >
+            <Cpu />
+          </Item.Media>
+          <Item.Content>
+            <Item.Title>X-ray classifiers</Item.Title>
+            <Item.Description class="mt-1 leading-relaxed">
               ConvNeXt, Swin-B and DenseNet-121, fine-tuned on the NIH and MIDRC
               chest X-ray datasets, plus a soft-voting ensemble.
-            </p>
-          </div>
-        </div>
+            </Item.Description>
+          </Item.Content>
+        </Item.Root>
+      </div>
 
-        <dl class="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t pt-4 text-xs">
-          {#each classifierScores as c}
-            <div class="flex items-baseline gap-1.5">
-              <dt class="text-muted-foreground">{c.name}</dt>
-              <dd class="font-mono font-medium tabular-nums">{c.score}</dd>
-            </div>
-          {/each}
-        </dl>
-        <p class="mt-2 text-xs text-muted-foreground">
-          Mean ROC-AUC on 10,151 held-out images from 3,570 unseen patients.
-          Research prototype — not a medical device.
-        </p>
-      </Accordion.Content>
-    </Accordion.Item>
-  </Accordion.Root>
+      <Card.Root class="mt-5 overflow-hidden py-0">
+        <Table.Root>
+          <Table.Caption class="pb-4 text-xs">
+            Mean ROC-AUC on 10,151 held-out images from 3,570 unseen patients.
+          </Table.Caption>
+          <Table.Header class="bg-muted/50">
+            <Table.Row>
+              <Table.Head class="pl-4">Model</Table.Head>
+              <Table.Head>Architecture</Table.Head>
+              <Table.Head class="w-[42%]">Mean ROC-AUC</Table.Head>
+            </Table.Row>
+          </Table.Header>
+          <Table.Body>
+            {#each classifierScores as classifier}
+              <Table.Row>
+                <Table.Cell class="pl-4 font-medium">
+                  {classifier.name}
+                  {#if classifier.name === "Ensemble"}
+                    <Badge variant="secondary" class="ml-2">Best</Badge>
+                  {/if}
+                </Table.Cell>
+                <Table.Cell class="text-muted-foreground">
+                  {classifier.architecture}
+                </Table.Cell>
+                <Table.Cell>
+                  <div class="flex min-w-36 items-center gap-3">
+                    <Progress
+                      value={classifier.score * 100}
+                      max={100}
+                      class="h-2"
+                      aria-label={classifier.name + " mean ROC-AUC"}
+                    />
+                    <span class="w-10 font-mono text-xs font-medium tabular-nums">
+                      {classifier.score.toFixed(3)}
+                    </span>
+                  </div>
+                </Table.Cell>
+              </Table.Row>
+            {/each}
+          </Table.Body>
+        </Table.Root>
+      </Card.Root>
+    </Card.Content>
+  </Card.Root>
+
+  <Alert.Root>
+    <CircleHelp />
+    <Alert.Title>Clinical decision support only</Alert.Title>
+    <Alert.Description>
+      TrustAI is a research prototype. Its output must be reviewed by a qualified
+      clinician and must not replace professional diagnosis.
+    </Alert.Description>
+    <Alert.Action>
+      <Button href="/upload" variant="outline" size="sm">
+        Try it <ArrowRight />
+      </Button>
+    </Alert.Action>
+  </Alert.Root>
 </div>
 
 <style lang="postcss">
