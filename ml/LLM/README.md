@@ -507,8 +507,9 @@ If the answer comes back in the trained section format (`**Symptoms:** …`,
 
 ## Use cases
 
-Both use cases reach the model through the **locally running Ollama service**,
-using the model selected per analysis (see
+Both use cases reach the model through the **Ollama service**, which runs as a
+container in the same Docker Compose stack (see the root
+[README](../../README.md)), using the model selected per analysis (see
 [Model selection at runtime](#model-selection-at-runtime) above).
 
 ### A. Natural Language Information Box
