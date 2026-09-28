@@ -3,7 +3,17 @@
   import { Badge } from "$lib/components/ui/badge/index.js";
   import * as Card from "$lib/components/ui/card/index.js";
   import { Separator } from "$lib/components/ui/separator/index.js";
-  import { ArrowRight, Upload, Stethoscope, FileText, Info } from "lucide-svelte";
+  import * as Accordion from "$lib/components/ui/accordion/index.js";
+  import {
+    ArrowRight,
+    Upload,
+    Stethoscope,
+    FileText,
+    Info,
+    Brain,
+    Cpu,
+    Sparkles,
+  } from "lucide-svelte";
   import "../app.css";
 
   const steps = [
@@ -25,6 +35,17 @@
       description:
         "Inspect the model predictions and supporting image insights. Chat with the AI to understand the findings and get additional information.",
     },
+  ];
+
+  let formatsOpen = $state<string | undefined>("formats");
+  let modelsOpen = $state<string | undefined>("models");
+
+  /** Mean ROC-AUC per model on the held-out test split (10,151 images / 3,570 patients). */
+  const classifierScores = [
+    { name: "ConvNeXt", score: "0.855" },
+    { name: "Swin-B", score: "0.849" },
+    { name: "DenseNet-121", score: "0.842" },
+    { name: "Ensemble", score: "0.858" },
   ];
 </script>
 
@@ -87,33 +108,123 @@
 
   <Separator />
 
-  <Card.Root class="p-5">
-    <Card.Header class="p-0">
-      <div class="flex items-center gap-3">
-        <div
-          class="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
-        >
-          <Info size={18} />
+  <Accordion.Root
+    type="single"
+    collapsible
+    bind:value={formatsOpen}
+    class="bg-card"
+  >
+    <Accordion.Item value="formats">
+      <Accordion.Trigger class="items-center gap-3 hover:no-underline">
+        <span class="flex items-center gap-3">
+          <span
+            class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+          >
+            <Info size={16} />
+          </span>
+          <span>
+            <span class="block text-sm font-semibold">
+              Supported formats &amp; pathologies
+            </span>
+            <span class="mt-0.5 block text-xs font-normal text-muted-foreground">
+              PNG upload · upright, front-facing chest X-rays
+            </span>
+          </span>
+        </span>
+      </Accordion.Trigger>
+
+      <Accordion.Content>
+        <div class="space-y-3 border-t pt-4 text-sm text-muted-foreground">
+          <p>
+            Supported image format for upload: PNG. Analysis of chest X-ray
+            images to detect abnormalities and provide risk assessment based on
+            AI models.
+          </p>
+          <p>
+            DICOM files are not accepted directly and must be
+            <strong class="text-foreground">converted to PNG first</strong>.
+            Images should be
+            <strong class="text-foreground">
+              front-facing (PA/AP view) and upright
+            </strong>
+            chest X-rays, as the models were trained on upright frontal
+            projections.
+          </p>
+          <p>
+            <strong class="text-foreground">Pathologies &amp; Imaging Findings:</strong>
+            Atelectasis, Cardiomegaly, Consolidation, Edema, Effusion,
+            Emphysema, Fibrosis, Hernia, Infiltration, Mass, Nodule, Pleural
+            Thickening, Pneumonia, Pneumothorax, Covid
+          </p>
         </div>
-        <Card.Title class="text-lg font-semibold">
-          <h2>Supported formats &amp; Pathologies &amp; Imaging Findings</h2>
-        </Card.Title>
-      </div>
-      <Card.Description class="mt-3 space-y-3">
-        <p>
-          Supported image format for upload: PNG. Analysis of chest X-ray
-          images to detect abnormalities and provide risk assessment based on AI
-          models.
+      </Accordion.Content>
+    </Accordion.Item>
+  </Accordion.Root>
+
+  <Accordion.Root
+    type="single"
+    collapsible
+    bind:value={modelsOpen}
+    class="bg-card"
+  >
+    <Accordion.Item value="models">
+      <Accordion.Trigger class="items-center gap-3 hover:no-underline">
+        <span class="flex items-center gap-3">
+          <span
+            class="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary"
+          >
+            <Sparkles size={16} />
+          </span>
+          <span>
+            <span class="block text-sm font-semibold">Fine-tuned models</span>
+            <span class="mt-0.5 block text-xs font-normal text-muted-foreground">
+              Clinical LLM &amp; X-ray classifiers, trained by us
+            </span>
+          </span>
+        </span>
+      </Accordion.Trigger>
+
+      <Accordion.Content>
+        <div class="grid gap-5 border-t pt-4 md:grid-cols-2">
+          <div>
+            <h3 class="flex items-center gap-2 text-sm font-semibold">
+              <Brain size={14} class="text-primary" />
+              Clinical LLM
+            </h3>
+            <p class="mt-1.5 text-sm text-muted-foreground">
+              Fine-tuned for exactly these 15 pathologies. Explains every finding
+              in clinical terms and reasons over the patient's own data. Runs
+              locally.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="flex items-center gap-2 text-sm font-semibold">
+              <Cpu size={14} class="text-primary" />
+              X-ray classifiers
+            </h3>
+            <p class="mt-1.5 text-sm text-muted-foreground">
+              ConvNeXt, Swin-B and DenseNet-121, fine-tuned on the NIH and MIDRC
+              chest X-ray datasets, plus a soft-voting ensemble.
+            </p>
+          </div>
+        </div>
+
+        <dl class="mt-4 flex flex-wrap gap-x-5 gap-y-1 border-t pt-4 text-xs">
+          {#each classifierScores as c}
+            <div class="flex items-baseline gap-1.5">
+              <dt class="text-muted-foreground">{c.name}</dt>
+              <dd class="font-mono font-medium tabular-nums">{c.score}</dd>
+            </div>
+          {/each}
+        </dl>
+        <p class="mt-2 text-xs text-muted-foreground">
+          Mean ROC-AUC on 10,151 held-out images from 3,570 unseen patients.
+          Research prototype — not a medical device.
         </p>
-        <p>
-          Pathologies &amp; Imaging Findings: Atelectasis, Cardiomegaly,
-          Consolidation, Edema, Effusion, Emphysema, Fibrosis, Hernia,
-          Infiltration, Mass, Nodule, Pleural Thickening, Pneumonia,
-          Pneumothorax, Covid
-        </p>
-      </Card.Description>
-    </Card.Header>
-  </Card.Root>
+      </Accordion.Content>
+    </Accordion.Item>
+  </Accordion.Root>
 </div>
 
 <style lang="postcss">
