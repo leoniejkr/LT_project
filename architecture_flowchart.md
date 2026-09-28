@@ -1,6 +1,6 @@
----
-title: TrustAI – Production runtime architecture
----
+## TrustAI – Production runtime architecture
+```mermaid
+
 flowchart LR
     user["Clinician<br/>Web browser"]
 
@@ -43,3 +43,4 @@ flowchart LR
     checkpoints -->|"Model weights"| modelling
     huggingFace -.->|"Download on first startup"| ollama
     modelVolumes -->|"Cached models"| ollama
+```

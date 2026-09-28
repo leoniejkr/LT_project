@@ -2,7 +2,7 @@
 
 Information concerning the whole project is located under the [General Project README](/README.md).
 
-[This Mermaid flowchart](/frontend/frontend-flowchart-for-presentation.mmd) shows the main frontend workflow from a rather non technical perspective. From entering patient data and uploading X-rays to viewing analysis results, heatmaps and previous analyses.
+[This Mermaid flowchart](/frontend/frontend-flowchart-for-presentation.mmd) shows the main frontend workflow from a rather non technical perspective. A more technical diagram is [this](/architecture_flowchart.md) general flowchart diagram and [this](/backend/sequence_diagramm_start_analysis.md) sequence diagram.
 
 ## Structure of the Frontend
 The frontend is written in Typescript in combination with Svelte and SvelteKit as a build tool. SvelteKit uses Vite, which is a building and live reloading tool. Live reloading capabilities in development assure, that you do not have to restart any server or Docker container after changes. The tool does updates automatically after every source code change.
@@ -27,6 +27,7 @@ After receiving all necessary data, the user is forwarded automatically to the r
 The images are displayed using CornerstoneJS. 
 
 Historical results can be accessed via the history page and are loaded from GET /api/patients. When one patient analysis is clicked on, GET /api/patients/{patient_id}/analysis and GET /api/patients/{patient_id}/images/{orthanc_id} are called and the user is forwarded to a historical analysis result page.
+Historical results can also be deleted in batch from Orthanc and PostgreSQL via the DELETE /api/analysis endpoint or for each patient individually via the DELETE /api/patients/{id} endpoint.
 
 Through the settings page classifier and LLM can be changed, as well as the confidence threshold for the classifications. All selectable classifiers and LLMs are written down as IDs in models.ts.
 When starting an analysis, the classfier and LLM IDs that is to be used is sent with the rest of the request form data. The backend forwards the model IDs with the rest of the data to the classifier via the model API and LLM.
@@ -48,7 +49,7 @@ to install all dependencies
 ### Running and Testing the Frontend
 
 If you only want to start and work on the frontend, execute ``npm run dev``. This command executes Vite. Make sure the Docker images are not running or else the ports overlap.
-Remember, that starting the complete application via Docker requires you to be in the root directory.
+Remember, that starting the complete application via Docker requires you to be in the root directory, while starting only the frontend requires you do be in the frontend directory.
 
 To test the frontend, execute:
 ```bash
@@ -63,7 +64,7 @@ npm run build
 ## Concepts and Frameworks
 
 ### Svelte Stores
-They hold reactive states. Writable stores can be uploaded directly and derived stores calculate a value from other stores. They are the equivalent to React hooks.
+They hold reactive states. Writable stores can be uploaded directly and derived stores calculate a value from other stores. They are the similar to React hooks.
 
 ### ConrnerstoneJS
 A medical image rendering library that is used on the result page for the upload images and the heatmaps. It provides zooming, contrast and position adjustment of the image.
