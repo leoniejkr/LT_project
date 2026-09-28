@@ -69,9 +69,9 @@ When the user asks a follow-up question in the chat panel on the results page, t
 The patient data, X-Ray images and analysis results are stored in Postgresql and Orthanc and can be re-viewed on the history page of the application at a later point.
 The history page shows all previous analysis results. These can be deleted individually via the /api/patients/{id} endpoint with a DELETE request or collectively via the /api/analysis endpoint with a DELETE request. A stored analysis can also be exported as a PDF via GET /api/patients/{id}/export, and the whole history as a ZIP via GET /api/export.
 
-This document only sketches the two models. For the precise details see the dedicated READMEs: [X-ray classifier](/ml/model/train/README.md) for how the dataset is built, how images are preprocessed, and how the backbones are trained, [Evaluation](/ml/model/evaluate/README.md) for the measured performance on a held-out test split, and [LLM](/ml/LLM/README.md) for how the fine-tuned Llama-3-8B was trained and how it is prompted at runtime.
+This document only sketches the two models. For the precise details see the dedicated READMEs: [X-ray classifier](/ml/model/README.md) for how the dataset is built, how images are preprocessed, how the backbones are trained, how the checkpoints are served, and [LLM](/ml/LLM/README.md) for how the fine-tuned Llama-3-8B was trained and how it is prompted at runtime.
 
-For more precise information about the frontend and backend workflow see [Frontend](/frontend/README.md) and [Backend](/backend/README.md). The production runtime is drawn in [architecture_flowchart.mmd](architecture_flowchart.mmd) (Mermaid).
+For more precise information about the frontend and backend workflow see [Frontend](/frontend/README.md) and [Backend](/backend/README.md). The production runtime is drawn in [architecture_flowchart.md](architecture_flowchart.md) (Mermaid).
 
 ## How to run and start the application
 
