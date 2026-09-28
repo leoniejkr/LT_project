@@ -2,7 +2,7 @@
 
 Information concerning the whole project is located under the [General Project README](/README.md).
 
-[This Mermaid flowchart](/frontend/frontend-flowchart-for-presentation.mmd) shows the main frontend workflow from a rather non technical perspective. A more technical diagram is [this](/architecture_flowchart.md) general flowchart diagram and [this](/backend/sequence_diagramm_start_analysis.md) sequence diagram.
+[This Mermaid flowchart](/frontend/frontend-flowchart.md) shows the main frontend workflow from a rather non technical perspective. A more technical diagram is [this](/architecture_flowchart.md) general flowchart diagram and [this](/backend/sequence_diagramm_start_analysis.md) sequence diagram.
 
 ## Structure of the Frontend
 The frontend is written in Typescript in combination with Svelte and SvelteKit as a build tool. SvelteKit uses Vite, which is a building and live reloading tool. Live reloading capabilities in development assure, that you do not have to restart any server or Docker container after changes. The tool does updates automatically after every source code change.
