@@ -1,7 +1,8 @@
-"""Dump per-image predictions for every registered classifier to NPZ so the
-bootstrap script (bootstrap_ci.py) can compute confidence intervals without
-re-running inference. Reuses evaluate_models.predict() so the numbers are
-identical to evaluate_results.csv.
+"""Dump per-image predictions for every registered classifier to NPZ so
+confidence intervals can be computed later without re-running inference
+(see the Caveats section of the evaluate README). Reuses
+evaluate_models.predict() so the numbers are identical to
+evaluate_results.csv.
 
 Usage (run from the repo root, in the ml venv):
     python ml/model/evaluate/save_preds.py --outdir ml/model/evaluate/preds
