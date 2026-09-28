@@ -70,4 +70,4 @@ They hold reactive states. Writable stores can be uploaded directly and derived 
 A medical image rendering library that is used on the result page for the upload images and the heatmaps. It provides zooming, contrast and position adjustment of the image.
 
 ### ShadCN and Tailwind CSS
-ShadCN provides pre-built, reusable UI components and CSS theming. It uses Tailwind CSS for class styling.
+ShadCN provides pre-built, reusable UI components and CSS theming. It uses Tailwind CSS for class styling. We use a ShadCN fork that is changed to fit Svelte as the normal ShadCN project is incompatible with Svelte structures.
