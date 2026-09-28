@@ -108,12 +108,7 @@
 
   <Separator />
 
-  <Accordion.Root
-    type="single"
-    collapsible
-    bind:value={formatsOpen}
-    class="bg-card"
-  >
+  <Accordion.Root type="single" bind:value={formatsOpen} class="bg-card">
     <Accordion.Item value="formats">
       <Accordion.Trigger class="items-center gap-3 hover:no-underline">
         <span class="flex items-center gap-3">
@@ -161,12 +156,7 @@
     </Accordion.Item>
   </Accordion.Root>
 
-  <Accordion.Root
-    type="single"
-    collapsible
-    bind:value={modelsOpen}
-    class="bg-card"
-  >
+  <Accordion.Root type="single" bind:value={modelsOpen} class="bg-card">
     <Accordion.Item value="models">
       <Accordion.Trigger class="items-center gap-3 hover:no-underline">
         <span class="flex items-center gap-3">
