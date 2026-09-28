@@ -31,6 +31,7 @@ It is divided into a frontend (located in /frontend), which is built with Typesc
 The backend uses PostgreSQL for structured patient and analysis data, while Orthanc is used for X-Ray and heatmap storage.
 The OpenAPI standard in combination with Swagger are used to construct the REST API and its' specification.
 
+[Here](/architecture_flowchart.md) is a flowchart of all endpoints and how the different parts of the system communicate.
 
 #### User centric workflow 
 

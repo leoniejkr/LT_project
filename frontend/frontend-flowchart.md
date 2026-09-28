@@ -1,3 +1,4 @@
+```mermaid
 flowchart LR
  subgraph frontend["Frontend"]
         settingspage["Student opens Settings Page"]
@@ -25,3 +26,4 @@ flowchart LR
     historysingle --> api2
     settingspage --> settings
     uploadpage --> upload
+```
