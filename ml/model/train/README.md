@@ -4,12 +4,6 @@ Fine-tunes multi-label chest X-ray classifiers for 15 findings on the hybrid
 NIH + MIDRC dataset. `train.py` is the single entry point for every backbone —
 the architecture is chosen with `--model`, everything else is shared.
 
-```
-combined_master.csv ──► patient split ──► transforms ──► backbone ──► 15 logits
- (NIH + MIDRC)          (80/10/10)        (384²/224²)   (ConvNeXt/     (sigmoid)
-                                                          Swin/DenseNet)
-```
-
 ![Training architecture](training_architecture.png)
 
 Input PNG → preprocessing → ImageNet-pretrained backbone → fully connected head
@@ -17,6 +11,13 @@ Input PNG → preprocessing → ImageNet-pretrained backbone → fully connected
 initialized; the backbone is pre-trained and fine-tuned at a lower learning rate.
 
 ## Task and dataset
+
+The 15 output classes, in `ALL_CLASSES` order (this order is the output order of
+the model and the key order of every prediction payload):
+
+`Atelectasis`, `Cardiomegaly`, `Consolidation`, `Edema`, `Effusion`,
+`Emphysema`, `Fibrosis`, `Hernia`, `Infiltration`, `Mass`, `Nodule`,
+`Pleural_Thickening`, `Pneumonia`, `Pneumothorax`, `Covid`
 
 | Property | Value |
 |----------|-------|
@@ -59,8 +60,9 @@ only the backbone in the table below changes.
 | `swin` | [`SwinTransformerChestModel`](models/ViT_model.py) | Swin-B, ImageNet-1K | 224 | 24 | `checkpoints/swin-224px_final.pth` |
 | `densenet` | [`DenseNetChestModel`](models/densenet_model.py) | DenseNet-121 (CheXNet-style) | 224 | 32 | `checkpoints/densenet-224px_final.pth` |
 
-`BATCH_SIZE` is the model default; `config["batch_size"] = 16` currently wins
-(see below). The same ids are registered for serving in
+`BATCH_SIZE` is what each model recommends, but `config["batch_size"] = 16`
+overrides all of them — 16 is what the shipped checkpoints were trained at. The
+same ids are registered for serving in
 [`services/model-api/models_registry.py`](../../../services/model-api/models_registry.py)
 (`convnext21k` is served as a member of `convnext_ensemble`).
 
@@ -82,10 +84,8 @@ BATCH_SIZE   = config["batch_size"]   if config["batch_size"]   else MODEL_CLASS
   there); the fully convolutional ConvNeXt can take 384 px for more detail.
 - `RESOLUTION` is then the single source for the `ResizeLongest` / `SquarePad`
   transforms, so the tensor shape can never drift from what the backbone expects.
-- The same value must be used at inference: `services/model-api/model.py`
-  declares an `INPUT_SIZE` per classifier and rebuilds the identical
-  `ResizeLongest` + `SquarePad` + normalize pipeline. Training and serving
-  geometry changing independently is the main way to silently destroy accuracy.
+- The serving side must use the same value — see the
+  [model README](../README.md#how-the-model-is-integrated-into-the-app).
 - Override for experiments: `--resolution 512`, `--batch-size 8`, `--epochs 10`.
   A resolution that does not match the serving `INPUT_SIZE` yields a checkpoint
   that must be served with the same override.
@@ -124,11 +124,6 @@ affine ──► ToTensor ──► Normalize(dataset_stats.json)
 | Tracking | W&B project `hybrid-xray-covid`; logs val loss, macro AUC and per-class AUC |
 | Device | CUDA → MPS → CPU; MPS memory pool capped via `PYTORCH_MPS_*_WATERMARK_RATIO` |
 
-Only known labels are used for the logged AUCs, and `Covid` (MIDRC-only positives
-vs. NIH negatives) is the one class that is fully separable in this data
-setup — it reaches AUC 1.0 and should be read as a dataset artifact rather than
-a clinical result.
-
 ## How to run
 
 ```bash
@@ -161,13 +156,21 @@ seen in training), measured by
 | densenet | 0.842 | 0.882 |
 | ensemble (convnext + swin + densenet) | 0.858 | 0.893 |
 
-Per-condition AUROC, precision/recall and the tuned clinical metrics are in the
-[evaluate README](../evaluate/README.md).
+Two caveats when reading these numbers:
 
-Thresholds are not tuned per class by default — the served scores come from the
-raw sigmoid, so recall is low on rare classes
-([`tune_thresholds.py`](../evaluate/tune_thresholds.py) explores per-class
-thresholds).
+- `Covid` reaches **AUC 1.0** and should not be read as a clinical result. Every
+  Covid positive is a MIDRC image and every negative an NIH image, so the model
+  can separate the two sources instead of the pathology. It is a property of
+  this dataset blend.
+- Per-condition AUROC, precision/recall and the tuned clinical metrics are in
+  the [evaluate README](../evaluate/README.md).
+
+Thresholds are not applied by the service: `/predict` returns the raw sigmoid
+per class, and what the UI shows is decided by the decision-mode setting
+(frontend, τ = 0.2 / 0.5 / 0.8 or custom).
+[`tune_thresholds.py`](../evaluate/tune_thresholds.py) explores per-class
+thresholds tuned on `val`, which is what the low precision *and* recall at
+τ = 0.5 reflect.
 
 ## Related scripts
 
@@ -176,8 +179,9 @@ thresholds).
 | [`compute_dataset_stats.py`](compute_dataset_stats.py) | dataset mean/std for `Normalize` |
 | [`../construct_data/blend_data.py`](../construct_data/blend_data.py) | builds `combined_master.csv` (NIH balanced + orientation-fixed MIDRC) |
 | [`../construct_data/fix/resize_midrc.py`](../construct_data/fix/resize_midrc.py) | pre-downscales MIDRC PNGs to ~1024 px long side |
-| [`../construct_data/fix/fix_midrc_orientation.py`](../construct_data/fix/fix_midrc_orientation.py) | normalizes MIDRC orientation (L/PA vs. R/PA) |
+| [`../construct_data/fix/fix_midrc_orientation.py`](../construct_data/fix/fix_midrc_orientation.py) | normalizes MIDRC orientation |
 | [`../evaluate/evaluate_models.py`](../evaluate/evaluate_models.py) | per-class AUROC on the test split |
-| [`../grad-cam/`](../grad-cam/) | Grad-CAM visualizations |
-| [`datasets.py`](datasets.py) | patient-context multi-view dataset (currently unused; `train.py` uses its own `SingleViewXRayDataset`) |
-| [`lightning_module.py`](lightning_module.py) | generic Lightning wrapper (unused by `train.py`, which drives the loop manually) |
+
+`train.py` drives the training loop itself rather than using `pl.Trainer`, so the
+`training_step` / `validation_step` methods on the model classes exist for
+Lightning compatibility only.

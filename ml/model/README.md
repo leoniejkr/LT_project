@@ -28,30 +28,37 @@ checkpoints/*.pth ──► services/model-api ──► POST /predict ──►
 | [`construct_data/fix/`](construct_data/fix/) | MIDRC orientation correction (4-class ResNet-18) and the 1024 px working copies | [README](construct_data/fix/README.md) |
 | [`train/`](train/) | Trains every backbone; declares resolution, batch size, optimizer and loss | [README](train/README.md) |
 | [`evaluate/`](evaluate/) | Per-class AUROC and clinical metrics on the held-out test patients, plus threshold tuning | [README](evaluate/README.md) |
-| [`grad-cam/`](grad-cam/) | Standalone Grad-CAM visualization scripts | — |
+
+The model predicts 15 findings per image — `Atelectasis`, `Cardiomegaly`,
+`Consolidation`, `Edema`, `Effusion`, `Emphysema`, `Fibrosis`, `Hernia`,
+`Infiltration`, `Mass`, `Nodule`, `Pleural_Thickening`, `Pneumonia`,
+`Pneumothorax`, `Covid` — as raw sigmoid scores. What the UI shows is decided by
+the frontend decision-mode threshold.
 
 ## Checkpoints
 
 `train.py` writes a plain `state_dict` to `--output`. The deployed ones live in
 `checkpoints/` at the repo root and are mirrored one-to-one by the classes in
-`services/model-api/model.py`, which are loaded with `strict=True`.
+`services/model-api/model.py`, which are loaded with `strict=True`. All five ship
+via **Git LFS**, so `git lfs pull` makes every selectable model work in a fresh
+clone.
 
-| Checkpoint | Model id | Architecture | `INPUT_SIZE` | Size |
-|------------|----------|--------------|--------------|------|
-| `covnext348.pth` | `convnext` (default) | ConvNeXt-Base, ImageNet-1K | 384 | 334 MB |
-| `swin-224px_final.pth` | `swin` | Swin-B, ImageNet-1K | 224 | 332 MB |
-| `densenet-224px_final.pth` | `densenet` | DenseNet-121 | 224 | 27 MB |
-| `convnext-224px_final_numero1.pth` | `convnext_ensemble` member | ConvNeXt-Base @ 224 | 224 | 334 MB |
-| `convnext21k-224px_final.pth` | `convnext_ensemble` member | ConvNeXt-Base, ImageNet-21K | 224 | 334 MB |
+| Checkpoint | Model id | Size |
+|------------|----------|------|
+| `covnext348.pth` | `convnext` (default) | 334 MB |
+| `swin-224px_final.pth` | `swin` | 332 MB |
+| `densenet-224px_final.pth` | `densenet` | 27 MB |
+| `convnext-224px_final_numero1.pth` | `convnext_ensemble` member | 334 MB |
+| `convnext21k-224px_final.pth` | `convnext_ensemble` member | 334 MB |
 
-All five ship via **Git LFS** (`checkpoints/*.pth`), so `git lfs pull` makes
-every selectable model — including both ensembles — work in a fresh clone.
+Architecture, pre-training source and `INPUT_SIZE` per model are in the
+[train README](train/README.md#models).
 
 ## How the model is integrated into the app
 
-- **Ship** — the served checkpoints live in `checkpoints/`, all of them coming
-  with the repo via Git LFS. [`docker-compose.yaml`](../../docker-compose.yaml)
-  mounts the folder read-only into the `modelling` service and binds each id to
+- **Ship** — the served checkpoints live in `checkpoints/` and are mounted
+  read-only into the `modelling` service by
+  [`docker-compose.yaml`](../../docker-compose.yaml), which also binds each id to
   its file through env vars — see the root
   [README](../../README.md#how-to-run-and-start-the-application).
 - **Select** — the frontend sends a model id
