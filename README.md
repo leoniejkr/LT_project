@@ -63,12 +63,14 @@ All analysis results and heatmap images are returned to the backend. The analysi
 
 The application presents two types of prediction results. Aggregated results and individual results, which are both accompanied with confidence scores that are measured in percentages. The aggregated results are located at the top and show the aggregated, calculated classifications over all the uploaded X-Ray images, while the individual results at the bottom show the calculated classifications for each individual X-Ray image with their respective corresponding heatmaps. The classifications are ranked according to their confidence scores. The confidence threshold for shown classifications can be modified in the GUI with a slider in the results page after the calculation. The dashboard also passes the relevant patient information and findings to the chatbot, allowing the underlying LLM to answer questions, explain the results, and support risk assessment.
 
-**ACHTUNG!!!!!!!!??? The chatbot connects to the locally running Ollama service, which provides the language model used for the conversational assistance.**
+When the user asks a follow-up question in the chat panel on the results page, the frontend sends the message to the Go backend via the /api/chat REST endpoint. The browser never contacts the language model itself: the backend combines the conversation so far with the patient's metadata and the model's findings as a system message, forwards it to Ollama's /api/chat endpoint, and returns the generated answer to the frontend, where it appears in the chat panel. Ollama runs our fine-tuned trustai-llm model (Llama-3-8B) and is part of the Docker Compose setup, so it requires no separate installation and is started automatically together with the application.
 
 The patient data, X-Ray images and analysis results are stored in Postgresql and Orthanc and can be re-viewed on the history page of the application at a later point.
 The history page shows all previous analysis results. These can be deleted individually via the /api/patients/{id} endpoint with a DELETE request or collectively via the /api/analysis endpoint with a DELETE request. A stored analysis can also be exported as a PDF via GET /api/patients/{id}/export, and the whole history as a ZIP via GET /api/export.
 
-For more precise information about the frontend and backend workflow see [Frontend](/frontend/README.md) and [Backend](/backend/README.md).
+This document only sketches the two models. For the precise details see the dedicated READMEs: [X-ray classifier](/ml/model/train/README.md) for how the dataset is built, how images are preprocessed, and how the backbones are trained, [Evaluation](/ml/model/evaluate/README.md) for the measured performance on a held-out test split, and [LLM](/ml/LLM/README.md) for how the fine-tuned Llama-3-8B was trained and how it is prompted at runtime.
+
+For more precise information about the frontend and backend workflow see [Frontend](/frontend/README.md) and [Backend](/backend/README.md). The production runtime is drawn in [architecture_flowchart.mmd](architecture_flowchart.mmd) (Mermaid).
 
 ## How to run and start the application
 
